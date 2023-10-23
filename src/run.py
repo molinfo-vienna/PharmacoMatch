@@ -16,12 +16,44 @@ from model import *
 def run(device):
     ROOT = "/data/shared/projects/PhectorDB/pretraining_data/small"
     EPOCHS = 1000
-    TEST_SET_EVAL = True
-    # MODEL = GCN
+    TRAINING = True
+    BATCH_SIZE = 256
+    MODEL = PharmCLR
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(42)
-    datamodule = PharmacophoreDataModule(ROOT)
-    datamodule.setup("fit")
+    datamodule = PharmacophoreDataModule(ROOT, batch_size=BATCH_SIZE)
+
+    def training():
+        datamodule.setup("fit")
+        params = dict(num_node_features=9, num_edge_features=5)
+        hyperparams = MODEL.get_hyperparams()
+        model = MODEL(hyperparams, params)
+
+        tb_logger = TensorBoardLogger(
+            "logs/", name=f"PharmCLR", default_hp_metric=False
+        )
+
+        callbacks = []
+
+        trainer = Trainer(
+            num_nodes=1,
+            devices=[device],
+            max_epochs=EPOCHS,
+            accelerator="gpu",
+            logger=tb_logger,
+            log_every_n_steps=1,
+            callbacks=callbacks,
+        )
+
+        trainer.fit(model=model, datamodule=datamodule)
+
+    def testing():
+        pass
+
+    if TRAINING:
+        training()
+    else:
+        testing()
 
 
 if __name__ == "__main__":

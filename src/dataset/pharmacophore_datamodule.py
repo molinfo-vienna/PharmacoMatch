@@ -7,9 +7,10 @@ from .pharmacophore_dataset import PharmacophoreDataset
 
 
 class PharmacophoreDataModule(LightningDataModule):
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, batch_size=None):
         super(PharmacophoreDataModule, self).__init__()
         self.data_dir = data_dir
+        self.batch_size = batch_size
         # self.transform = None
         self.transform = T.Compose(
             [T.KNNGraph(k=100), T.ToUndirected(), T.Distance(norm=False), DistanceRDF()]
@@ -36,13 +37,22 @@ class PharmacophoreDataModule(LightningDataModule):
         #     print(f"Number of test graphs: {len(self.test_data)}")
 
     def train_dataloader(self):
-        return DataLoader(self.train_data, batch_size=len(self.train_data))
+        if self.batch_size == None:
+            return DataLoader(self.train_data, batch_size=len(self.train_data))
+        else:
+            return DataLoader(self.train_data, batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return DataLoader(self.val_data, batch_size=len(self.val_data))
+        if self.batch_size == None:
+            return DataLoader(self.val_data, batch_size=len(self.val_data))
+        else:
+            return DataLoader(self.val_data, batch_size=self.batch_size)
 
     def test_dataloader(self):
-        return DataLoader(self.test_data, batch_size=len(self.test_data))
+        if self.batch_size == None:
+            return DataLoader(self.test_data, batch_size=len(self.test_data))
+        else:
+            return DataLoader(self.test_data, batch_size=self.batch_size)
 
     # This is needed as soon as I download the data.
     # Since I save it on disk, this hook is currently not needed
