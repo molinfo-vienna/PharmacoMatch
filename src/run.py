@@ -17,7 +17,7 @@ def run(device):
     ROOT = "/data/shared/projects/PhectorDB/pretraining_data/small"
     EPOCHS = 1000
     TRAINING = True
-    BATCH_SIZE = 256
+    BATCH_SIZE = 512
     MODEL = PharmCLR
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(42)

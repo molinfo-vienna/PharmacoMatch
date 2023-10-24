@@ -11,10 +11,10 @@ class PharmacophoreDataModule(LightningDataModule):
         super(PharmacophoreDataModule, self).__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
-        # self.transform = None
-        self.transform = T.Compose(
-            [T.KNNGraph(k=100), T.ToUndirected(), T.Distance(norm=False), DistanceRDF()]
-        )
+        self.transform = None
+        # self.transform = T.Compose(
+        #     [T.KNNGraph(k=100), T.ToUndirected(), T.Distance(norm=False), DistanceRDF()]
+        # )
 
     def setup(self, stage: str):
         if stage == "fit":

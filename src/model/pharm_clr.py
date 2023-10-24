@@ -1,6 +1,7 @@
 import torch
 from torch.nn import Linear
 import torch.nn.functional as F
+from flash.core.optimizers import LARS
 
 # layers that accept edge_attr
 from torch_geometric.nn import (
@@ -28,21 +29,55 @@ from torch_geometric.nn import (
     BatchNorm,
     LayerNorm,
 )
-from torch_geometric.transforms import *
+
+# from torch_geometric.transforms import *
+from dataset import *
+from torch_geometric import transforms as T
 from torch_geometric.nn.aggr import GraphMultisetTransformer as GMT
 
-from .lightning_module import CustomLightningModule
+# from .lightning_module import CustomLightningModule
+from lightning import LightningModule
+
+from utils import *
 
 
-class PharmCLR(CustomLightningModule):
+# class DataAugmentation(torch.nn.Module):
+#     def __init__(self):
+#         super().__init__()
+
+#         self.transform = T.Compose(
+#             [RandomMasking(), RandomGaussianNoise(), T.KNNGraph(k=50), T.ToUndirected(), T.Distance(norm=False), DistanceRDF()]
+#         )
+
+#     @torch.no_grad()
+#     def forward(self, data):
+#         data_out = self.transform(data)
+#         return data_out
+
+
+class PharmCLR(LightningModule):
     def __init__(self, hyperparams, params):
-        super(PharmCLR, self).__init__(hyperparams, params)
+        super(PharmCLR, self).__init__()
+        self.save_hyperparameters()
 
-        # Further settings
+        # Settings
         self.learning_rate = hyperparams["learning_rate"]
         self.dropout = hyperparams["dropout"]
         self.heads = 10
         self.temperature = hyperparams["temperature"]
+
+        # Data Augmentation
+        # self.transform = DataAugmentation()
+        self.transform = T.Compose(
+            [
+                RandomMasking(),
+                RandomGaussianNoise(),
+                T.KNNGraph(k=50),
+                T.ToUndirected(),
+                T.Distance(norm=False),
+                DistanceRDF(),
+            ]
+        )
 
         # Embedding layer
         input_dimension = params["num_node_features"]
@@ -85,6 +120,10 @@ class PharmCLR(CustomLightningModule):
         )
 
     def forward(self, data):
+        # visualize_pharm(
+        #     [data[0].clone(), self.transform(data[0].clone()), self.transform(data[0].clone())]
+        # )
+        data = self.transform(data.clone())
         x = data.x
         x = self.node_embedding(x)
         for i, conv in enumerate(self.convolution):
@@ -97,18 +136,18 @@ class PharmCLR(CustomLightningModule):
         # Graph-level read-out
         x = self.gmt(x, data.batch)
         x = self.linear(x)
-        #x = torch.nn.functional.gelu(x)
-        #x = self.batchnorm(x)
-        #x = F.dropout(x, p=self.dropout, training=self.training)
+        # x = torch.nn.functional.gelu(x)
+        # x = self.batchnorm(x)
+        # x = F.dropout(x, p=self.dropout, training=self.training)
 
         # 3. Apply the projection_head
         x = self.projection_head(x)
-        #x = x.softmax(dim=1)
+        # x = x.softmax(dim=1)
 
         return x
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adagrad(self.parameters(), lr=self.learning_rate)
+        optimizer = LARS(self.parameters(), lr=self.learning_rate)
         return optimizer
 
     def nt_xent_loss(self, x):
@@ -129,7 +168,7 @@ class PharmCLR(CustomLightningModule):
     @classmethod
     def get_hyperparams(cls):
         hyperparams = dict(
-            learning_rate=1e-2,
+            learning_rate=1e-4,
             dropout=0.1,
             n_layers_conv=3,
             output_dims_conv=12,
@@ -139,20 +178,44 @@ class PharmCLR(CustomLightningModule):
 
         return hyperparams
 
-    # @classmethod
-    # def get_hyperparams(cls, trial):
-    #     learning_rate = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
-    #     n_layers_conv = trial.suggest_int("n_conv_layers", 1, 3)
-    #     output_dims_conv = trial.suggest_int(f"n_units_l_conv", 4, 64, log=True)
-    #     output_dims_lin = trial.suggest_int(f"n_units_l_lin", 4, 128, log=True)
-    #     dropout = trial.suggest_float("dropout", 0.05, 0.35)
+    def training_step(self, batch, batch_idx):
+        out1 = self(batch)
+        out2 = self(batch)
+        batch_size, _ = out1.shape
+        out = torch.cat((out1, out2), dim=1).reshape(batch_size * 2, -1)
+        loss = self.nt_xent_loss(out)
+        self.log(
+            "hp/train_loss",
+            loss,
+            prog_bar=True,
+            on_step=False,
+            on_epoch=True,
+            batch_size=len(batch),
+        )
 
-    #     hyperparams = dict(
-    #         learning_rate=learning_rate,
-    #         dropout=dropout,
-    #         n_layers_conv=n_layers_conv,
-    #         output_dims_conv=output_dims_conv,
-    #         output_dims_lin=output_dims_lin,
-    #     )
+        return loss
 
-    #     return hyperparams
+    def validation_step(self, batch, batch_idx):
+        out1 = self(batch)
+        out2 = self(batch)
+        batch_size, _ = out1.shape
+        out = torch.cat((out1, out2), dim=1).reshape(batch_size * 2, -1)
+        val_loss = self.nt_xent_loss(out)
+        self.log(
+            "hp/val_loss",
+            val_loss,
+            prog_bar=True,
+            on_step=False,
+            on_epoch=True,
+            batch_size=len(batch),
+        )
+        return val_loss
+
+    def on_train_start(self):
+        self.logger.log_hyperparams(
+            self.hparams,
+            {
+                "hp/train_loss": 1,
+                "hp/val_loss": 1,
+            },
+        )

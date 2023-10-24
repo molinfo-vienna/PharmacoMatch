@@ -31,8 +31,27 @@ class DistanceRDF(BaseTransform):
         if num_features == 1:
             r = data.edge_attr
             gamma = 0.5
-            mu = np.linspace(0, 10, 5)
-            rdf = np.exp(-gamma * (r - mu) ** 2)
+            mu = torch.linspace(0, 10, 5).cuda()
+            rdf = torch.exp(-gamma * (r - mu) ** 2)
             data.edge_attr = torch.tensor(rdf, dtype=torch.float)
 
+        return data
+
+
+@functional_transform("random_gaussian_noise")
+class RandomGaussianNoise(BaseTransform):
+    def __call__(self, data: Data) -> Data:
+        size = data.pos.shape
+        random_noise = torch.normal(mean=0, std=0.28, size=size).cuda()
+        data.pos += random_noise
+
+        return data
+
+
+@functional_transform("random_masking")
+class RandomMasking(BaseTransform):
+    def __call__(self, data: Data) -> Data:
+        size = data.x.shape
+        mask = torch.rand(size).cuda() > 0.8
+        data.x[mask] = 0
         return data
