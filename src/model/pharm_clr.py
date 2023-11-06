@@ -41,20 +41,6 @@ from lightning import LightningModule
 from utils import *
 
 
-# class DataAugmentation(torch.nn.Module):
-#     def __init__(self):
-#         super().__init__()
-
-#         self.transform = T.Compose(
-#             [RandomMasking(), RandomGaussianNoise(), T.KNNGraph(k=50), T.ToUndirected(), T.Distance(norm=False), DistanceRDF()]
-#         )
-
-#     @torch.no_grad()
-#     def forward(self, data):
-#         data_out = self.transform(data)
-#         return data_out
-
-
 class PharmCLR(LightningModule):
     def __init__(self, hyperparams, params):
         super(PharmCLR, self).__init__()
@@ -72,6 +58,15 @@ class PharmCLR(LightningModule):
             [
                 RandomMasking(),
                 RandomGaussianNoise(),
+                T.KNNGraph(k=50),
+                T.ToUndirected(),
+                T.Distance(norm=False),
+                DistanceRDF(),
+            ]
+        )
+
+        self.val_transform = T.Compose(
+            [
                 T.KNNGraph(k=50),
                 T.ToUndirected(),
                 T.Distance(norm=False),
@@ -119,11 +114,17 @@ class PharmCLR(LightningModule):
             torch.nn.Linear(input_dimension, input_dimension // 2),
         )
 
-    def forward(self, data):
+        # validation embeddings
+        self.val_embeddings = []
+
+    def forward(self, data, training=True):
         # visualize_pharm(
         #     [data[0].clone(), self.transform(data[0].clone()), self.transform(data[0].clone())]
         # )
-        data = self.transform(data.clone())
+        if training:
+            data = self.transform(data.clone())
+        else:
+            data = self.val_transform(data.clone())
         x = data.x
         x = self.node_embedding(x)
         for i, conv in enumerate(self.convolution):
@@ -135,16 +136,16 @@ class PharmCLR(LightningModule):
 
         # Graph-level read-out
         x = self.gmt(x, data.batch)
-        x = self.linear(x)
+        representation = self.linear(x)
         # x = torch.nn.functional.gelu(x)
         # x = self.batchnorm(x)
         # x = F.dropout(x, p=self.dropout, training=self.training)
 
         # 3. Apply the projection_head
-        x = self.projection_head(x)
+        embedding = self.projection_head(representation)
         # x = x.softmax(dim=1)
 
-        return x
+        return embedding
 
     def configure_optimizers(self):
         optimizer = LARS(self.parameters(), lr=self.learning_rate)
@@ -194,8 +195,12 @@ class PharmCLR(LightningModule):
         )
 
         return loss
+    
+    def on_validation_epoch_start(self) -> None:
+        self.val_embeddings = []
 
     def validation_step(self, batch, batch_idx):
+        # val loss calculation
         out1 = self(batch)
         out2 = self(batch)
         batch_size, _ = out1.shape
@@ -209,13 +214,33 @@ class PharmCLR(LightningModule):
             on_epoch=True,
             batch_size=len(batch),
         )
+
+        # rankme criterion
+        self.val_embeddings.append(self(batch, training=False))
+        
         return val_loss
+    
+    def on_validation_epoch_end(self) -> None:
+        epsilon = 1e-7
+        embeddings = torch.vstack(self.val_embeddings)
+        _, singular_values, _ = torch.svd(embeddings)
+        singular_values /= torch.sum(singular_values)
+        singular_values += epsilon
+        rank_me = torch.exp(-torch.sum(singular_values*torch.log(singular_values)))
+        self.log(
+            "hp/rank_me",
+            rank_me,
+            prog_bar=True,
+            on_step=False,
+            on_epoch=True,
+        )
 
     def on_train_start(self):
         self.logger.log_hyperparams(
             self.hparams,
             {
-                "hp/train_loss": 1,
-                "hp/val_loss": 1,
+                #"hp/train_loss": 1,
+                #"hp/val_loss": 1,
+                "hp/rank_me": 0
             },
         )
