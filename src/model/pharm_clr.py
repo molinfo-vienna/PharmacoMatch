@@ -168,7 +168,7 @@ class PharmCLR(LightningModule):
     @classmethod
     def get_hyperparams(cls):
         hyperparams = dict(
-            learning_rate=1e-4,
+            learning_rate=1e-2,
             dropout=0.1,
             n_layers_conv=3,
             output_dims_conv=12,
@@ -188,7 +188,7 @@ class PharmCLR(LightningModule):
             "hp/train_loss",
             loss,
             prog_bar=True,
-            on_step=False,
+            on_step=True,
             on_epoch=True,
             batch_size=len(batch),
         )
@@ -205,7 +205,7 @@ class PharmCLR(LightningModule):
             "hp/val_loss",
             val_loss,
             prog_bar=True,
-            on_step=False,
+            on_step=True,
             on_epoch=True,
             batch_size=len(batch),
         )

@@ -46,6 +46,7 @@ class PharmacophoreDataset(InMemoryDataset):
             try:
                 # get number of features
                 num_features = ph4.getNumFeatures()
+                if num_features <= 0: break
                 x = torch.zeros((num_features, 9))
                 pos = torch.zeros((num_features, 3))
                 for i, feature in enumerate(ph4):
