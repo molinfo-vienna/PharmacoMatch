@@ -12,9 +12,6 @@ class PharmacophoreDataModule(LightningDataModule):
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.transform = None
-        # self.transform = T.Compose(
-        #     [T.KNNGraph(k=100), T.ToUndirected(), T.Distance(norm=False), DistanceRDF()]
-        # )
 
     def setup(self, stage: str):
         if stage == "fit":
@@ -29,19 +26,12 @@ class PharmacophoreDataModule(LightningDataModule):
                 data_full[(int)(num_samples * 0.9) :],
             )
 
-        if stage == 'test':
+        if stage == 'virtual_screening':
             self.query = PharmacophoreDataset(self.data_dir, path_number=3, transform=self.transform)
-        #if stage == 'active':
             self.actives = PharmacophoreDataset(self.data_dir, path_number=1, transform=self.transform)
-        #if stage == 'inactive':
             self.inactives = PharmacophoreDataset(self.data_dir, path_number=2, transform=self.transform)
-
-        # There is no explicit test data, yet
-        # if stage == "test":
-        #     self.test_data = PharmacophoreDataset(
-        #         self.data_dir, train=False, pre_transform=self.transform
-        #     )
-        #     print(f"Number of test graphs: {len(self.test_data)}")
+            print(f"Number of active graphs: {len(self.actives)}")
+            print(f"Number of inactive graphs: {len(self.inactives)}")
 
     def train_dataloader(self):
         if self.batch_size == None:
@@ -73,7 +63,7 @@ class PharmacophoreDataModule(LightningDataModule):
         else:
             return DataLoader(self.inactives, batch_size=self.batch_size)
 
-    # This is needed as soon as I download the data.
-    # Since I save it on disk, this hook is currently not needed
+    # This is needed as soon as I want to download the data from a repository.
+    # Since I save it on disk, this hook is currently not needed.
     # def prepare_data(self) -> None:
     #    return super().prepare_data()

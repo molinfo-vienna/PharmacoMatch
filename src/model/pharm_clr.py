@@ -53,7 +53,6 @@ class PharmCLR(LightningModule):
         self.temperature = hyperparams["temperature"]
 
         # Data Augmentation
-        # self.transform = DataAugmentation()
         self.transform = T.Compose(
             [
                 RandomMasking(), # with mask token, or better deletion? Try both.
@@ -105,7 +104,7 @@ class PharmCLR(LightningModule):
 
         # Expand dimensionality before node pooling
         output_dim = hyperparams["output_dims_lin"]
-        self.linear = Linear(input_dimension, output_dim)
+        self.linear1 = Linear(input_dimension, output_dim)
         self.batch_norm = BatchNorm(output_dim)
         input_dimension = output_dim
 
@@ -148,7 +147,7 @@ class PharmCLR(LightningModule):
             x = torch.cat((x, x_conv), dim=1)
 
         # Dimensionality expandion before read-out
-        x = self.linear(x)
+        x = self.linear1(x)
         x = torch.nn.functional.gelu(x)
         x = self.batch_norm(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
