@@ -56,8 +56,9 @@ class PharmCLR(LightningModule):
         # self.transform = DataAugmentation()
         self.transform = T.Compose(
             [
-                RandomMasking(),
-                RandomGaussianNoise(),
+                RandomMasking(), # with mask token, or better deletion? Try both.
+                # Random masking mit bis zu 70%
+                RandomGaussianNoise(), # two different tolerance radii
                 T.KNNGraph(k=50),
                 T.ToUndirected(),
                 T.Distance(norm=False),
@@ -81,15 +82,19 @@ class PharmCLR(LightningModule):
         input_dimension = embedding_dim
 
         # Convolutional layers
+        # try out spectral layers, maybe 3-6 layers
         self.convolution = torch.nn.ModuleList()
         output_dim = hyperparams["output_dims_conv"]
         self.convolution_batch_norm = torch.nn.ModuleList()
 
+        # input and outputdimension maybe bigger
+        # input to say 32-64, output to maybe 25
         for _ in range(hyperparams["n_layers_conv"]):
             self.convolution.append(
-                GATv2Conv(
+                GATv2Conv(# GAT is maybe not suitable for our problem
                     input_dimension,
                     output_dim,
+                    #nn=Linear(params["num_edge_features"], input_dimension*output_dim)
                     edge_dim=params["num_edge_features"],
                     heads=self.heads,
                     concat=False,
@@ -98,35 +103,43 @@ class PharmCLR(LightningModule):
             self.convolution_batch_norm.append(BatchNorm(output_dim))
             input_dimension += output_dim
 
-        # Node pooling layer
-        self.gmt = GMT(input_dimension, input_dimension, heads=input_dimension)
+        # Expand dimensionality before node pooling
         output_dim = hyperparams["output_dims_lin"]
         self.linear = Linear(input_dimension, output_dim)
-        # --> This should yield the final representation
-
-        # self.batchnorm1 = BatchNorm(output_dim)
+        self.batch_norm = BatchNorm(output_dim)
         input_dimension = output_dim
+
+        # Graph read-out via node-pooling
+        self.gmt = GMT(input_dimension, input_dimension, heads=input_dimension)
+        # --> This will yield the final representation
 
         # Projection head MLP
         self.projection_head = torch.nn.Sequential(
-            torch.nn.Linear(input_dimension, input_dimension),
+            torch.nn.Linear(input_dimension, output_dim),
             torch.nn.GELU(),
-            torch.nn.Linear(input_dimension, input_dimension // 2),
+            torch.nn.Linear(input_dimension, output_dim // 2),
         )
 
         # validation embeddings
         self.val_embeddings = []
 
     def forward(self, data, training=True):
+        # Optional: Visualization of the input pharmacophore
         # visualize_pharm(
         #     [data[0].clone(), self.transform(data[0].clone()), self.transform(data[0].clone())]
         # )
+
+        # Augmentation of the pharmacophores
         if training:
             data = self.transform(data.clone())
         else:
             data = self.val_transform(data.clone())
+
+        # Embedding of OHE features
         x = data.x
         x = self.node_embedding(x)
+
+        # Graph convolution via message passing
         for i, conv in enumerate(self.convolution):
             x_conv = conv(x, data.edge_index, data.edge_attr)
             x_conv = torch.nn.functional.gelu(x_conv)
@@ -134,16 +147,17 @@ class PharmCLR(LightningModule):
             x_conv = F.dropout(x_conv, p=self.dropout, training=self.training)
             x = torch.cat((x, x_conv), dim=1)
 
-        # Graph-level read-out
-        x = self.gmt(x, data.batch)
-        representation = self.linear(x)
-        # x = torch.nn.functional.gelu(x)
-        # x = self.batchnorm(x)
-        # x = F.dropout(x, p=self.dropout, training=self.training)
+        # Dimensionality expandion before read-out
+        x = self.linear(x)
+        x = torch.nn.functional.gelu(x)
+        x = self.batch_norm(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
 
-        # 3. Apply the projection_head
+        # Graph-level read-out
+        representation = self.gmt(x, data.batch)
+
+        # Apply the projection_head
         embedding = self.projection_head(representation)
-        # x = x.softmax(dim=1)
 
         return embedding
 
@@ -172,7 +186,7 @@ class PharmCLR(LightningModule):
             learning_rate=1e-2,
             dropout=0.1,
             n_layers_conv=3,
-            output_dims_conv=12,
+            output_dims_conv=32,
             output_dims_lin=64,
             temperature=0.5,
         )
@@ -239,8 +253,10 @@ class PharmCLR(LightningModule):
         self.logger.log_hyperparams(
             self.hparams,
             {
-                #"hp/train_loss": 1,
-                #"hp/val_loss": 1,
                 "hp/rank_me": 0
             },
         )
+
+    def predict_step(self, batch, batch_idx):
+        return self(batch, training=False), batch.mol_id
+    

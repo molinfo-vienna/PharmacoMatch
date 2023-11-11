@@ -19,7 +19,7 @@ class PharmacophoreDataModule(LightningDataModule):
     def setup(self, stage: str):
         if stage == "fit":
             data_full = PharmacophoreDataset(
-                self.data_dir, train=True, transform=self.transform
+                self.data_dir, path_number=0, transform=self.transform
             ).shuffle()
             print(f"Number of training graphs: {len(data_full)}")
             self.params = data_full.get_params()
@@ -28,6 +28,13 @@ class PharmacophoreDataModule(LightningDataModule):
                 data_full[: (int)(num_samples * 0.9)],
                 data_full[(int)(num_samples * 0.9) :],
             )
+
+        if stage == 'test':
+            self.query = PharmacophoreDataset(self.data_dir, path_number=3, transform=self.transform)
+        #if stage == 'active':
+            self.actives = PharmacophoreDataset(self.data_dir, path_number=1, transform=self.transform)
+        #if stage == 'inactive':
+            self.inactives = PharmacophoreDataset(self.data_dir, path_number=2, transform=self.transform)
 
         # There is no explicit test data, yet
         # if stage == "test":
@@ -48,11 +55,23 @@ class PharmacophoreDataModule(LightningDataModule):
         else:
             return DataLoader(self.val_data, batch_size=self.batch_size)
 
-    def test_dataloader(self):
+    def query_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.test_data, batch_size=len(self.test_data))
+            return DataLoader(self.query, batch_size=len(self.test_data))
         else:
-            return DataLoader(self.test_data, batch_size=self.batch_size)
+            return DataLoader(self.query, batch_size=self.batch_size)
+        
+    def actives_dataloader(self):
+        if self.batch_size == None:
+            return DataLoader(self.actives, batch_size=len(self.test_data))
+        else:
+            return DataLoader(self.actives, batch_size=self.batch_size)
+        
+    def inactives_dataloader(self):
+        if self.batch_size == None:
+            return DataLoader(self.inactives, batch_size=len(self.test_data))
+        else:
+            return DataLoader(self.inactives, batch_size=self.batch_size)
 
     # This is needed as soon as I download the data.
     # Since I save it on disk, this hook is currently not needed
