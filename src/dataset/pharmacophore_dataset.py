@@ -39,24 +39,18 @@ class PharmacophoreDataset(InMemoryDataset):
         torch.save((data, slices), self.processed_paths[0])
 
     def data_processing(self, path):
-        reader = getReaderByFileExt(path)
+        reader = _getReaderByFileExt(path)
         ph4 = Pharm.BasicPharmacophore()
         data_list = []
         count = 0
+        empty_pharmacophores = 0
 
         while reader.read(ph4):
             try:
-                # get number of features
-                num_features = ph4.getNumFeatures()
-                if num_features <= 0: break # Do not include empty graphs
-
-                x = torch.zeros((num_features, 9))
-                pos = torch.zeros((num_features, 3))
-
-                for i, feature in enumerate(ph4):
-                    x[i, Pharm.getType(feature)] = 1
-                    pos[i] = torch.tensor(Chem.get3DCoordinates(feature).toArray())
-
+                if ph4.getNumFeatures() <= 0: 
+                    empty_pharmacophores += 1
+                    break # Do not include empty graphs
+                x, pos = _extract_pharmacophore_features(ph4)
                 data = Data(x=x, pos=pos)
                 data_list.append(data)
                 count += 1
@@ -115,7 +109,7 @@ class VirtualScreeningDataset(InMemoryDataset):
             torch.save((data, slices), self.processed_paths[i])
 
     def data_processing(self, path):
-        reader = getReaderByFileExt(path)
+        reader = _getReaderByFileExt(path)
         ph4 = Pharm.BasicPharmacophore()
         data_list = []
         name = ''
@@ -123,21 +117,11 @@ class VirtualScreeningDataset(InMemoryDataset):
 
         while reader.read(ph4):
             try:
-                # get number of features
-                num_features = ph4.getNumFeatures()
-                if num_features <= 0: break # Do not include empty graphs
-
-                x = torch.zeros((num_features, 9))
-                pos = torch.zeros((num_features, 3))
-
-                for i, feature in enumerate(ph4):
-                    x[i, Pharm.getType(feature)] = 1
-                    pos[i] = torch.tensor(Chem.get3DCoordinates(feature).toArray())
-
+                if ph4.getNumFeatures() <= 0: break # Do not include empty graphs
+                x, pos = _extract_pharmacophore_features(ph4)
                 if name != Pharm.getName(ph4):
                     name = Pharm.getName(ph4)
                     mol_id += 1
-
                 data = Data(x=x, pos=pos, mol_id = mol_id)
                 data_list.append(data)
 
@@ -149,14 +133,24 @@ class VirtualScreeningDataset(InMemoryDataset):
     def get_params(self):
         # input data specific model parameters
         params = dict(
-            num_node_features=self.num_node_features,
-            num_edge_features=self.num_edge_features,
+            num_node_features=9,
+            num_edge_features=5,
         )
 
         return params
 
+def _extract_pharmacophore_features(ph4):
+    num_features = ph4.getNumFeatures()
+    x = torch.zeros((num_features, 9))
+    pos = torch.zeros((num_features, 3))
 
-def getReaderByFileExt(filename: str) -> Pharm.PharmacophoreReader:
+    for i, feature in enumerate(ph4):
+        x[i, Pharm.getType(feature)] = 1
+        pos[i] = torch.tensor(Chem.get3DCoordinates(feature).toArray())
+
+    return x, pos
+
+def _getReaderByFileExt(filename: str) -> Pharm.PharmacophoreReader:
     name_and_ext = os.path.splitext(filename)
 
     if name_and_ext[1] == "":

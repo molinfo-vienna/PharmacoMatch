@@ -25,7 +25,7 @@ def run(device):
 
     def training():
         datamodule.setup("fit")
-        params = dict(num_node_features=9, num_edge_features=5)
+        params = datamodule.params # dict(num_node_features=9, num_edge_features=5)
         hyperparams = MODEL.get_hyperparams()
         model = MODEL(hyperparams, params)
 
