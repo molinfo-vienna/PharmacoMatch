@@ -1,6 +1,6 @@
 from .dataset_transforms import DistanceOHE, DistanceRDF, RandomGaussianNoise, RandomMasking
 from .pharmacophore_datamodule import PharmacophoreDataModule
-from .pharmacophore_dataset import PharmacophoreDataset
+from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
 
 __all__ = [
@@ -9,5 +9,6 @@ __all__ = [
     "RandomGaussianNoise",
     "RandomMasking",
     "PharmacophoreDataset",
+    "VirtualScreeningDataset",
     "PharmacophoreDataModule",
 ]

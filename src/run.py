@@ -13,14 +13,15 @@ from model import *
 
 
 def run(device):
-    ROOT = "/data/shared/projects/PhectorDB/pretraining_data/small"
+    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/pretraining_data/small"
+    VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     EPOCHS = 1000
     TRAINING = False
     BATCH_SIZE = 512
     MODEL = PharmCLR
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(42)
-    datamodule = PharmacophoreDataModule(ROOT, batch_size=BATCH_SIZE)
+    datamodule = PharmacophoreDataModule(PRETRAINING_ROOT, VS_ROOT, batch_size=BATCH_SIZE)
 
     def training():
         datamodule.setup("fit")

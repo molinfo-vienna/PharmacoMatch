@@ -3,33 +3,34 @@ from torch_geometric import transforms as T
 from torch_geometric.loader import DataLoader
 
 from .dataset_transforms import DistanceOHE, DistanceRDF
-from .pharmacophore_dataset import PharmacophoreDataset
+from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
 
 class PharmacophoreDataModule(LightningDataModule):
-    def __init__(self, data_dir, batch_size=None):
+    def __init__(self, preprocessing_data_dir, virtual_screening_data_dir, batch_size=None):
         super(PharmacophoreDataModule, self).__init__()
-        self.data_dir = data_dir
+        self.preprocessing_data_dir = preprocessing_data_dir
+        self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
         self.transform = None
 
     def setup(self, stage: str):
         if stage == "fit":
-            data_full = PharmacophoreDataset(
-                self.data_dir, path_number=0, transform=self.transform
+            preprocessing_data = PharmacophoreDataset(
+                self.preprocessing_data_dir, path_number=0, transform=self.transform
             ).shuffle()
-            print(f"Number of training graphs: {len(data_full)}")
-            self.params = data_full.get_params()
-            num_samples = len(data_full)
+            print(f"Number of training graphs: {len(preprocessing_data)}")
+            self.params = preprocessing_data.get_params()
+            num_samples = len(preprocessing_data)
             self.train_data, self.val_data = (
-                data_full[: (int)(num_samples * 0.9)],
-                data_full[(int)(num_samples * 0.9) :],
+                preprocessing_data[: (int)(num_samples * 0.9)],
+                preprocessing_data[(int)(num_samples * 0.9) :],
             )
 
         if stage == 'virtual_screening':
-            self.query = PharmacophoreDataset(self.data_dir, path_number=3, transform=self.transform)
-            self.actives = PharmacophoreDataset(self.data_dir, path_number=1, transform=self.transform)
-            self.inactives = PharmacophoreDataset(self.data_dir, path_number=2, transform=self.transform)
+            self.query = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='query', transform=self.transform)
+            self.actives = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='active', transform=self.transform)
+            self.inactives = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='inactive', transform=self.transform)
             print(f"Number of active graphs: {len(self.actives)}")
             print(f"Number of inactive graphs: {len(self.inactives)}")
 
