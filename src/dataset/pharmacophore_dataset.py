@@ -17,7 +17,7 @@ class PharmacophoreDataset(InMemoryDataset):
 
     @property
     def raw_file_names(self):
-        return ["pubchem-10m-clean.cdf"]
+        return ["pretraining_data.cdf"]
 
     @property
     def processed_file_names(self):
