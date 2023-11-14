@@ -55,22 +55,20 @@ class PharmCLR(LightningModule):
         # Data Augmentation
         self.transform = T.Compose(
             [
-                RandomNodeDeletion(), # with mask token, or better deletion? Try both.
+                RandomMasking(), # with mask token, or better deletion? Try both.
                 # Random masking mit bis zu 70%
                 RandomGaussianNoise(), # two different tolerance radii
-                T.KNNGraph(k=50),
-                T.ToUndirected(),
+                T.KNNGraph(k=50, force_undirected=True),
                 T.Distance(norm=False),
-                DistanceRDF(),
+                DistanceRDF(num_bins=params["num_edge_features"]),
             ]
         )
 
         self.val_transform = T.Compose(
             [
-                T.KNNGraph(k=50),
-                T.ToUndirected(),
+                T.KNNGraph(k=50, force_undirected=True),
                 T.Distance(norm=False),
-                DistanceRDF(),
+                DistanceRDF(num_bins=params["num_edge_features"]),
             ]
         )
 
