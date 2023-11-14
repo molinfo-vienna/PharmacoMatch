@@ -7,17 +7,18 @@ from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
 
 class PharmacophoreDataModule(LightningDataModule):
-    def __init__(self, preprocessing_data_dir, virtual_screening_data_dir, batch_size=None):
+    def __init__(self, preprocessing_data_dir, virtual_screening_data_dir, batch_size=None, small_set=False):
         super(PharmacophoreDataModule, self).__init__()
         self.preprocessing_data_dir = preprocessing_data_dir
         self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
+        self.small_set = small_set
         self.transform = None
 
     def setup(self, stage: str):
         if stage == "fit":
             preprocessing_data = PharmacophoreDataset(
-                self.preprocessing_data_dir, path_number=0, transform=self.transform
+                self.preprocessing_data_dir, small_set=self.small_set, transform=self.transform
             ).shuffle()
             print(f"Number of training graphs: {len(preprocessing_data)}")
             self.params = preprocessing_data.get_params()

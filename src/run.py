@@ -13,15 +13,16 @@ from model import *
 
 
 def run(device):
-    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/pretraining_data/small"
+    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     EPOCHS = 1000
-    TRAINING = False
+    TRAINING = True
     BATCH_SIZE = 512
+    SMALL_SET = True
     MODEL = PharmCLR
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(42)
-    datamodule = PharmacophoreDataModule(PRETRAINING_ROOT, VS_ROOT, batch_size=BATCH_SIZE)
+    datamodule = PharmacophoreDataModule(PRETRAINING_ROOT, VS_ROOT, batch_size=BATCH_SIZE, small_set=SMALL_SET)
 
     def training():
         datamodule.setup("fit")
@@ -37,9 +38,9 @@ def run(device):
 
         trainer = Trainer(
             num_nodes=1,
-            devices=[device],
+            devices=device,
             max_epochs=EPOCHS,
-            accelerator="gpu",
+            accelerator="auto",
             logger=tb_logger,
             log_every_n_steps=1,
             callbacks=callbacks,
@@ -55,11 +56,11 @@ def run(device):
                     path = os.path.join(path, file)
             return MODEL.load_from_checkpoint(path)
         
-        path = f'logs/PharmCLR/version_4/checkpoints/'
+        path = f'logs/PharmCLR/version_8/checkpoints/'
         model = load_model(path)
         datamodule.setup('virtual_screening')
         trainer = Trainer(num_nodes=1,
-                    devices=[device],
+                    devices=device,
                     max_epochs=EPOCHS,
                     accelerator='auto',
                     logger=False,
@@ -75,5 +76,5 @@ def run(device):
 
 
 if __name__ == "__main__":
-    device = int(sys.argv[1])
+    device = [int(i) for i in list(sys.argv[1])]
     run(device)

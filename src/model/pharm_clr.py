@@ -55,7 +55,7 @@ class PharmCLR(LightningModule):
         # Data Augmentation
         self.transform = T.Compose(
             [
-                RandomMasking(), # with mask token, or better deletion? Try both.
+                RandomNodeDeletion(), # with mask token, or better deletion? Try both.
                 # Random masking mit bis zu 70%
                 RandomGaussianNoise(), # two different tolerance radii
                 T.KNNGraph(k=50),

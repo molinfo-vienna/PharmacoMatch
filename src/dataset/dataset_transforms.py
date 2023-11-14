@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
 
@@ -52,6 +52,20 @@ class RandomGaussianNoise(BaseTransform):
 class RandomMasking(BaseTransform):
     def __call__(self, data: Data) -> Data:
         size = data.x.shape
-        mask = torch.rand(size).cuda() > 0.8
+        mask = torch.rand(size).cuda() < 0.2
         data.x[mask] = 0
         return data
+
+
+@functional_transform("random_node_deletion")
+class RandomNodeDeletion(BaseTransform):
+    def __call__(self, data: Data) -> Data:
+        lst = data.to_data_list()
+        for data in lst:
+            n_nodes, _ = data.size()
+            idx = torch.rand(n_nodes).cuda() > 0.3
+            if torch.sum(idx) >= 3:
+                data.x = data.x[idx]
+                data.pos = data.pos[idx]
+
+        return Batch.from_data_list(lst)

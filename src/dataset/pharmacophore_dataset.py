@@ -10,14 +10,14 @@ class PharmacophoreDataset(InMemoryDataset):
     def __init__(
         self, root, small_set=False, transform=None, pre_transform=None, pre_filter=None
     ):
-        super().__init__(root, transform, pre_transform, pre_filter)
         self.small_set = small_set
+        super().__init__(root, transform, pre_transform, pre_filter)
         path = self.processed_paths[0] 
         self.data, self.slices = torch.load(path)
 
     @property
     def raw_file_names(self):
-        return ["pretraining_data.cdf"]
+        return ["pretraining_data_small.cdf"]
 
     @property
     def processed_file_names(self):
