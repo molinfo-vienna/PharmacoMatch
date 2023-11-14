@@ -37,15 +37,15 @@ class PharmacophoreDataModule(LightningDataModule):
 
     def train_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.train_data, batch_size=len(self.train_data))
+            return DataLoader(self.train_data, batch_size=len(self.train_data), shuffle=True, drop_last=True)
         else:
-            return DataLoader(self.train_data, batch_size=self.batch_size)
+            return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True, drop_last=True)
 
     def val_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.val_data, batch_size=len(self.val_data))
+            return DataLoader(self.val_data, batch_size=len(self.val_data), shuffle=False, drop_last=True)
         else:
-            return DataLoader(self.val_data, batch_size=self.batch_size)
+            return DataLoader(self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True)
 
     def query_dataloader(self):
         if self.batch_size == None:
