@@ -1,10 +1,13 @@
+import torch
 from torch_geometric import transforms as T
+from lightning import LightningModule
 
 from .dataset_transforms import DistanceOHE, DistanceRDF, RandomMasking, RandomGaussianNoise
 
-class AugmentationModule:
+class AugmentationModule(LightningModule):
     def __init__(self, train=True) -> None:
-        self.train = train
+        super(AugmentationModule, self).__init__()
+        self.is_training = train
 
         # Data Augmentation
         #if self.train:
@@ -27,8 +30,9 @@ class AugmentationModule:
             ]
         )
 
-    def __call__(self, data):
-        if self.train:
+    @torch.no_grad()
+    def forward(self, data):
+        if self.is_training:
             return self.transform(data.clone()), self.transform(data.clone())
         else: 
             return self.transform(data.clone()), self.transform(data.clone()), self.val_transform(data.clone())

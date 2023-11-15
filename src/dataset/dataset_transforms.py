@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch_geometric.data import Data, Batch
+from torch_geometric.data.lightning import LightningDataset
 from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
 
@@ -36,10 +37,11 @@ class DistanceRDF(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
         _, num_features = data.edge_attr.shape
+        device = data.edge_attr.device
         if num_features == 1:
             r = data.edge_attr
             gamma = self.gamma
-            mu = torch.linspace(0, self.max_dist, self.num_bins)
+            mu = torch.linspace(0, self.max_dist, self.num_bins, device=device)
             rdf = torch.exp(-gamma * (r - mu) ** 2)
             data.edge_attr = rdf# torch.tensor(rdf, dtype=torch.float)
 
@@ -53,7 +55,8 @@ class RandomGaussianNoise(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
         size = data.pos.shape
-        random_noise = torch.normal(mean=0, std=self.std, size=size)
+        device = data.pos.device
+        random_noise = torch.normal(mean=0, std=self.std, size=size, device=device)
         data.pos += random_noise
 
         return data
@@ -66,7 +69,8 @@ class RandomMasking(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
         size = data.x.shape
-        mask = torch.rand(size) < self.mask_ratio
+        device = data.x.device
+        mask = torch.rand(size, device=device) < self.mask_ratio
         data.x[mask] = 0
         return data
 

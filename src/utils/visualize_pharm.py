@@ -59,4 +59,4 @@ def visualize_pharm(data_list):
     for i, data in enumerate(data_list):
         plot_data(data, colors[i % 10])
 
-    plt.show()
+    plt.savefig('pharm.png')

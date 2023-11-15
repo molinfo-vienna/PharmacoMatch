@@ -52,6 +52,10 @@ class PharmCLR(LightningModule):
         self.heads = 10
         self.temperature = hyperparams["temperature"]
 
+        # Augmentation
+        self.transform = AugmentationModule(train=True)
+        self.val_transform = AugmentationModule(train=False)
+
         # Embedding layer
         input_dimension = params["num_node_features"]
         embedding_dim = 10
@@ -105,12 +109,6 @@ class PharmCLR(LightningModule):
         # visualize_pharm(
         #     [data[0].clone(), self.transform(data[0].clone()), self.transform(data[0].clone())]
         # )
-
-        # Augmentation of the pharmacophores
-        #if training:
-        #    data = self.transform(data.clone())
-        #else:
-        #    data = self.val_transform(data.clone())
 
         # Embedding of OHE features
         x = data.x
@@ -179,7 +177,14 @@ class PharmCLR(LightningModule):
         loss = self.nt_xent_loss(out)
 
         return loss
-
+    
+    def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
+        if self.trainer.training:
+            return self.transform(batch)
+        if self.trainer.evaluating:
+            return self.val_transform(batch)
+        else:
+            return batch
 
     def training_step(self, batch, batch_idx):
         loss = self.shared_step(batch)

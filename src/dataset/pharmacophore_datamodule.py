@@ -12,8 +12,8 @@ class PharmacophoreDataModule(LightningDataModule):
         self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
         self.small_set = small_set
-        self.transform = AugmentationModule(train=True)
-        self.val_transform = AugmentationModule(train=False)
+        #self.transform = AugmentationModule(train=True)
+        #self.val_transform = AugmentationModule(train=False)
 
     def setup(self, stage: str):
         if stage == "fit":
@@ -28,8 +28,8 @@ class PharmacophoreDataModule(LightningDataModule):
                 preprocessing_data[: (int)(num_samples * 0.9)],
                 preprocessing_data[(int)(num_samples * 0.9) :],
             )
-            self.train_data.transform=self.transform
-            self.val_data.transform=self.val_transform
+            #self.train_data.transform=self.transform
+            #self.val_data.transform=self.val_transform
 
         if stage == 'virtual_screening':
             self.query = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='query', transform=self.transform)
@@ -40,15 +40,15 @@ class PharmacophoreDataModule(LightningDataModule):
 
     def train_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.train_data, batch_size=len(self.train_data), shuffle=True, drop_last=True, num_workers=8)
+            return DataLoader(self.train_data, batch_size=len(self.train_data), shuffle=True, drop_last=True)
         else:
-            return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=8)
+            return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True, drop_last=True)
 
     def val_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.val_data, batch_size=len(self.val_data), shuffle=False, drop_last=True, num_workers=8)
+            return DataLoader(self.val_data, batch_size=len(self.val_data), shuffle=False, drop_last=True)
         else:
-            return DataLoader(self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True, num_workers=8)
+            return DataLoader(self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True)
 
     def query_dataloader(self):
         if self.batch_size == None:
