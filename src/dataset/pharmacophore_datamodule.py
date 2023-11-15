@@ -1,9 +1,8 @@
 from lightning import LightningDataModule
-from torch_geometric import transforms as T
 from torch_geometric.loader import DataLoader
 
-from .dataset_transforms import DistanceOHE, DistanceRDF
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
+from .augmentation_module import AugmentationModule
 
 
 class PharmacophoreDataModule(LightningDataModule):
@@ -13,12 +12,14 @@ class PharmacophoreDataModule(LightningDataModule):
         self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
         self.small_set = small_set
-        self.transform = None
+        self.transform = AugmentationModule(train=True)
+        self.val_transform = AugmentationModule(train=False)
 
     def setup(self, stage: str):
         if stage == "fit":
+            # I need to pass the val_transform to the val_set
             preprocessing_data = PharmacophoreDataset(
-                self.preprocessing_data_dir, small_set=self.small_set, transform=self.transform
+                self.preprocessing_data_dir, small_set=self.small_set, transform=None
             ).shuffle()
             print(f"Number of training graphs: {len(preprocessing_data)}")
             self.params = preprocessing_data.get_params()
@@ -27,6 +28,8 @@ class PharmacophoreDataModule(LightningDataModule):
                 preprocessing_data[: (int)(num_samples * 0.9)],
                 preprocessing_data[(int)(num_samples * 0.9) :],
             )
+            self.train_data.transform=self.transform
+            self.val_data.transform=self.val_transform
 
         if stage == 'virtual_screening':
             self.query = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='query', transform=self.transform)
@@ -37,15 +40,15 @@ class PharmacophoreDataModule(LightningDataModule):
 
     def train_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.train_data, batch_size=len(self.train_data), shuffle=True, drop_last=True)
+            return DataLoader(self.train_data, batch_size=len(self.train_data), shuffle=True, drop_last=True, num_workers=8)
         else:
-            return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True, drop_last=True)
+            return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=8)
 
     def val_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.val_data, batch_size=len(self.val_data), shuffle=False, drop_last=True)
+            return DataLoader(self.val_data, batch_size=len(self.val_data), shuffle=False, drop_last=True, num_workers=8)
         else:
-            return DataLoader(self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True)
+            return DataLoader(self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True, num_workers=8)
 
     def query_dataloader(self):
         if self.batch_size == None:

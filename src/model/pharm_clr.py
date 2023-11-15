@@ -1,3 +1,4 @@
+from typing import Any
 import torch
 from torch.nn import Linear
 import torch.nn.functional as F
@@ -40,7 +41,6 @@ from lightning import LightningModule
 
 from utils import *
 
-
 class PharmCLR(LightningModule):
     def __init__(self, hyperparams, params):
         super(PharmCLR, self).__init__()
@@ -51,26 +51,6 @@ class PharmCLR(LightningModule):
         self.dropout = hyperparams["dropout"]
         self.heads = 10
         self.temperature = hyperparams["temperature"]
-
-        # Data Augmentation
-        self.transform = T.Compose(
-            [
-                RandomMasking(), # with mask token, or better deletion? Try both.
-                # Random masking mit bis zu 70%
-                RandomGaussianNoise(), # two different tolerance radii
-                T.KNNGraph(k=50, force_undirected=True),
-                T.Distance(norm=False),
-                DistanceRDF(num_bins=params["num_edge_features"]),
-            ]
-        )
-
-        self.val_transform = T.Compose(
-            [
-                T.KNNGraph(k=50, force_undirected=True),
-                T.Distance(norm=False),
-                DistanceRDF(num_bins=params["num_edge_features"]),
-            ]
-        )
 
         # Embedding layer
         input_dimension = params["num_node_features"]
@@ -120,17 +100,17 @@ class PharmCLR(LightningModule):
         # validation embeddings
         self.val_embeddings = []
 
-    def forward(self, data, training=True):
+    def forward(self, data):
         # Optional: Visualization of the input pharmacophore
         # visualize_pharm(
         #     [data[0].clone(), self.transform(data[0].clone()), self.transform(data[0].clone())]
         # )
 
         # Augmentation of the pharmacophores
-        if training:
-            data = self.transform(data.clone())
-        else:
-            data = self.val_transform(data.clone())
+        #if training:
+        #    data = self.transform(data.clone())
+        #else:
+        #    data = self.val_transform(data.clone())
 
         # Embedding of OHE features
         x = data.x
@@ -189,13 +169,20 @@ class PharmCLR(LightningModule):
         )
 
         return hyperparams
-
-    def training_step(self, batch, batch_idx):
-        out1 = self(batch)
-        out2 = self(batch)
+    
+    def shared_step(self, batch):
+        batch1, batch2 = batch
+        out1 = self(batch1)
+        out2 = self(batch2)
         batch_size, _ = out1.shape
         out = torch.cat((out1, out2), dim=1).reshape(batch_size * 2, -1)
         loss = self.nt_xent_loss(out)
+
+        return loss
+
+
+    def training_step(self, batch, batch_idx):
+        loss = self.shared_step(batch)
         self.log(
             "hp/train_loss",
             loss,
@@ -212,11 +199,8 @@ class PharmCLR(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         # val loss calculation
-        out1 = self(batch)
-        out2 = self(batch)
-        batch_size, _ = out1.shape
-        out = torch.cat((out1, out2), dim=1).reshape(batch_size * 2, -1)
-        val_loss = self.nt_xent_loss(out)
+        batch1, batch2, batch3 = batch
+        val_loss = self.shared_step((batch1, batch2))
         self.log(
             "hp/val_loss",
             val_loss,
@@ -227,7 +211,7 @@ class PharmCLR(LightningModule):
         )
 
         # rankme criterion
-        self.val_embeddings.append(self(batch, training=False))
+        self.val_embeddings.append(self(batch3))
         
         return val_loss
     
@@ -255,5 +239,5 @@ class PharmCLR(LightningModule):
         )
 
     def predict_step(self, batch, batch_idx):
-        return self(batch, training=False), batch.mol_id
+        return self(batch), batch.mol_id
     

@@ -22,7 +22,7 @@ class DistanceOHE(BaseTransform):
             )
             features = np.zeros((data.num_edges, self.num_bins))
             features[np.arange(data.num_edges), idx] = 1
-            data.edge_attr = torch.tensor(features, dtype=torch.float)  # .cuda()
+            data.edge_attr = torch.tensor(features, dtype=torch.float)
 
         return data
 
@@ -39,9 +39,9 @@ class DistanceRDF(BaseTransform):
         if num_features == 1:
             r = data.edge_attr
             gamma = self.gamma
-            mu = torch.linspace(0, self.max_dist, self.num_bins).cuda()
+            mu = torch.linspace(0, self.max_dist, self.num_bins)
             rdf = torch.exp(-gamma * (r - mu) ** 2)
-            data.edge_attr = torch.tensor(rdf, dtype=torch.float)
+            data.edge_attr = rdf# torch.tensor(rdf, dtype=torch.float)
 
         return data
 
@@ -53,7 +53,7 @@ class RandomGaussianNoise(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
         size = data.pos.shape
-        random_noise = torch.normal(mean=0, std=self.std, size=size).cuda()
+        random_noise = torch.normal(mean=0, std=self.std, size=size)
         data.pos += random_noise
 
         return data
@@ -66,7 +66,7 @@ class RandomMasking(BaseTransform):
 
     def __call__(self, data: Data) -> Data:
         size = data.x.shape
-        mask = torch.rand(size).cuda() < self.mask_ratio
+        mask = torch.rand(size) < self.mask_ratio
         data.x[mask] = 0
         return data
 
@@ -80,7 +80,7 @@ class RandomNodeDeletion(BaseTransform):
         lst = data.to_data_list()
         for data in lst:
             n_nodes, _ = data.size()
-            idx = torch.rand(n_nodes).cuda() > self.delete_ratio
+            idx = torch.rand(n_nodes) > self.delete_ratio
             if torch.sum(idx) >= 3:
                 data.x = data.x[idx]
                 data.pos = data.pos[idx]
