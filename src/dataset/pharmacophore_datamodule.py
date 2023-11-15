@@ -19,8 +19,10 @@ class PharmacophoreDataModule(LightningDataModule):
         if stage == "fit":
             # I need to pass the val_transform to the val_set
             preprocessing_data = PharmacophoreDataset(
-                self.preprocessing_data_dir, small_set=self.small_set, transform=None
-            ).shuffle()
+                self.preprocessing_data_dir, transform=None
+            )
+            if self.small_set:
+                preprocessing_data = preprocessing_data[:100000]
             print(f"Number of training graphs: {len(preprocessing_data)}")
             self.params = preprocessing_data.get_params()
             num_samples = len(preprocessing_data)

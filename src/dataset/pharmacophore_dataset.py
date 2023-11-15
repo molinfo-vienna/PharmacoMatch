@@ -63,16 +63,15 @@ class PharmacophoreDatasetBase(InMemoryDataset):
 
 class PharmacophoreDataset(PharmacophoreDatasetBase):
     def __init__(
-        self, root, small_set=False, transform=None, pre_transform=None, pre_filter=None
+        self, root, transform=None, pre_transform=None, pre_filter=None
     ):
-        self.small_set = small_set
         super().__init__(root, transform, pre_transform, pre_filter)
         path = self.processed_paths[0] 
         self.data, self.slices = torch.load(path)
 
     @property
     def raw_file_names(self):
-        return ["pretraining_data_small.cdf"]
+        return ["pretraining_data_large.cdf"]
 
     @property
     def processed_file_names(self):
@@ -98,22 +97,23 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
         ph4 = Pharm.BasicPharmacophore()
         data_list = []
         count = 0
-        empty_pharmacophores = 0
+        skipped_pharmacophores = 0
 
         while reader.read(ph4):
             try:
-                if ph4.getNumFeatures() <= 0: 
-                    empty_pharmacophores += 1
-                    break # Do not include empty graphs
-                x, pos = self._extract_pharmacophore_features(ph4)
-                data = Data(x=x, pos=pos)
-                data_list.append(data)
-                count += 1
-                if self.small_set and count >= 1e5: break
-
+                if ph4.getNumFeatures() > 3: 
+                    x, pos = self._extract_pharmacophore_features(ph4)
+                    data = Data(x=x, pos=pos)
+                    data_list.append(data)
+                    count += 1
+                else:
+                    skipped_pharmacophores += 1
+                    # Do not include empty and too small graphs
+            
             except Exception as e:
                 sys.exit("Error: processing of pharmacophore failed: " + str(e))
 
+        print(f'{skipped_pharmacophores} pharmacophores were rejected.')
         return data_list
 
     def get_params(self):

@@ -18,7 +18,7 @@ def run(device):
     EPOCHS = 1000
     TRAINING = True
     BATCH_SIZE = 512
-    SMALL_SET = True
+    SMALL_SET = False
     MODEL = PharmCLR
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(42)
