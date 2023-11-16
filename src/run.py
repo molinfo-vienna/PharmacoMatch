@@ -3,9 +3,9 @@ import os
 
 import torch
 import torch_geometric
-from lightning import Trainer
+from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 
 from utils import *
 from dataset import *
@@ -16,13 +16,18 @@ def run(device):
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     EPOCHS = 1000
-    TRAINING = True
+    TRAINING = False
     BATCH_SIZE = 512
-    SMALL_SET = False
+    SMALL_SET_SIZE = 10000
     MODEL = PharmCLR
+    VS_MODEL_NUMBER = 14
+    SEED = 42
     torch.set_float32_matmul_precision("medium")
-    torch_geometric.seed_everything(42)
-    datamodule = PharmacophoreDataModule(PRETRAINING_ROOT, VS_ROOT, batch_size=BATCH_SIZE, small_set=SMALL_SET)
+    torch_geometric.seed_everything(SEED)
+    seed_everything(SEED)
+    torch.backends.cudnn.determinstic = True
+    torch.backends.cudnn.benchmark = False
+    datamodule = PharmacophoreDataModule(PRETRAINING_ROOT, VS_ROOT, batch_size=BATCH_SIZE, small_set_size=SMALL_SET_SIZE)
 
     def training():
         datamodule.setup("fit")
@@ -34,7 +39,8 @@ def run(device):
             "logs/", name=f"PharmCLR", default_hp_metric=False
         )
 
-        callbacks = []
+        callbacks = [ModelCheckpoint(monitor="hp/rank_me", mode="max"), 
+                     LearningRateMonitor("epoch")]
 
         trainer = Trainer(
             num_nodes=1,
@@ -56,7 +62,7 @@ def run(device):
                     path = os.path.join(path, file)
             return MODEL.load_from_checkpoint(path)
         
-        path = f'logs/PharmCLR/version_8/checkpoints/'
+        path = f'logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/'
         model = load_model(path)
         datamodule.setup('virtual_screening')
         trainer = Trainer(num_nodes=1,

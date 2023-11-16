@@ -35,4 +35,4 @@ class AugmentationModule(LightningModule):
         if self.is_training:
             return self.transform(data.clone()), self.transform(data.clone())
         else: 
-            return self.transform(data.clone()), self.transform(data.clone()), self.val_transform(data.clone())
+            return self.val_transform(data.clone())

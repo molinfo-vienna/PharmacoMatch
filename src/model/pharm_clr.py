@@ -182,9 +182,9 @@ class PharmCLR(LightningModule):
         if self.trainer.training:
             return self.transform(batch)
         if self.trainer.evaluating:
-            return self.val_transform(batch)
+            return self.transform(batch), self.val_transform(batch)
         else:
-            return batch
+            return self.val_transform(batch)
 
     def training_step(self, batch, batch_idx):
         loss = self.shared_step(batch)
@@ -204,7 +204,7 @@ class PharmCLR(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         # val loss calculation
-        batch1, batch2, batch3 = batch
+        (batch1, batch2), batch3 = batch
         val_loss = self.shared_step((batch1, batch2))
         self.log(
             "hp/val_loss",

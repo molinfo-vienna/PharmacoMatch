@@ -6,12 +6,12 @@ from .augmentation_module import AugmentationModule
 
 
 class PharmacophoreDataModule(LightningDataModule):
-    def __init__(self, preprocessing_data_dir, virtual_screening_data_dir, batch_size=None, small_set=False):
+    def __init__(self, preprocessing_data_dir, virtual_screening_data_dir, batch_size=None, small_set_size=None):
         super(PharmacophoreDataModule, self).__init__()
         self.preprocessing_data_dir = preprocessing_data_dir
         self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
-        self.small_set = small_set
+        self.small_set_size = small_set_size
         #self.transform = AugmentationModule(train=True)
         #self.val_transform = AugmentationModule(train=False)
 
@@ -21,8 +21,8 @@ class PharmacophoreDataModule(LightningDataModule):
             preprocessing_data = PharmacophoreDataset(
                 self.preprocessing_data_dir, transform=None
             )
-            if self.small_set:
-                preprocessing_data = preprocessing_data[:100000]
+            if self.small_set_size:
+                preprocessing_data = preprocessing_data[:self.small_set_size]
             print(f"Number of training graphs: {len(preprocessing_data)}")
             self.params = preprocessing_data.get_params()
             num_samples = len(preprocessing_data)
@@ -34,9 +34,9 @@ class PharmacophoreDataModule(LightningDataModule):
             #self.val_data.transform=self.val_transform
 
         if stage == 'virtual_screening':
-            self.query = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='query', transform=self.transform)
-            self.actives = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='active', transform=self.transform)
-            self.inactives = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='inactive', transform=self.transform)
+            self.query = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='query', transform=None)
+            self.actives = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='active', transform=None)
+            self.inactives = VirtualScreeningDataset(self.virtual_screening_data_dir, path_type='inactive', transform=None)
             print(f"Number of active graphs: {len(self.actives)}")
             print(f"Number of inactive graphs: {len(self.inactives)}")
 

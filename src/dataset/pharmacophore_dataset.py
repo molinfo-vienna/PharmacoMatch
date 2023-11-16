@@ -169,16 +169,22 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
         data_list = []
         name = ''
         mol_id = -1
+        count = 0
+        skipped_pharmacophores = 0
 
         while reader.read(ph4):
             try:
-                if ph4.getNumFeatures() <= 0: break # Do not include empty graphs
-                x, pos = self._extract_pharmacophore_features(ph4)
-                if name != Pharm.getName(ph4):
-                    name = Pharm.getName(ph4)
-                    mol_id += 1
-                data = Data(x=x, pos=pos, mol_id = mol_id)
-                data_list.append(data)
+                if ph4.getNumFeatures() > 3: 
+                    if name != Pharm.getName(ph4):
+                        name = Pharm.getName(ph4)
+                        mol_id += 1
+                    x, pos = self._extract_pharmacophore_features(ph4)
+                    data = Data(x=x, pos=pos, mol_id=mol_id)
+                    data_list.append(data)
+                    count += 1
+                else:
+                    skipped_pharmacophores += 1
+                    # Do not include empty and too small graphs
 
             except Exception as e:
                 sys.exit("Error: processing of pharmacophore failed: " + str(e))
