@@ -169,22 +169,21 @@ class PharmCLR(LightningModule):
         return hyperparams
     
     def shared_step(self, batch):
-        batch1, batch2 = batch
-        out1 = self(batch1)
-        out2 = self(batch2)
+        out1 = self(self.transform(batch))
+        out2 = self(self.transform(batch))
         batch_size, _ = out1.shape
         out = torch.cat((out1, out2), dim=1).reshape(batch_size * 2, -1)
         loss = self.nt_xent_loss(out)
 
         return loss
     
-    def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-        if self.trainer.training:
-            return self.transform(batch)
-        if self.trainer.evaluating:
-            return self.transform(batch), self.val_transform(batch)
-        else:
-            return self.val_transform(batch)
+    # def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
+    #     if self.trainer.training:
+    #         return self.transform(batch)
+    #     if self.trainer.evaluating:
+    #         return self.transform(batch), self.val_transform(batch)
+    #     else:
+    #         return self.val_transform(batch)
 
     def training_step(self, batch, batch_idx):
         loss = self.shared_step(batch)
@@ -204,8 +203,7 @@ class PharmCLR(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         # val loss calculation
-        (batch1, batch2), batch3 = batch
-        val_loss = self.shared_step((batch1, batch2))
+        val_loss = self.shared_step(batch)
         self.log(
             "hp/val_loss",
             val_loss,
@@ -216,7 +214,7 @@ class PharmCLR(LightningModule):
         )
 
         # rankme criterion
-        self.val_embeddings.append(self(batch3))
+        self.val_embeddings.append(self(self.val_transform(batch)))
         
         return val_loss
     
@@ -244,5 +242,5 @@ class PharmCLR(LightningModule):
         )
 
     def predict_step(self, batch, batch_idx):
-        return self(batch), batch.mol_id
+        return self(self.val_transform(batch)), batch.mol_id
     

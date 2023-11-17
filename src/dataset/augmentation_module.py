@@ -34,6 +34,6 @@ class AugmentationModule(LightningModule):
     @torch.no_grad()
     def forward(self, data):
         if self.is_training:
-            return self.transform(data.clone()), self.transform(data.clone())
+            return self.transform(data.clone())
         else: 
             return self.val_transform(data.clone())
