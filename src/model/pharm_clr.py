@@ -72,13 +72,13 @@ class PharmCLR(LightningModule):
         # input to say 32-64, output to maybe 25
         for _ in range(hyperparams["n_layers_conv"]):
             self.convolution.append(
-                NNConv(# GAT is maybe not suitable for our problem
+                GATConv(# GAT is maybe not suitable for our problem
                     input_dimension,
                     output_dim,
-                    nn=Linear(params["num_edge_features"], input_dimension*output_dim)
-                    #edge_dim=params["num_edge_features"],
-                    #heads=self.heads,
-                    #concat=False,
+                    #nn=Linear(params["num_edge_features"], input_dimension*output_dim)
+                    edge_dim=params["num_edge_features"],
+                    heads=self.heads,
+                    concat=False,
                 )
             )
             self.convolution_batch_norm.append(BatchNorm(output_dim))
@@ -97,6 +97,7 @@ class PharmCLR(LightningModule):
         # Projection head MLP
         self.projection_head = torch.nn.Sequential(
             torch.nn.Linear(input_dimension, output_dim),
+            torch.nn.BatchNorm1d(input_dimension),
             torch.nn.GELU(),
             torch.nn.Linear(input_dimension, output_dim // 2),
         )
@@ -134,10 +135,10 @@ class PharmCLR(LightningModule):
         # Apply the projection_head
         embedding = self.projection_head(representation)
 
-        return embedding
+        return F.normalize(embedding, p=2, dim=1)
 
     def configure_optimizers(self):
-        optimizer = LARS(self.parameters(), lr=self.learning_rate)
+        optimizer = LARS(self.parameters(), lr=self.learning_rate, weight_decay=1e-6, momentum=1e-3)
         return optimizer
 
     def nt_xent_loss(self, x):
@@ -158,7 +159,7 @@ class PharmCLR(LightningModule):
     @classmethod
     def get_hyperparams(cls):
         hyperparams = dict(
-            learning_rate=1e-2,
+            learning_rate=1e-1,
             dropout=0.1,
             n_layers_conv=3,
             output_dims_conv=32,
