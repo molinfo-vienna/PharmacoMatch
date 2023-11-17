@@ -81,12 +81,27 @@ class RandomNodeDeletion(BaseTransform):
         self.delete_ratio = delete_ratio
 
     def __call__(self, data: Data) -> Data:
-        lst = data.to_data_list()
-        for data in lst:
-            n_nodes, _ = data.size()
-            idx = torch.rand(n_nodes) > self.delete_ratio
-            if torch.sum(idx) >= 3:
-                data.x = data.x[idx]
-                data.pos = data.pos[idx]
+        device = data.x.device
+        n_nodes_per_graph = data.ptr[1:] - data.ptr[:-1]
+        n_nodes_to_delete = (n_nodes_per_graph * 0.3).int()
+        n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
 
-        return Batch.from_data_list(lst)
+        idx = torch.cat([(torch.randperm(i + j, device=device) + k)[:i] for i, j, k in zip(n_nodes_to_keep, n_nodes_to_delete, data.ptr[0:-1])])
+
+        data.x = data.x[idx]
+        data.pos = data.pos[idx]
+        data.batch = data.batch[idx]
+        data.ptr = torch.cat((torch.zeros(1, device=device, dtype=torch.long), torch.cumsum(n_nodes_to_keep, dim=0)))
+
+        return data
+
+        # lst = data.to_data_list()
+        # device = data.x.device
+        # for data in lst:
+        #     n_nodes, _ = data.size()
+        #     idx = torch.rand(n_nodes, device=device) > self.delete_ratio
+        #     if torch.sum(idx) >= 3:
+        #         data.x = data.x[idx]
+        #         data.pos = data.pos[idx]
+
+        # return Batch.from_data_list(lst)

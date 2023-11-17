@@ -1,8 +1,9 @@
 import torch
 from torch_geometric.nn import global_max_pool
-from    torch.nn.functional import cosine_similarity
+from torch.nn.functional import cosine_similarity
 from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve
 import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 
 from utils import *
 from dataset import *
@@ -29,6 +30,7 @@ class VirtualScreening:
         inactive_similarity = cosine_similarity(query, inactives)
         active_similarity = global_max_pool(active_similarity, active_mol_ids)
         inactive_similarity = global_max_pool(inactive_similarity, inactive_mol_ids)
+        #self.plot_tSNE(query, actives, inactives)
         y_pred = torch.cat((active_similarity, inactive_similarity))
         y_pred = (y_pred + 1) / 2
         y_true = torch.cat((torch.ones(len(active_similarity), dtype=torch.int), torch.zeros(len(inactive_similarity), dtype=torch.int)))
@@ -51,12 +53,23 @@ class VirtualScreening:
         # print metrics & plot figures
         print(roc_auc_score(y_true, y_pred))
         fpr, tpr, thr = roc_curve(y_true, y_pred)
+        fig2 = plt.figure()
         plt.plot(fpr, tpr)
         plt.xlabel('FPR')
         plt.ylabel('TPR')
         plt.title('ROC LigandScout Tutorial')
         plt.savefig('plots/auroc.png')
+        fig3 = plt.figure()
         precision, recall, thr = precision_recall_curve(y_true, y_pred)
         plt.plot(precision, recall)
         plt.savefig('plots/prcurve.png')
+
+    def plot_tSNE(self, query, actives, inactives):
+        labels = torch.cat((torch.ones(len(actives)), torch.zeros(len(inactives)), torch.ones(len(query))*2)).numpy()
+        features = torch.cat((actives, inactives, query)).numpy()
+        X_embedded = TSNE(n_components=2, learning_rate=10,
+                        init='random', perplexity=3, metric='cosine').fit_transform(features)
+        fig = plt.figure()
+        plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=labels, marker='.')
+        plt.savefig('tsne.png')
         

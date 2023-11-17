@@ -72,13 +72,13 @@ class PharmCLR(LightningModule):
         # input to say 32-64, output to maybe 25
         for _ in range(hyperparams["n_layers_conv"]):
             self.convolution.append(
-                GATv2Conv(# GAT is maybe not suitable for our problem
+                NNConv(# GAT is maybe not suitable for our problem
                     input_dimension,
                     output_dim,
-                    #nn=Linear(params["num_edge_features"], input_dimension*output_dim)
-                    edge_dim=params["num_edge_features"],
-                    heads=self.heads,
-                    concat=False,
+                    nn=Linear(params["num_edge_features"], input_dimension*output_dim)
+                    #edge_dim=params["num_edge_features"],
+                    #heads=self.heads,
+                    #concat=False,
                 )
             )
             self.convolution_batch_norm.append(BatchNorm(output_dim))
@@ -129,7 +129,7 @@ class PharmCLR(LightningModule):
         x = F.dropout(x, p=self.dropout, training=self.training)
 
         # Graph-level read-out
-        representation = self.gmt(x, data.batch)
+        representation = global_mean_pool(x, data.batch)
 
         # Apply the projection_head
         embedding = self.projection_head(representation)
@@ -162,7 +162,7 @@ class PharmCLR(LightningModule):
             dropout=0.1,
             n_layers_conv=3,
             output_dims_conv=32,
-            output_dims_lin=64,
+            output_dims_lin=128,
             temperature=0.5,
         )
 
