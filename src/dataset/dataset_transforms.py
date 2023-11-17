@@ -1,9 +1,11 @@
+from typing import Any
 import numpy as np
 import torch
-from torch_geometric.data import Data, Batch
-from torch_geometric.data.lightning import LightningDataset
+from torch_geometric.data import Data
 from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
+from torch_geometric.utils import to_undirected
+
 
 
 @functional_transform("distance_ohe")
@@ -72,6 +74,22 @@ class RandomMasking(BaseTransform):
         device = data.x.device
         mask = torch.rand(size, device=device) < self.mask_ratio
         data.x[mask] = 0
+        return data
+    
+
+@functional_transform("complete_graph")
+class CompleteGraph(BaseTransform):
+    def __call__(self, data: Data) -> Data:
+        n_nodes_per_graph = data.ptr[1:] - data.ptr[:-1]
+        device = data.ptr.device
+
+        def create_edges(num_nodes, ptr):
+            idx = torch.combinations(torch.arange(num_nodes, device=device), r=2)
+            edge_index = to_undirected(idx.t(), num_nodes=num_nodes)
+            return edge_index + ptr
+
+        data.edge_index = torch.cat(([create_edges(num_nodes, ptr) for num_nodes, ptr in zip(n_nodes_per_graph, data.ptr[:-1])]), dim=1)
+
         return data
 
 

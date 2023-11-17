@@ -1,4 +1,4 @@
-from .dataset_transforms import DistanceOHE, DistanceRDF, RandomGaussianNoise, RandomMasking, RandomNodeDeletion
+from .dataset_transforms import DistanceOHE, DistanceRDF, RandomGaussianNoise, RandomMasking, RandomNodeDeletion, CompleteGraph
 from .pharmacophore_datamodule import PharmacophoreDataModule
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 from .augmentation_module import AugmentationModule
@@ -13,5 +13,6 @@ __all__ = [
     "PharmacophoreDataset",
     "VirtualScreeningDataset",
     "PharmacophoreDataModule",
-    "AugmentationModule"
+    "AugmentationModule",
+    "CompleteGraph"
 ]
