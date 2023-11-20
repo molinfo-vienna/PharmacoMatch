@@ -3,6 +3,7 @@ import torch
 from torch.nn import Linear
 import torch.nn.functional as F
 from flash.core.optimizers import LARS
+import math
 
 # layers that accept edge_attr
 from torch_geometric.nn import (
@@ -51,6 +52,7 @@ class PharmCLR(LightningModule):
         self.dropout = hyperparams["dropout"]
         self.heads = 10
         self.temperature = hyperparams["temperature"]
+        self.batch_size = params["batch_size"]
 
         # Augmentation
         self.transform = AugmentationModule(train=True)
@@ -138,28 +140,32 @@ class PharmCLR(LightningModule):
         return F.normalize(embedding, p=2, dim=1)
 
     def configure_optimizers(self):
-        optimizer = LARS(self.parameters(), lr=self.learning_rate, weight_decay=1e-6, momentum=1e-3)
+        optimizer = LARS(self.parameters(), lr=self.learning_rate*math.sqrt(self.batch_size), weight_decay=1e-6, momentum=1e-3)
         return optimizer
 
-    def nt_xent_loss(self, x):
-        assert len(x.size()) == 2
 
-        # Cosine similarity
-        xcs = F.cosine_similarity(x[None, :, :], x[:, None, :], dim=-1)
-        xcs[torch.eye(x.size(0)).bool()] = float("-inf")
+    def nt_xent_loss(self, out_1, out_2):
+        out = torch.cat([out_1, out_2], dim=0)
+        n_samples = len(out)
 
-        # Ground truth labels
-        target = torch.arange(x.size(0)).cuda()
-        target[0::2] += 1
-        target[1::2] -= 1
+        # Full similarity matrix
+        cov = torch.mm(out, out.t().contiguous())
+        sim = torch.exp(cov / self.temperature)
 
-        # Standard cross-entropy loss
-        return F.cross_entropy(xcs / self.temperature, target, reduction="mean")
+        mask = ~torch.eye(n_samples, device=sim.device).bool()
+        neg = sim.masked_select(mask).view(n_samples, -1).sum(dim=-1)
+
+        # Positive similarity
+        pos = torch.exp(torch.sum(out_1 * out_2, dim=-1) / self.temperature)
+        pos = torch.cat([pos, pos], dim=0)
+
+        loss = -torch.log(pos / neg).mean()
+        return loss
 
     @classmethod
     def get_hyperparams(cls):
         hyperparams = dict(
-            learning_rate=1e-1,
+            learning_rate=0.75,
             dropout=0.1,
             n_layers_conv=3,
             output_dims_conv=32,
@@ -172,11 +178,10 @@ class PharmCLR(LightningModule):
     def shared_step(self, batch):
         out1 = self(self.transform(batch))
         out2 = self(self.transform(batch))
-        batch_size, _ = out1.shape
-        out = torch.cat((out1, out2), dim=1).reshape(batch_size * 2, -1)
-        loss = self.nt_xent_loss(out)
 
-        return loss
+        return self.nt_xent_loss(out1, out2)
+
+        #return self.nt_xent_loss(out1, out2)
     
     # def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
     #     if self.trainer.training:

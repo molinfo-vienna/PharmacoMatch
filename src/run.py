@@ -16,11 +16,11 @@ def run(device):
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     EPOCHS = 100
-    TRAINING = False
+    TRAINING = True
     BATCH_SIZE = 512
     SMALL_SET_SIZE = 100000
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 18
+    VS_MODEL_NUMBER = 19
     SEED = 42
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(SEED)
@@ -32,6 +32,7 @@ def run(device):
     def training():
         datamodule.setup("fit")
         params = datamodule.params # dict(num_node_features=9, num_edge_features=5)
+        params["batch_size"] = BATCH_SIZE
         hyperparams = MODEL.get_hyperparams()
         model = MODEL(hyperparams, params)
 

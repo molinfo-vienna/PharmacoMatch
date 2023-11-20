@@ -4,32 +4,33 @@ from lightning import LightningModule
 
 from .dataset_transforms import DistanceOHE, DistanceRDF, RandomMasking, RandomGaussianNoise, RandomNodeDeletion, CompleteGraph
 
-class AugmentationModule(LightningModule):
+class AugmentationModule(torch.nn.Module):
     def __init__(self, train=True) -> None:
         super(AugmentationModule, self).__init__()
         self.is_training = train
+        self.node_masking = 0.5
+        self.knn = 3
+        self.num_edge_features = 5
 
         # Data Augmentation
         #if self.train:
         self.transform = T.Compose(
             [
                 #RandomMasking(), # with mask token, or better deletion? Try both.
-                RandomNodeDeletion(0.5),
+                RandomNodeDeletion(self.node_masking),
                 # Random masking mit bis zu 70%
                 #RandomGaussianNoise(), # two different tolerance radii
-                T.KNNGraph(k=50, force_undirected=True),
-                #CompleteGraph(),
+                T.KNNGraph(k=self.knn, force_undirected=True),
                 T.Distance(norm=False),
-                DistanceRDF(num_bins=5),
+                DistanceRDF(num_bins=self.num_edge_features),
             ]
         )
     #else: 
         self.val_transform = T.Compose(
             [
-                T.KNNGraph(k=50, force_undirected=True),
-                #CompleteGraph(),
+                T.KNNGraph(k=self.knn, force_undirected=True),
                 T.Distance(norm=False),
-                DistanceRDF(num_bins=5),
+                DistanceRDF(num_bins=self.num_edge_features),
             ]
         )
 
