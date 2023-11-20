@@ -16,11 +16,11 @@ def run(device):
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     EPOCHS = 1000
-    TRAINING = True
-    BATCH_SIZE = 4096
+    TRAINING = False
+    BATCH_SIZE = 8192
     SMALL_SET_SIZE = 100000
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 23
+    VS_MODEL_NUMBER = 24
     SEED = 42
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(SEED)
@@ -45,7 +45,7 @@ def run(device):
             "logs/", name=f"PharmCLR", default_hp_metric=False
         )
 
-        callbacks = [#ModelCheckpoint(monitor="hp/rank_me", mode="max"), 
+        callbacks = [ModelCheckpoint(monitor="hp/val_loss", mode="min"), 
                      LearningRateMonitor("epoch")]
 
         trainer = Trainer(
@@ -54,7 +54,8 @@ def run(device):
             accelerator="auto",
             logger=tb_logger,
             log_every_n_steps=1,
-            callbacks=callbacks
+            callbacks=callbacks,
+            precision=16
         )
 
         trainer.fit(model=model, datamodule=datamodule)
