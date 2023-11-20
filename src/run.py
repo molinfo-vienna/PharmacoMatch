@@ -34,7 +34,8 @@ def run(device):
         params = datamodule.params # dict(num_node_features=9, num_edge_features=5)
         params["batch_size"] = BATCH_SIZE
         hyperparams = MODEL.get_hyperparams()
-        model = MODEL(hyperparams, params)
+        params.update(hyperparams)
+        model = MODEL(**params)
 
         tb_logger = TensorBoardLogger(
             "logs/", name=f"PharmCLR", default_hp_metric=False
