@@ -2,7 +2,7 @@ from typing import Any
 import torch
 from torch.nn import Linear
 import torch.nn.functional as F
-from flash.core.optimizers import LARS
+from flash.core.optimizers import LARS, LinearWarmupCosineAnnealingLR
 import math
 
 # layers that accept edge_attr
@@ -147,7 +147,7 @@ class PharmCLR(LightningModule):
                                dropout=self.hparams.dropout
                                )
         input_dimension = self.hparams.output_dims_lin
-        self.projection_head = Projection(input_dimension, input_dimension, input_dimension // 2)
+        self.projection_head = Projection(input_dimension, input_dimension, 64)
 
         # validation embeddings
         self.val_embeddings = []
@@ -162,10 +162,61 @@ class PharmCLR(LightningModule):
         embedding = self.projection_head(representation)
 
         return embedding
+    
+    def setup(self, stage):
+        global_batch_size = self.trainer.world_size * self.hparams.batch_size
+        self.train_iters_per_epoch = self.hparams.num_samples // global_batch_size
+    
+    def exclude_from_wt_decay(self, named_params, weight_decay, skip_list=['bias', 'bn']):
+        params = []
+        excluded_params = []
 
+        for name, param in named_params:
+            if not param.requires_grad:
+                continue
+            elif any(layer_name in name for layer_name in skip_list):
+                excluded_params.append(param)
+            else:
+                params.append(param)
+
+        return [
+            {'params': params, 'weight_decay': weight_decay},
+            {'params': excluded_params, 'weight_decay': 0.}
+        ]
+    
     def configure_optimizers(self):
-        optimizer = LARS(self.parameters(), lr=self.hparams.learning_rate*math.sqrt(self.hparams.batch_size), weight_decay=1e-6, momentum=1e-3)
-        return optimizer
+        # TRICK 1 (Use lars + filter weights)
+        # exclude certain parameters
+        parameters = self.exclude_from_wt_decay(
+            self.named_parameters(),
+            weight_decay=self.hparams.opt_weight_decay
+        )
+
+        optimizer = LARS(parameters, lr=self.hparams.learning_rate, momentum=self.hparams.opt_eta)
+
+        # Trick 2 (after each step)
+        self.hparams.warmup_epochs = self.hparams.warmup_epochs * self.train_iters_per_epoch
+        max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
+
+        linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
+            optimizer,
+            warmup_epochs=self.hparams.warmup_epochs,
+            max_epochs=max_epochs,
+            warmup_start_lr=0,
+            eta_min=0
+        )
+
+        scheduler = {
+            'scheduler': linear_warmup_cosine_decay,
+            'interval': 'step',
+            'frequency': 1
+        }
+
+        return [optimizer], [scheduler]
+
+    # def configure_optimizers(self):
+    #     optimizer = LARS(self.parameters(), lr=self.hparams.learning_rate*math.sqrt(self.hparams.batch_size), weight_decay=1e-6, momentum=1e-3)
+    #     return optimizer
 
     def nt_xent_loss(self, out_1, out_2):
         out = torch.cat([out_1, out_2], dim=0)
@@ -188,34 +239,24 @@ class PharmCLR(LightningModule):
     @classmethod
     def get_hyperparams(cls):
         hyperparams = dict(
-            learning_rate=0.75,
+            learning_rate=5e-2,
             dropout=0.1,
             n_layers_conv=3,
             output_dims_conv=32,
-            output_dims_lin=128,
+            output_dims_lin=1024,
             temperature=0.5,
         )
 
         return hyperparams
     
-    def shared_step(self, batch):
+    def shared_step(self, batch, batch_idx):
         out1 = self(self.transform(batch))
         out2 = self(self.transform(batch))
 
         return self.nt_xent_loss(out1, out2)
 
-        #return self.nt_xent_loss(out1, out2)
-    
-    # def on_after_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
-    #     if self.trainer.training:
-    #         return self.transform(batch)
-    #     if self.trainer.evaluating:
-    #         return self.transform(batch), self.val_transform(batch)
-    #     else:
-    #         return self.val_transform(batch)
-
     def training_step(self, batch, batch_idx):
-        loss = self.shared_step(batch)
+        loss = self.shared_step(batch, batch_idx)
         self.log(
             "hp/train_loss",
             loss,
@@ -232,12 +273,12 @@ class PharmCLR(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         # val loss calculation
-        val_loss = self.shared_step(batch)
+        val_loss = self.shared_step(batch, batch_idx)
         self.log(
             "hp/val_loss",
             val_loss,
             prog_bar=True,
-            on_step=True,
+            on_step=False,
             on_epoch=True,
             batch_size=len(batch),
         )

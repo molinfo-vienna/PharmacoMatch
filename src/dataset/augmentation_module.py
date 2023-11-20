@@ -9,7 +9,7 @@ class AugmentationModule(torch.nn.Module):
         super(AugmentationModule, self).__init__()
         self.is_training = train
         self.node_masking = 0.5
-        self.knn = 3
+        self.knn = 50
         self.num_edge_features = 5
 
         # Data Augmentation
