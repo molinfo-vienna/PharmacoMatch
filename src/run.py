@@ -5,7 +5,7 @@ import torch
 import torch_geometric
 from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor, Callback
 
 from utils import *
 from dataset import *
@@ -20,7 +20,7 @@ def run(device):
     BATCH_SIZE = 4096
     SMALL_SET_SIZE = 100000
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 22
+    VS_MODEL_NUMBER = 23
     SEED = 42
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(SEED)
@@ -49,13 +49,12 @@ def run(device):
                      LearningRateMonitor("epoch")]
 
         trainer = Trainer(
-            num_nodes=1,
             devices=device,
             max_epochs=EPOCHS,
             accelerator="auto",
             logger=tb_logger,
             log_every_n_steps=1,
-            callbacks=callbacks,
+            callbacks=callbacks
         )
 
         trainer.fit(model=model, datamodule=datamodule)
