@@ -17,10 +17,10 @@ def run(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     EPOCHS = 1000
     TRAINING = True
-    BATCH_SIZE = 2048
+    BATCH_SIZE = 4096
     SMALL_SET_SIZE = 100000
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 20
+    VS_MODEL_NUMBER = 22
     SEED = 42
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(SEED)
