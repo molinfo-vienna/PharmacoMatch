@@ -15,8 +15,8 @@ from model import *
 def run(device):
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
-    EPOCHS = 1000
-    TRAINING = False
+    EPOCHS = 200
+    TRAINING = True
     BATCH_SIZE = 8192
     SMALL_SET_SIZE = 100000
     MODEL = PharmCLR
@@ -45,8 +45,9 @@ def run(device):
             "logs/", name=f"PharmCLR", default_hp_metric=False
         )
 
-        callbacks = [ModelCheckpoint(monitor="hp/val_loss", mode="min"), 
-                     LearningRateMonitor("epoch")]
+        callbacks = [ModelCheckpoint(monitor="hp/val_loss/dataloader_idx_0", mode="min"), 
+                     LearningRateMonitor("epoch"),
+                     VirtualScreeningCallback()]
 
         trainer = Trainer(
             devices=device,

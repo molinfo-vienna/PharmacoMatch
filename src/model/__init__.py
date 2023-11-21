@@ -1,3 +1,3 @@
-from .pharm_clr import PharmCLR
+from .pharm_clr import PharmCLR, VirtualScreeningCallback
 
-__all__ = ["PharmCLR"]
+__all__ = ["PharmCLR", "VirtualScreeningCallback"]
