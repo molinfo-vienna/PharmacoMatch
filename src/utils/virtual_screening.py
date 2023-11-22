@@ -18,22 +18,27 @@ class VirtualScreening:
     def __call__(self, datamodule) -> None:
         y_true, y_pred = self.perform_screening(datamodule)
         self.plot_metrics(y_true, y_pred)
-    
+
     def perform_screening(self, datamodule):
         # encode pharmacophore data
-        query, _ = self.assemble(self.trainer.predict(model=self.model, dataloaders=datamodule.query_dataloader()))
-        actives, active_mol_ids = self.assemble(self.trainer.predict(model=self.model, dataloaders=datamodule.actives_dataloader()))
-        inactives, inactive_mol_ids = self.assemble(self.trainer.predict(model=self.model, dataloaders=datamodule.inactives_dataloader()))
-        
+        query, _ = self.assemble(self.trainer.predict(
+            model=self.model, dataloaders=datamodule.query_dataloader()))
+        actives, active_mol_ids = self.assemble(self.trainer.predict(
+            model=self.model, dataloaders=datamodule.actives_dataloader()))
+        inactives, inactive_mol_ids = self.assemble(self.trainer.predict(
+            model=self.model, dataloaders=datamodule.inactives_dataloader()))
+
         # calculate similarity & predict activity w.r.t. to query
         active_similarity = cosine_similarity(query, actives)
         inactive_similarity = cosine_similarity(query, inactives)
         active_similarity = global_max_pool(active_similarity, active_mol_ids)
-        inactive_similarity = global_max_pool(inactive_similarity, inactive_mol_ids)
-        #self.plot_tSNE(query, actives, inactives)
+        inactive_similarity = global_max_pool(
+            inactive_similarity, inactive_mol_ids)
+        # self.plot_tSNE(query, actives, inactives)
         y_pred = torch.cat((active_similarity, inactive_similarity))
         y_pred = (y_pred + 1) / 2
-        y_true = torch.cat((torch.ones(len(active_similarity), dtype=torch.int), torch.zeros(len(inactive_similarity), dtype=torch.int)))
+        y_true = torch.cat((torch.ones(len(active_similarity), dtype=torch.int), torch.zeros(
+            len(inactive_similarity), dtype=torch.int)))
         y_true = y_true.cpu().numpy()
         y_pred = y_pred.cpu().numpy()
 
@@ -46,9 +51,9 @@ class VirtualScreening:
             prediction, mol_id = output
             predictions.append(prediction)
             mol_ids.append(mol_id)
-        
+
         return torch.vstack(predictions), torch.hstack(mol_ids)
-    
+
     def plot_metrics(self, y_true, y_pred):
         # print metrics & plot figures
         print(roc_auc_score(y_true, y_pred))
@@ -65,11 +70,11 @@ class VirtualScreening:
         plt.savefig('plots/prcurve.png')
 
     def plot_tSNE(self, query, actives, inactives):
-        labels = torch.cat((torch.ones(len(actives)), torch.zeros(len(inactives)), torch.ones(len(query))*2)).numpy()
+        labels = torch.cat((torch.ones(len(actives)), torch.zeros(
+            len(inactives)), torch.ones(len(query))*2)).numpy()
         features = torch.cat((actives, inactives, query)).numpy()
         X_embedded = TSNE(n_components=2, learning_rate=10,
-                        init='random', perplexity=3, metric='cosine').fit_transform(features)
+                          init='random', perplexity=3, metric='cosine').fit_transform(features)
         fig = plt.figure()
         plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=labels, marker='.')
         plt.savefig('tsne.png')
-        

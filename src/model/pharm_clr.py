@@ -245,7 +245,7 @@ class PharmCLR(LightningModule):
     @classmethod
     def get_hyperparams(cls):
         hyperparams = dict(
-            learning_rate=1e-1,
+            learning_rate=5e-2,
             dropout=0.1,
             n_layers_conv=3,
             output_dims_conv=32,

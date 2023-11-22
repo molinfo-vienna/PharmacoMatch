@@ -16,22 +16,24 @@ def run(device):
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     EPOCHS = 200
-    TRAINING = True
-    BATCH_SIZE = 8192
+    TRAINING = False
+    BATCH_SIZE = 4096
     SMALL_SET_SIZE = 100000
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 24
+    VS_MODEL_NUMBER = 28
     SEED = 42
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(SEED)
     seed_everything(SEED)
     torch.backends.cudnn.determinstic = True
     torch.backends.cudnn.benchmark = False
-    datamodule = PharmacophoreDataModule(PRETRAINING_ROOT, VS_ROOT, batch_size=BATCH_SIZE, small_set_size=SMALL_SET_SIZE)
+    datamodule = PharmacophoreDataModule(
+        PRETRAINING_ROOT, VS_ROOT, batch_size=BATCH_SIZE, small_set_size=SMALL_SET_SIZE)
 
     def training():
         datamodule.setup("fit")
-        params = datamodule.params # dict(num_node_features=9, num_edge_features=5)
+        # dict(num_node_features=9, num_edge_features=5)
+        params = datamodule.params
         params["batch_size"] = BATCH_SIZE
         params["warmup_epochs"] = 10
         params["opt_eta"] = 1e-3
@@ -45,7 +47,7 @@ def run(device):
             "logs/", name=f"PharmCLR", default_hp_metric=False
         )
 
-        callbacks = [ModelCheckpoint(monitor="hp/val_loss/dataloader_idx_0", mode="min"), 
+        callbacks = [ModelCheckpoint(monitor="hp/val_loss/dataloader_idx_0", mode="min"),
                      LearningRateMonitor("epoch"),
                      VirtualScreeningCallback()]
 
@@ -68,17 +70,17 @@ def run(device):
                 if file.endswith(".ckpt"):
                     path = os.path.join(path, file)
             return MODEL.load_from_checkpoint(path)
-        
+
         path = f'logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/'
         model = load_model(path)
         datamodule.setup('virtual_screening')
         trainer = Trainer(num_nodes=1,
-                    devices=device,
-                    max_epochs=EPOCHS,
-                    accelerator='auto',
-                    logger=False,
-                    log_every_n_steps=1)
-        
+                          devices=device,
+                          max_epochs=EPOCHS,
+                          accelerator='auto',
+                          logger=False,
+                          log_every_n_steps=1)
+
         vs = VirtualScreening(model, trainer)
         vs(datamodule)
 
