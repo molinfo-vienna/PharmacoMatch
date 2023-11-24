@@ -242,19 +242,6 @@ class PharmCLR(LightningModule):
         loss = -torch.log(pos / neg).mean()
         return loss
 
-    @classmethod
-    def get_hyperparams(cls):
-        hyperparams = dict(
-            learning_rate=5e-2,
-            dropout=0.1,
-            n_layers_conv=3,
-            output_dims_conv=32,
-            output_dims_lin=1024,
-            temperature=0.5,
-        )
-
-        return hyperparams
-
     def shared_step(self, batch, batch_idx):
         out1 = self(self.transform(batch))
         out2 = self(self.transform(batch))
@@ -320,7 +307,21 @@ class PharmCLR(LightningModule):
         )
 
     def predict_step(self, batch, batch_idx):
-        return self(self.val_transform(batch)), batch.mol_id
+        if "mol_id" in batch.keys:
+            return self(self.val_transform(batch)), batch.mol_id
+        else:
+            return self(self.val_transform(batch))
+
+
+class ValidationDataTransformSetter(Callback):
+    def __init__(self, node_masking, std) -> None:
+        super().__init__()
+        self.node_masking = node_masking
+        self.std = std
+
+    def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
+        pl_module.val_transform = AugmentationModule(
+            train=True, node_masking=self.node_masking, std=self.std)
 
 
 class VirtualScreeningCallback(Callback):

@@ -20,16 +20,6 @@ class PharmacophoreDatasetBase(InMemoryDataset):
                      Pharm.FeatureType.EXCLUSION_VOLUME: 'EXCLUSION_VOLUME'}
 
     _num_node_features = 7
-    _num_edge_features = 5
-
-    def get_params(self):
-        # input data specific model parameters
-        params = dict(
-            num_node_features=self._num_node_features,
-            num_edge_features=self._num_edge_features,
-        )
-
-        return params
 
     def _extract_pharmacophore_features(self, ph4):
         num_features = ph4.getNumFeatures()
@@ -118,15 +108,6 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
 
         print(f'{skipped_pharmacophores} pharmacophores were rejected.')
         return data_list
-
-    def get_params(self):
-        # input data specific model parameters
-        params = dict(
-            num_node_features=7,
-            num_edge_features=5,
-        )
-
-        return params
 
 
 class VirtualScreeningDataset(PharmacophoreDatasetBase):

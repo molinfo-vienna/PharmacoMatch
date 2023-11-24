@@ -13,26 +13,20 @@ class PharmacophoreDataModule(LightningDataModule):
         self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
         self.small_set_size = small_set_size
-        # self.transform = AugmentationModule(train=True)
-        # self.val_transform = AugmentationModule(train=False)
 
     def setup(self, stage: str):
         if stage == "fit":
-            # I need to pass the val_transform to the val_set
             preprocessing_data = PharmacophoreDataset(
                 self.preprocessing_data_dir, transform=None
             )
             if self.small_set_size:
                 preprocessing_data = preprocessing_data[:self.small_set_size]
             print(f"Number of training graphs: {len(preprocessing_data)}")
-            self.params = preprocessing_data.get_params()
             num_samples = len(preprocessing_data)
             self.train_data, self.val_data = (
                 preprocessing_data[: (int)(num_samples * 0.9)],
                 preprocessing_data[(int)(num_samples * 0.9):],
             )
-            # self.train_data.transform=self.transform
-            # self.val_data.transform=self.val_transform
 
         # if stage == 'virtual_screening':
             self.query = VirtualScreeningDataset(

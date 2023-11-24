@@ -1,4 +1,3 @@
-from typing import Any
 import numpy as np
 import torch
 from torch_geometric.data import Data
@@ -56,6 +55,9 @@ class RandomGaussianNoise(BaseTransform):
         self.std = std
 
     def __call__(self, data: Data) -> Data:
+        if self.std == None or self.std == 0:
+            return data
+
         size = data.pos.shape
         device = data.pos.device
         random_noise = torch.normal(
@@ -71,10 +73,40 @@ class RandomMasking(BaseTransform):
         self.mask_ratio = mask_ratio
 
     def __call__(self, data: Data) -> Data:
+        if self.mask_ratio == None or self.mask_ratio == 0:
+            return Data
+
         size = data.x.shape
         device = data.x.device
         mask = torch.rand(size, device=device) < self.mask_ratio
         data.x[mask] = 0
+
+        return data
+
+
+@functional_transform("random_node_deletion")
+class RandomNodeDeletion(BaseTransform):
+    def __init__(self, delete_ratio=0.3) -> None:
+        self.delete_ratio = delete_ratio
+
+    def __call__(self, data: Data) -> Data:
+        if self.delete_ratio == None or self.delete_ratio == 0:
+            return data
+
+        device = data.x.device
+        n_nodes_per_graph = data.ptr[1:] - data.ptr[:-1]
+        n_nodes_to_delete = (n_nodes_per_graph * self.delete_ratio).int()
+        n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
+
+        idx = torch.cat([(torch.randperm(i + j, device=device) + k)[:i]
+                        for i, j, k in zip(n_nodes_to_keep, n_nodes_to_delete, data.ptr[0:-1])])
+
+        data.x = data.x[idx]
+        data.pos = data.pos[idx]
+        data.batch = data.batch[idx]
+        data.ptr = torch.cat((torch.zeros(
+            1, device=device, dtype=torch.long), torch.cumsum(n_nodes_to_keep, dim=0)))
+
         return data
 
 
@@ -94,37 +126,3 @@ class CompleteGraph(BaseTransform):
             n_nodes_per_graph, data.ptr[:-1])]), dim=1)
 
         return data
-
-
-@functional_transform("random_node_deletion")
-class RandomNodeDeletion(BaseTransform):
-    def __init__(self, delete_ratio=0.3) -> None:
-        self.delete_ratio = delete_ratio
-
-    def __call__(self, data: Data) -> Data:
-        device = data.x.device
-        n_nodes_per_graph = data.ptr[1:] - data.ptr[:-1]
-        n_nodes_to_delete = (n_nodes_per_graph * 0.3).int()
-        n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
-
-        idx = torch.cat([(torch.randperm(i + j, device=device) + k)[:i]
-                        for i, j, k in zip(n_nodes_to_keep, n_nodes_to_delete, data.ptr[0:-1])])
-
-        data.x = data.x[idx]
-        data.pos = data.pos[idx]
-        data.batch = data.batch[idx]
-        data.ptr = torch.cat((torch.zeros(
-            1, device=device, dtype=torch.long), torch.cumsum(n_nodes_to_keep, dim=0)))
-
-        return data
-
-        # lst = data.to_data_list()
-        # device = data.x.device
-        # for data in lst:
-        #     n_nodes, _ = data.size()
-        #     idx = torch.rand(n_nodes, device=device) > self.delete_ratio
-        #     if torch.sum(idx) >= 3:
-        #         data.x = data.x[idx]
-        #         data.pos = data.pos[idx]
-
-        # return Batch.from_data_list(lst)
