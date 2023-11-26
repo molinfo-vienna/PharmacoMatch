@@ -16,7 +16,7 @@ def evaluation(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 30
+    VS_MODEL_NUMBER = 35
 
     params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
 

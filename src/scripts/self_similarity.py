@@ -27,7 +27,7 @@ class SelfSimilarityEvaluation:
 
         max_node_masking = 0.8
         steps_node_masking = 9
-        max_std = 25
+        max_std = 2
         steps_std = 11
 
         self.node_masking_range = [float(i) for i in torch.linspace(
@@ -55,16 +55,26 @@ class SelfSimilarityEvaluation:
                 embeddings = self.create_embeddings(node_masking, std)
                 self.self_similarity[i, j] = torch.mean(
                     cosine_similarity(reference, embeddings))
+                
+        X, Y = np.meshgrid(self.node_masking_range, self.std_range)
+        Z = self.self_similarity.T
+
+        # fig1 = plt.figure()
+        # plt.figure()
+        # CS = plt.contourf(X, Y, Z, levels=np.linspace(0,1,11))
+        # plt.clabel(CS, inline=1, fontsize=10)
+        # plt.title('Simplest default with labels')
+        # plt.savefig('contour')
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        X, Y = np.meshgrid(self.node_masking_range, self.std_range)
         surf = ax.plot_surface(X, Y, self.self_similarity.T, cmap=cm.coolwarm,
                                linewidth=0, antialiased=False)
+        ax.plot_wireframe(X, Y, Z, cmap=cm.coolwarm)
         ax.set_zlim(0, 1.)
         ax.set_xlabel('Node Masking Ratio')
         ax.set_ylabel('Gaussian Noise std / Angstrom')
-        ax.set_zlabel('Mean Self-similarity')
-        fig.colorbar(surf, shrink=0.5, aspect=5)
+        ax.set_zlabel('Batch-wise Mean Cosine Similarity')
+        #fig.colorbar(surf, shrink=0.5, aspect=5)
         plt.savefig('self-similarity.png')
 
 
@@ -73,7 +83,7 @@ def run(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 30
+    VS_MODEL_NUMBER = 35
 
     params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
 

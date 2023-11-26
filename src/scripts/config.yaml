@@ -1,13 +1,13 @@
 batch_size: 4096
-epochs: 200
-dropout: 0.1
+epochs: 1000
+dropout: 0.3
 learning_rate: 0.05
 num_edge_features: 5
 num_samples: 100000
 opt_eta: 0.001
 opt_weight_decay: 1.0e-06
 n_layers_conv: 3
-output_dims_conv: 32
+output_dims_conv: 128
 output_dims_lin: 1024
 temperature: 0.5
 warmup_epochs: 10

@@ -87,7 +87,7 @@ class Encoder(torch.nn.Module):
 
         # input and outputdimension maybe bigger
         # input to say 32-64, output to maybe 25
-        for _ in range(self.n_conv_layers):
+        for i in range(self.n_conv_layers):
             self.convolution.append(
                 GATConv(  # GAT is maybe not suitable for our problem
                     input_dim,
@@ -102,8 +102,9 @@ class Encoder(torch.nn.Module):
             input_dim += hidden_dim
 
         # Expand dimensionality before node pooling
-        self.linear = Linear(input_dim, output_dim)
+        self.linear1 = Linear(input_dim, output_dim)
         self.batch_norm = BatchNorm(output_dim)
+        self.linear2 = Linear(output_dim, output_dim)
         self.pooling = global_mean_pool
 
         # input_dimension = output_dim
@@ -118,16 +119,18 @@ class Encoder(torch.nn.Module):
         # Graph convolution via message passing
         for i, conv in enumerate(self.convolution):
             x_conv = conv(x, data.edge_index, data.edge_attr)
-            x_conv = torch.nn.functional.gelu(x_conv)
             x_conv = self.convolution_batch_norm[i](x_conv)
-            x_conv = F.dropout(x_conv, p=self.dropout, training=self.training)
+            x_conv = torch.nn.functional.gelu(x_conv)
+            #x_conv = F.dropout(x_conv, p=self.dropout, training=self.training)
             x = torch.cat((x, x_conv), dim=1)
 
+
         # Dimensionality expandion before read-out
-        x = self.linear(x)
-        x = torch.nn.functional.gelu(x)
+        x = self.linear1(x)
         x = self.batch_norm(x)
+        x = torch.nn.functional.gelu(x)
         x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.linear2(x)
 
         # Graph-level read-out
         representation = self.pooling(x, data.batch)

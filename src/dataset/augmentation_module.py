@@ -5,7 +5,7 @@ from .dataset_transforms import DistanceOHE, DistanceRDF, RandomMasking, RandomG
 
 
 class AugmentationModule(torch.nn.Module):
-    def __init__(self, train=True, node_masking=0.5, std=0.28, num_edge_features=5) -> None:
+    def __init__(self, train=True, node_masking=0.3, std=0.28, num_edge_features=5) -> None:
         super(AugmentationModule, self).__init__()
         self.is_training = train
         self.node_masking = node_masking

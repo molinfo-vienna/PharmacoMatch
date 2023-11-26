@@ -46,8 +46,6 @@ class VirtualScreening:
 
             return mask
 
-        self.plot_UMAP(query, actives, inactives,
-                       active_similarity, inactive_similarity)
 
         active_mask = create_mask(active_similarity, active_mol_ids)
         inactive_mask = create_mask(inactive_similarity, inactive_mol_ids)
@@ -57,6 +55,9 @@ class VirtualScreening:
         inactive_similarity = inactive_similarity[inactive_mask]
         actives = actives[active_mask]
         inactives = inactives[inactive_mask]
+
+        self.plot_UMAP(query, actives, inactives,
+                       active_similarity, inactive_similarity)
 
         # active_similarity = global_max_pool(active_similarity, active_mol_ids)
         # inactive_similarity = global_max_pool(
