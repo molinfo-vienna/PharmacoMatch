@@ -15,8 +15,7 @@ class DistanceOHE(BaseTransform):
         _, num_features = data.edge_attr.shape
         if num_features == 1:
             idx = (
-                torch.round(torch.where(data.edge_attr *
-                            2 < 9, data.edge_attr * 2, 9))
+                torch.round(torch.where(data.edge_attr * 2 < 9, data.edge_attr * 2, 9))
                 .cpu()
                 .numpy()
                 .astype(int)
@@ -57,17 +56,16 @@ class RandomGaussianNoise(BaseTransform):
     def __call__(self, data: Data) -> Data:
         if self.radius == None or self.radius == 0:
             return data
-        
+
         std = torch.sqrt(self.radius / 27)
 
         size = data.pos.shape
         device = data.pos.device
-        random_noise = torch.normal(
-            mean=0, std=std, size=size, device=device)
+        random_noise = torch.normal(mean=0, std=std, size=size, device=device)
         data.pos += random_noise
 
         return data
-    
+
 
 @functional_transform("random_spherical_noise")
 class RandomSphericalNoise(BaseTransform):
@@ -81,7 +79,7 @@ class RandomSphericalNoise(BaseTransform):
         data.pos += self.make_spherical_noise(data.pos)
 
         return data
-    
+
     def make_spherical_noise(self, pos):
         size, _ = pos.shape
         device = pos.device
@@ -99,7 +97,7 @@ class RandomSphericalNoise(BaseTransform):
         sin_theta = torch.sin(theta)
         cos_theta = torch.cos(theta)
 
-        r = self.radius * torch.pow(u, 1/3)
+        r = self.radius * torch.pow(u, 1 / 3)
         x = r * sin_theta * torch.cos(phi)
         y = r * sin_theta * torch.sin(phi)
         z = r * cos_theta
@@ -138,14 +136,22 @@ class RandomNodeDeletion(BaseTransform):
         n_nodes_to_delete = (n_nodes_per_graph * self.delete_ratio).int()
         n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
 
-        idx = torch.cat([(torch.randperm(i + j, device=device) + k)[:i]
-                        for i, j, k in zip(n_nodes_to_keep, n_nodes_to_delete, data.ptr[0:-1])])
+        idx = torch.cat(
+            [
+                (torch.randperm(i + j, device=device) + k)[:i]
+                for i, j, k in zip(n_nodes_to_keep, n_nodes_to_delete, data.ptr[0:-1])
+            ]
+        )
 
         data.x = data.x[idx]
         data.pos = data.pos[idx]
         data.batch = data.batch[idx]
-        data.ptr = torch.cat((torch.zeros(
-            1, device=device, dtype=torch.long), torch.cumsum(n_nodes_to_keep, dim=0)))
+        data.ptr = torch.cat(
+            (
+                torch.zeros(1, device=device, dtype=torch.long),
+                torch.cumsum(n_nodes_to_keep, dim=0),
+            )
+        )
 
         return data
 
@@ -157,12 +163,18 @@ class CompleteGraph(BaseTransform):
         device = data.ptr.device
 
         def create_edges(num_nodes, ptr):
-            idx = torch.combinations(
-                torch.arange(num_nodes, device=device), r=2)
+            idx = torch.combinations(torch.arange(num_nodes, device=device), r=2)
             edge_index = to_undirected(idx.t(), num_nodes=num_nodes)
             return edge_index + ptr
 
-        data.edge_index = torch.cat(([create_edges(num_nodes, ptr) for num_nodes, ptr in zip(
-            n_nodes_per_graph, data.ptr[:-1])]), dim=1)
+        data.edge_index = torch.cat(
+            (
+                [
+                    create_edges(num_nodes, ptr)
+                    for num_nodes, ptr in zip(n_nodes_per_graph, data.ptr[:-1])
+                ]
+            ),
+            dim=1,
+        )
 
         return data

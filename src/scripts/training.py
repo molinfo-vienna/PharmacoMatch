@@ -6,7 +6,12 @@ import torch
 import torch_geometric
 from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor, Callback
+from lightning.pytorch.callbacks import (
+    EarlyStopping,
+    ModelCheckpoint,
+    LearningRateMonitor,
+    Callback,
+)
 
 from utils import *
 from dataset import *
@@ -28,15 +33,19 @@ def training(device):
     torch.backends.cudnn.benchmark = False
 
     datamodule = PharmacophoreDataModule(
-        PRETRAINING_ROOT, VS_ROOT, batch_size=params["batch_size"], small_set_size=params["num_samples"])
+        PRETRAINING_ROOT,
+        VS_ROOT,
+        batch_size=params["batch_size"],
+        small_set_size=params["num_samples"],
+    )
     datamodule.setup("fit")
     model = MODEL(**params)
-    tb_logger = TensorBoardLogger(
-        "logs/", name=f"PharmCLR", default_hp_metric=False
-    )
-    callbacks = [ModelCheckpoint(monitor="hp/val_loss/dataloader_idx_0", mode="min"),
-                 LearningRateMonitor("epoch"),
-                 VirtualScreeningCallback()]
+    tb_logger = TensorBoardLogger("logs/", name=f"PharmCLR", default_hp_metric=False)
+    callbacks = [
+        ModelCheckpoint(monitor="hp/val_loss/dataloader_idx_0", mode="min"),
+        LearningRateMonitor("epoch"),
+        VirtualScreeningCallback(),
+    ]
 
     trainer = Trainer(
         devices=device,
@@ -45,7 +54,7 @@ def training(device):
         logger=tb_logger,
         log_every_n_steps=1,
         callbacks=callbacks,
-        precision=16
+        precision=16,
     )
 
     trainer.fit(model=model, datamodule=datamodule)

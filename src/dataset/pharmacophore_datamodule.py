@@ -7,7 +7,13 @@ from .augmentation_module import AugmentationModule
 
 
 class PharmacophoreDataModule(LightningDataModule):
-    def __init__(self, preprocessing_data_dir, virtual_screening_data_dir, batch_size=None, small_set_size=None):
+    def __init__(
+        self,
+        preprocessing_data_dir,
+        virtual_screening_data_dir,
+        batch_size=None,
+        small_set_size=None,
+    ):
         super(PharmacophoreDataModule, self).__init__()
         self.preprocessing_data_dir = preprocessing_data_dir
         self.virtual_screening_data_dir = virtual_screening_data_dir
@@ -20,41 +26,65 @@ class PharmacophoreDataModule(LightningDataModule):
                 self.preprocessing_data_dir, transform=None
             )
             if self.small_set_size:
-                preprocessing_data = preprocessing_data[:self.small_set_size]
+                preprocessing_data = preprocessing_data[: self.small_set_size]
             print(f"Number of training graphs: {len(preprocessing_data)}")
             num_samples = len(preprocessing_data)
             self.train_data, self.val_data = (
                 preprocessing_data[: (int)(num_samples * 0.9)],
-                preprocessing_data[(int)(num_samples * 0.9):],
+                preprocessing_data[(int)(num_samples * 0.9) :],
             )
 
-        # if stage == 'virtual_screening':
+            # if stage == 'virtual_screening':
             self.query = VirtualScreeningDataset(
-                self.virtual_screening_data_dir, path_type='query', transform=None)
+                self.virtual_screening_data_dir, path_type="query", transform=None
+            )
             self.actives = VirtualScreeningDataset(
-                self.virtual_screening_data_dir, path_type='active', transform=None)
+                self.virtual_screening_data_dir, path_type="active", transform=None
+            )
             self.inactives = VirtualScreeningDataset(
-                self.virtual_screening_data_dir, path_type='inactive', transform=None)
+                self.virtual_screening_data_dir, path_type="inactive", transform=None
+            )
             print(f"Number of active graphs: {len(self.actives)}")
             print(f"Number of inactive graphs: {len(self.inactives)}")
 
     def train_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.train_data, batch_size=len(self.train_data), shuffle=True, drop_last=True)
+            return DataLoader(
+                self.train_data,
+                batch_size=len(self.train_data),
+                shuffle=True,
+                drop_last=True,
+            )
         else:
-            return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True, drop_last=True)
+            return DataLoader(
+                self.train_data,
+                batch_size=self.batch_size,
+                shuffle=True,
+                drop_last=True,
+            )
 
     def val_dataloader(self):
         return [self.create_val_dataloader()] + self.vs_dataloader()
 
     def create_val_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.val_data, batch_size=len(self.val_data), shuffle=False, drop_last=True)
+            return DataLoader(
+                self.val_data,
+                batch_size=len(self.val_data),
+                shuffle=False,
+                drop_last=True,
+            )
         else:
-            return DataLoader(self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True)
+            return DataLoader(
+                self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True
+            )
 
     def vs_dataloader(self):
-        return [self.query_dataloader(), self.actives_dataloader(), self.inactives_dataloader()]
+        return [
+            self.query_dataloader(),
+            self.actives_dataloader(),
+            self.inactives_dataloader(),
+        ]
 
     def query_dataloader(self):
         if self.batch_size == None:

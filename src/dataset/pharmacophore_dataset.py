@@ -8,16 +8,18 @@ import CDPL.Chem as Chem
 
 
 class PharmacophoreDatasetBase(InMemoryDataset):
-    _ftr_type_str = {Pharm.FeatureType.UNKNOWN: 'UNKNOWN',
-                     Pharm.FeatureType.HYDROPHOBIC: 'HYDROPHOBIC',
-                     Pharm.FeatureType.AROMATIC: 'AROMATIC',
-                     Pharm.FeatureType.NEGATIVE_IONIZABLE: 'NEGATIVE_IONIZABLE',
-                     Pharm.FeatureType.POSITIVE_IONIZABLE: 'POSITIVE_IONIZABLE',
-                     Pharm.FeatureType.H_BOND_DONOR: 'H_BOND_DONOR',
-                     Pharm.FeatureType.H_BOND_ACCEPTOR: 'H_BOND_ACCEPTOR',
-                     Pharm.FeatureType.HALOGEN_BOND_DONOR: 'HALOGEN_BOND_DONOR',
-                     Pharm.FeatureType.HALOGEN_BOND_ACCEPTOR: 'HALOGEN_BOND_ACCEPTOR',
-                     Pharm.FeatureType.EXCLUSION_VOLUME: 'EXCLUSION_VOLUME'}
+    _ftr_type_str = {
+        Pharm.FeatureType.UNKNOWN: "UNKNOWN",
+        Pharm.FeatureType.HYDROPHOBIC: "HYDROPHOBIC",
+        Pharm.FeatureType.AROMATIC: "AROMATIC",
+        Pharm.FeatureType.NEGATIVE_IONIZABLE: "NEGATIVE_IONIZABLE",
+        Pharm.FeatureType.POSITIVE_IONIZABLE: "POSITIVE_IONIZABLE",
+        Pharm.FeatureType.H_BOND_DONOR: "H_BOND_DONOR",
+        Pharm.FeatureType.H_BOND_ACCEPTOR: "H_BOND_ACCEPTOR",
+        Pharm.FeatureType.HALOGEN_BOND_DONOR: "HALOGEN_BOND_DONOR",
+        Pharm.FeatureType.HALOGEN_BOND_ACCEPTOR: "HALOGEN_BOND_ACCEPTOR",
+        Pharm.FeatureType.EXCLUSION_VOLUME: "EXCLUSION_VOLUME",
+    }
 
     _num_node_features = 7
 
@@ -27,7 +29,7 @@ class PharmacophoreDatasetBase(InMemoryDataset):
         pos = torch.zeros((num_features, 3))
 
         for i, feature in enumerate(ph4):
-            x[i, Pharm.getType(feature)-1] = 1
+            x[i, Pharm.getType(feature) - 1] = 1
             pos[i] = torch.tensor(Chem.get3DCoordinates(feature).toArray())
 
         return x, pos
@@ -47,7 +49,8 @@ class PharmacophoreDatasetBase(InMemoryDataset):
 
         if not ipt_handler:
             sys.exit(
-                "Error: unsupported pharmacophore input file format '%s'" % name_and_ext[1]
+                "Error: unsupported pharmacophore input file format '%s'"
+                % name_and_ext[1]
             )
 
         # create and return file reader instance
@@ -55,9 +58,7 @@ class PharmacophoreDatasetBase(InMemoryDataset):
 
 
 class PharmacophoreDataset(PharmacophoreDatasetBase):
-    def __init__(
-        self, root, transform=None, pre_transform=None, pre_filter=None
-    ):
+    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
         super().__init__(root, transform, pre_transform, pre_filter)
         path = self.processed_paths[0]
         self.data, self.slices = torch.load(path)
@@ -106,20 +107,25 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
             except Exception as e:
                 sys.exit("Error: processing of pharmacophore failed: " + str(e))
 
-        print(f'{skipped_pharmacophores} pharmacophores were rejected.')
+        print(f"{skipped_pharmacophores} pharmacophores were rejected.")
         return data_list
 
 
 class VirtualScreeningDataset(PharmacophoreDatasetBase):
     def __init__(
-        self, root, path_type='active', transform=None, pre_transform=None, pre_filter=None
+        self,
+        root,
+        path_type="active",
+        transform=None,
+        pre_transform=None,
+        pre_filter=None,
     ):
         super().__init__(root, transform, pre_transform, pre_filter)
-        if path_type == 'active':
+        if path_type == "active":
             path = self.processed_paths[0]
-        if path_type == 'inactive':
+        if path_type == "inactive":
             path = self.processed_paths[1]
-        if path_type == 'query':
+        if path_type == "query":
             path = self.processed_paths[2]
         self.data, self.slices = torch.load(path)
 
@@ -139,8 +145,7 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
             data_list = self.data_processing(self.raw_paths[i])
 
             if self.pre_filter is not None:
-                data_list = [
-                    data for data in data_list if self.pre_filter(data)]
+                data_list = [data for data in data_list if self.pre_filter(data)]
 
             if self.pre_transform is not None:
                 data_list = [self.pre_transform(data) for data in data_list]
@@ -152,7 +157,7 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
         reader = self._getReaderByFileExt(path)
         ph4 = Pharm.BasicPharmacophore()
         data_list = []
-        name = ''
+        name = ""
         mol_id = -1
         count = 0
         skipped_pharmacophores = 0

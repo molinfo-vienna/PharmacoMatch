@@ -26,7 +26,11 @@ def evaluation(device):
     torch.backends.cudnn.determinstic = True
     torch.backends.cudnn.benchmark = False
     datamodule = PharmacophoreDataModule(
-        PRETRAINING_ROOT, VS_ROOT, batch_size=params["batch_size"], small_set_size=params["num_samples"])
+        PRETRAINING_ROOT,
+        VS_ROOT,
+        batch_size=params["batch_size"],
+        small_set_size=params["num_samples"],
+    )
 
     # load the trained model
     def load_model(path):
@@ -35,15 +39,17 @@ def evaluation(device):
                 path = os.path.join(path, file)
         return MODEL.load_from_checkpoint(path)
 
-    path = f'logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/'
+    path = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/"
     model = load_model(path)
-    datamodule.setup('fit')
-    trainer = Trainer(num_nodes=1,
-                      devices=device,
-                      max_epochs=params["epochs"],
-                      accelerator='auto',
-                      logger=False,
-                      log_every_n_steps=1)
+    datamodule.setup("fit")
+    trainer = Trainer(
+        num_nodes=1,
+        devices=device,
+        max_epochs=params["epochs"],
+        accelerator="auto",
+        logger=False,
+        log_every_n_steps=1,
+    )
 
     vs = VirtualScreening(model, trainer)
     vs(datamodule)
