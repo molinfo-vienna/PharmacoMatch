@@ -11,7 +11,12 @@ import torch_geometric
 from matplotlib import cm
 from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor, Callback
+from lightning.pytorch.callbacks import (
+    EarlyStopping,
+    ModelCheckpoint,
+    LearningRateMonitor,
+    Callback,
+)
 import numpy as np
 
 from utils import *
@@ -27,55 +32,61 @@ class SelfSimilarityEvaluation:
 
         max_node_masking = 0.8
         steps_node_masking = 9
-        max_std = 2
-        steps_std = 11
+        max_radius = 20
+        steps_radius = 11
 
-        self.node_masking_range = [float(i) for i in torch.linspace(
-            0, max_node_masking, steps_node_masking)]
-        self.std_range = [float(i)
-                          for i in torch.linspace(0, max_std, steps_std)]
-        self.self_similarity = np.zeros((steps_node_masking, steps_std))
+        self.node_masking_range = [
+            float(i) for i in torch.linspace(0, max_node_masking, steps_node_masking)
+        ]
+        self.radius_range = [
+            float(i) for i in torch.linspace(0, max_radius, steps_radius)
+        ]
+        self.self_similarity = np.zeros((steps_node_masking, steps_radius))
 
-    def create_embeddings(self, node_masking, std):
-        callbacks = [ValidationDataTransformSetter(
-            node_masking=node_masking, std=std)]
-        self.trainer = Trainer(num_nodes=1,
-                               devices=self.device,
-                               callbacks=callbacks,
-                               accelerator='auto',
-                               logger=False,
-                               log_every_n_steps=1)
-        return torch.cat(self.trainer.predict(
-            model=self.model, dataloaders=self.dataloader))
+    def create_embeddings(self, node_masking, radius):
+        callbacks = [
+            ValidationDataTransformSetter(node_masking=node_masking, radius=radius)
+        ]
+        self.trainer = Trainer(
+            num_nodes=1,
+            devices=self.device,
+            callbacks=callbacks,
+            accelerator="auto",
+            logger=False,
+            log_every_n_steps=1,
+        )
+        return torch.cat(
+            self.trainer.predict(model=self.model, dataloaders=self.dataloader)
+        )
 
     def calculate_mean_similarities(self):
         reference = self.create_embeddings(0, 0)
         for i, node_masking in enumerate(self.node_masking_range):
-            for j, std in enumerate(self.std_range):
-                embeddings = self.create_embeddings(node_masking, std)
+            for j, radius in enumerate(self.radius_range):
+                embeddings = self.create_embeddings(node_masking, radius)
                 self.self_similarity[i, j] = torch.mean(
-                    cosine_similarity(reference, embeddings))
-                
-        X, Y = np.meshgrid(self.node_masking_range, self.std_range)
+                    cosine_similarity(reference, embeddings)
+                )
+
+        X, Y = np.meshgrid(self.node_masking_range, self.radius_range)
         Z = self.self_similarity.T
 
-        # fig1 = plt.figure()
-        # plt.figure()
-        # CS = plt.contourf(X, Y, Z, levels=np.linspace(0,1,11))
-        # plt.clabel(CS, inline=1, fontsize=10)
-        # plt.title('Simplest default with labels')
-        # plt.savefig('contour')
-
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        surf = ax.plot_surface(X, Y, self.self_similarity.T, cmap=cm.coolwarm,
-                               linewidth=0, antialiased=False)
+        surf = ax.plot_surface(
+            X,
+            Y,
+            self.self_similarity.T,
+            cmap=cm.coolwarm,
+            linewidth=0,
+            antialiased=False,
+        )
         ax.plot_wireframe(X, Y, Z, cmap=cm.coolwarm)
-        ax.set_zlim(0, 1.)
-        ax.set_xlabel('Node Masking Ratio')
-        ax.set_ylabel('Gaussian Noise std / Angstrom')
-        ax.set_zlabel('Batch-wise Mean Cosine Similarity')
-        #fig.colorbar(surf, shrink=0.5, aspect=5)
-        plt.savefig('self-similarity.png')
+        ax.set_zlim(0, 1.0)
+        ax.set_xlabel("Node Masking Ratio")
+        ax.set_ylabel("Noise radius / Angstrom")
+        ax.set_zlabel("Batch-wise Mean Cosine Similarity")
+        # fig.colorbar(surf, shrink=0.5, aspect=5)
+        plt.savefig("self-similarity.png")
 
 
 def run(device):
@@ -93,7 +104,11 @@ def run(device):
     torch.backends.cudnn.determinstic = True
     torch.backends.cudnn.benchmark = False
     datamodule = PharmacophoreDataModule(
-        PRETRAINING_ROOT, VS_ROOT, batch_size=params["batch_size"], small_set_size=params["num_samples"])
+        PRETRAINING_ROOT,
+        VS_ROOT,
+        batch_size=params["batch_size"],
+        small_set_size=params["num_samples"],
+    )
 
     # load the trained model
     def load_model(path):
@@ -102,12 +117,11 @@ def run(device):
                 path = os.path.join(path, file)
         return MODEL.load_from_checkpoint(path)
 
-    path = f'logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/'
+    path = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/"
     model = load_model(path)
-    datamodule.setup('fit')
+    datamodule.setup("fit")
 
-    eval = SelfSimilarityEvaluation(
-        model, datamodule.create_val_dataloader(), device)
+    eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
     eval.calculate_mean_similarities()
 
 

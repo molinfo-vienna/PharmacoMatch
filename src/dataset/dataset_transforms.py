@@ -51,20 +51,60 @@ class DistanceRDF(BaseTransform):
 
 @functional_transform("random_gaussian_noise")
 class RandomGaussianNoise(BaseTransform):
-    def __init__(self, std=0.28) -> None:
-        self.std = std
+    def __init__(self, radius=1.5) -> None:
+        self.radius = radius
 
     def __call__(self, data: Data) -> Data:
-        if self.std == None or self.std == 0:
+        if self.radius == None or self.radius == 0:
             return data
+        
+        std = torch.sqrt(self.radius / 27)
 
         size = data.pos.shape
         device = data.pos.device
         random_noise = torch.normal(
-            mean=0, std=self.std, size=size, device=device)
+            mean=0, std=std, size=size, device=device)
         data.pos += random_noise
 
         return data
+    
+
+@functional_transform("random_spherical_noise")
+class RandomSphericalNoise(BaseTransform):
+    def __init__(self, radius=1) -> None:
+        self.radius = radius
+
+    def __call__(self, data: Data) -> Data:
+        if self.radius == None or self.radius == 0:
+            return data
+
+        data.pos += self.make_spherical_noise(data.pos)
+
+        return data
+    
+    def make_spherical_noise(self, pos):
+        size, _ = pos.shape
+        device = pos.device
+
+        # Generate all random values in one call
+        rand_vals = torch.rand((size, 3), device=device)
+
+        phi = rand_vals[:, 0] * 6.28
+        costheta = rand_vals[:, 1] * 2 - 1
+        u = rand_vals[:, 2]
+
+        theta = torch.arccos(costheta)
+
+        # Calculate sin and cos once to avoid redundant computations
+        sin_theta = torch.sin(theta)
+        cos_theta = torch.cos(theta)
+
+        r = self.radius * torch.pow(u, 1/3)
+        x = r * sin_theta * torch.cos(phi)
+        y = r * sin_theta * torch.sin(phi)
+        z = r * cos_theta
+
+        return torch.vstack((x, y, z)).T
 
 
 @functional_transform("random_masking")

@@ -66,7 +66,15 @@ class Projection(torch.nn.Module):
 
 
 class Encoder(torch.nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, n_conv_layers, num_edge_features, dropout):
+    def __init__(
+        self,
+        input_dim,
+        hidden_dim,
+        output_dim,
+        n_conv_layers,
+        num_edge_features,
+        dropout,
+    ):
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -121,9 +129,8 @@ class Encoder(torch.nn.Module):
             x_conv = conv(x, data.edge_index, data.edge_attr)
             x_conv = self.convolution_batch_norm[i](x_conv)
             x_conv = torch.nn.functional.gelu(x_conv)
-            #x_conv = F.dropout(x_conv, p=self.dropout, training=self.training)
+            # x_conv = F.dropout(x_conv, p=self.dropout, training=self.training)
             x = torch.cat((x, x_conv), dim=1)
-
 
         # Dimensionality expandion before read-out
         x = self.linear1(x)
@@ -146,13 +153,14 @@ class PharmCLR(LightningModule):
         # SimCLR architecture
         self.transform = AugmentationModule(train=True)
         self.val_transform = AugmentationModule(train=False)
-        self.encoder = Encoder(input_dim=self.hparams.num_node_features,
-                               hidden_dim=self.hparams.output_dims_conv,
-                               output_dim=self.hparams.output_dims_lin,
-                               n_conv_layers=self.hparams.n_layers_conv,
-                               num_edge_features=self.hparams.num_edge_features,
-                               dropout=self.hparams.dropout
-                               )
+        self.encoder = Encoder(
+            input_dim=self.hparams.num_node_features,
+            hidden_dim=self.hparams.output_dims_conv,
+            output_dim=self.hparams.output_dims_lin,
+            n_conv_layers=self.hparams.n_layers_conv,
+            num_edge_features=self.hparams.num_edge_features,
+            dropout=self.hparams.dropout,
+        )
         input_dimension = self.hparams.output_dims_lin
         self.projection_head = Projection(input_dimension, input_dimension, 64)
 
@@ -174,7 +182,9 @@ class PharmCLR(LightningModule):
         global_batch_size = self.trainer.world_size * self.hparams.batch_size
         self.train_iters_per_epoch = self.hparams.num_samples // global_batch_size
 
-    def exclude_from_wt_decay(self, named_params, weight_decay, skip_list=['bias', 'bn']):
+    def exclude_from_wt_decay(
+        self, named_params, weight_decay, skip_list=["bias", "bn"]
+    ):
         params = []
         excluded_params = []
 
@@ -187,23 +197,25 @@ class PharmCLR(LightningModule):
                 params.append(param)
 
         return [
-            {'params': params, 'weight_decay': weight_decay},
-            {'params': excluded_params, 'weight_decay': 0.}
+            {"params": params, "weight_decay": weight_decay},
+            {"params": excluded_params, "weight_decay": 0.0},
         ]
 
     def configure_optimizers(self):
         # TRICK 1 (Use lars + filter weights)
         # exclude certain parameters
         parameters = self.exclude_from_wt_decay(
-            self.named_parameters(),
-            weight_decay=self.hparams.opt_weight_decay
+            self.named_parameters(), weight_decay=self.hparams.opt_weight_decay
         )
 
-        optimizer = LARS(parameters, lr=self.hparams.learning_rate,
-                         momentum=self.hparams.opt_eta)
+        optimizer = LARS(
+            parameters, lr=self.hparams.learning_rate, momentum=self.hparams.opt_eta
+        )
 
         # Trick 2 (after each step)
-        self.hparams.warmup_epochs = self.hparams.warmup_epochs * self.train_iters_per_epoch
+        self.hparams.warmup_epochs = (
+            self.hparams.warmup_epochs * self.train_iters_per_epoch
+        )
         max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
 
         linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
@@ -211,13 +223,13 @@ class PharmCLR(LightningModule):
             warmup_epochs=self.hparams.warmup_epochs,
             max_epochs=max_epochs,
             warmup_start_lr=0,
-            eta_min=0
+            eta_min=0,
         )
 
         scheduler = {
-            'scheduler': linear_warmup_cosine_decay,
-            'interval': 'step',
-            'frequency': 1
+            "scheduler": linear_warmup_cosine_decay,
+            "interval": "step",
+            "frequency": 1,
         }
 
         return [optimizer], [scheduler]
@@ -238,8 +250,7 @@ class PharmCLR(LightningModule):
         neg = sim.masked_select(mask).view(n_samples, -1).sum(dim=-1)
 
         # Positive similarity
-        pos = torch.exp(torch.sum(out_1 * out_2, dim=-1) /
-                        self.hparams.temperature)
+        pos = torch.exp(torch.sum(out_1 * out_2, dim=-1) / self.hparams.temperature)
         pos = torch.cat([pos, pos], dim=0)
 
         loss = -torch.log(pos / neg).mean()
@@ -291,8 +302,7 @@ class PharmCLR(LightningModule):
         _, singular_values, _ = torch.svd(embeddings)
         singular_values /= torch.sum(singular_values)
         singular_values += epsilon
-        rank_me = torch.exp(-torch.sum(singular_values *
-                            torch.log(singular_values)))
+        rank_me = torch.exp(-torch.sum(singular_values * torch.log(singular_values)))
         self.log(
             "hp/rank_me",
             rank_me,
@@ -304,9 +314,7 @@ class PharmCLR(LightningModule):
     def on_train_start(self):
         self.logger.log_hyperparams(
             self.hparams,
-            {
-                "hp/rank_me": 0
-            },
+            {"hp/rank_me": 0},
         )
 
     def predict_step(self, batch, batch_idx):
@@ -317,14 +325,15 @@ class PharmCLR(LightningModule):
 
 
 class ValidationDataTransformSetter(Callback):
-    def __init__(self, node_masking, std) -> None:
+    def __init__(self, node_masking, radius) -> None:
         super().__init__()
         self.node_masking = node_masking
-        self.std = std
+        self.radius = radius
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         pl_module.val_transform = AugmentationModule(
-            train=True, node_masking=self.node_masking, std=self.std)
+            train=True, node_masking=self.node_masking, radius=self.radius
+        )
 
 
 class VirtualScreeningCallback(Callback):
@@ -335,7 +344,15 @@ class VirtualScreeningCallback(Callback):
         self.inactives = []
         self.auroc = AUROC()
 
-    def on_validation_batch_end(self, trainer: Trainer, pl_module: LightningModule, outputs: STEP_OUTPUT, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+    def on_validation_batch_end(
+        self,
+        trainer: Trainer,
+        pl_module: LightningModule,
+        outputs: STEP_OUTPUT,
+        batch: Any,
+        batch_idx: int,
+        dataloader_idx: int = 0,
+    ) -> None:
         with torch.no_grad():
             pl_module.to(batch.x.device)
             if dataloader_idx == 1:
@@ -345,7 +362,9 @@ class VirtualScreeningCallback(Callback):
             if dataloader_idx == 3:
                 self.inactives.append(pl_module.predict_step(batch, batch_idx))
 
-    def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_validation_epoch_end(
+        self, trainer: Trainer, pl_module: LightningModule
+    ) -> None:
         # encode pharmacophore data
         query, _ = self.assemble(self.query)
         actives, active_mol_ids = self.assemble(self.actives)
@@ -355,13 +374,20 @@ class VirtualScreeningCallback(Callback):
         active_similarity = F.cosine_similarity(query, actives)
         inactive_similarity = F.cosine_similarity(query, inactives)
         active_similarity = global_max_pool(active_similarity, active_mol_ids)
-        inactive_similarity = global_max_pool(
-            inactive_similarity, inactive_mol_ids)
+        inactive_similarity = global_max_pool(inactive_similarity, inactive_mol_ids)
 
         y_pred = torch.cat((active_similarity, inactive_similarity))
         y_pred = (y_pred + 1) / 2
-        y_true = torch.cat((torch.ones(len(active_similarity), dtype=torch.int, device=y_pred.device), torch.zeros(
-            len(inactive_similarity), dtype=torch.int, device=y_pred.device)))
+        y_true = torch.cat(
+            (
+                torch.ones(
+                    len(active_similarity), dtype=torch.int, device=y_pred.device
+                ),
+                torch.zeros(
+                    len(inactive_similarity), dtype=torch.int, device=y_pred.device
+                ),
+            )
+        )
 
         # calculate and log metric
         auroc = self.auroc(preds=y_pred, target=y_true)
