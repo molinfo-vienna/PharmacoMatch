@@ -20,6 +20,10 @@ class VirtualScreening:
 
     def __call__(self, datamodule) -> None:
         # create embeddings
+
+        val_embeddings = torch.cat(self.trainer.predict(
+                model=self.model, dataloaders=datamodule.create_val_dataloader()
+            ))
         query, _ = self.assemble(
             self.trainer.predict(
                 model=self.model, dataloaders=datamodule.query_dataloader()
@@ -45,11 +49,11 @@ class VirtualScreening:
         inactive_mask = self.create_mask(inactive_similarity, inactive_mol_ids)
         active_similarity = active_similarity[active_mask]
         inactive_similarity = inactive_similarity[inactive_mask]
-        actives = actives[active_mask]
-        inactives = inactives[inactive_mask]
+        top_actives = actives[active_mask]
+        top_inactives = inactives[inactive_mask]
 
         # plot UMAP of highest scoring active and inactive embeddings
-        self.plot_UMAP(query, actives, inactives)
+        self.plot_UMAP(query, top_actives, top_inactives, actives, inactives, val_embeddings)
 
         # Map similarity [-1, 1] --> [0, 1] and print AUC statistics
         y_pred = torch.cat((active_similarity, inactive_similarity))
@@ -100,21 +104,65 @@ class VirtualScreening:
         plt.plot(precision, recall)
         plt.savefig("plots/prcurve.png")
 
-    def plot_UMAP(self, query, actives, inactives):
-        labels = torch.cat(
-            (
-                torch.zeros(len(inactives)),
-                torch.ones(len(actives)),
-                torch.ones(len(query)) * 2,
-            )
-        ).numpy()
-        features = torch.cat((inactives, actives, query)).numpy()
+    def plot_UMAP(self, query, actives, inactives, all_actives, all_inactives, val_embeddings):
         reducer = umap.UMAP()
-        X_embedded = reducer.fit_transform(features)
+        reducer.fit(val_embeddings)
+        all_inactives_embedded = reducer.transform(all_inactives)
+        all_actives_embedded = reducer.transform(all_actives)
+        inactives_embedded = reducer.transform(inactives)  
+        actives_embedded = reducer.transform(actives)
+        query_embedded = reducer.transform(query)
 
-        fig = plt.figure()
-        plt.scatter(X_embedded[:, 0], X_embedded[:, 1], c=labels, marker="o", s=5)
-        plt.savefig("umap.png")
+        fig = plt.figure(figsize=(15, 15))
+        plt.scatter(
+            all_inactives_embedded[:, 0],
+            all_inactives_embedded[:, 1],
+            c='cornflowerblue',
+            marker="o",
+            s=10,
+        )
+        plt.scatter(
+            all_actives_embedded[:, 0],
+            all_actives_embedded[:, 1],
+            c='lightcoral',
+            marker="o",
+            s=10
+        )
+        plt.scatter(
+            inactives_embedded[:, 0],
+            inactives_embedded[:, 1],
+            c='blue',
+            marker="o",
+            edgecolor='darkblue',
+            s=20
+        )
+        plt.scatter(
+            actives_embedded[:, 0],
+            actives_embedded[:, 1],
+            c='red',
+            marker="o",
+            edgecolor='darkred',
+            s=20
+        )
+        plt.scatter(
+            query_embedded[:, 0],
+            query_embedded[:, 1],
+            c='yellow',
+            marker="*",
+            s=300,
+            edgecolor='black'
+        )
+        plt.legend(
+            [
+                "Active Conformation (CDK2)",
+                "Inactive Conformation (CDK2)",
+                "Active Conformation, compound-wise highest query similarity",
+                "Inactive Conformation, compound-wise highest query similarity",
+                "Query (Shared-feature pharamcophore of 1ke6/7/8)",
+            ]
+        )
+        plt.title("UMAP of PharmCLR Embedding Space")
+        plt.savefig("umap.png", dpi=250)
 
 
 def evaluation(device):

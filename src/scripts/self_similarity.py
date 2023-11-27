@@ -113,6 +113,3 @@ def run(device):
 if __name__ == "__main__":
     device = [int(i) for i in list(sys.argv[1])]
     run(device)
-
-
-# from sklearn.manifold import TSNE
