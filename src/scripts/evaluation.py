@@ -9,6 +9,7 @@ from lightning import Trainer, seed_everything
 from utils import *
 from dataset import *
 from model import *
+from .utils import load_model_from_path
 
 
 def evaluation(device):
@@ -17,6 +18,7 @@ def evaluation(device):
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
     VS_MODEL_NUMBER = 36
+    MODEL_PATH = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/"
 
     params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
 
@@ -25,6 +27,7 @@ def evaluation(device):
     seed_everything(params["seed"])
     torch.backends.cudnn.determinstic = True
     torch.backends.cudnn.benchmark = False
+
     datamodule = PharmacophoreDataModule(
         PRETRAINING_ROOT,
         VS_ROOT,
@@ -32,16 +35,9 @@ def evaluation(device):
         small_set_size=params["num_samples"],
     )
 
-    # load the trained model
-    def load_model(path):
-        for file in os.listdir(path):
-            if file.endswith(".ckpt"):
-                path = os.path.join(path, file)
-        return MODEL.load_from_checkpoint(path)
+    model = load_model_from_path(MODEL_PATH, MODEL)
+    datamodule.setup()
 
-    path = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/"
-    model = load_model(path)
-    datamodule.setup("fit")
     trainer = Trainer(
         num_nodes=1,
         devices=device,

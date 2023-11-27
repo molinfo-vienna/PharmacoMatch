@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import torch
 from torch_geometric.data import Data
 from torch_geometric.data.datapipes import functional_transform
@@ -57,7 +58,7 @@ class RandomGaussianNoise(BaseTransform):
         if self.radius == None or self.radius == 0:
             return data
 
-        std = torch.sqrt(self.radius / 27)
+        std = math.sqrt(self.radius**2 / 27)
 
         size = data.pos.shape
         device = data.pos.device
@@ -101,6 +102,42 @@ class RandomSphericalNoise(BaseTransform):
         x = r * sin_theta * torch.cos(phi)
         y = r * sin_theta * torch.sin(phi)
         z = r * cos_theta
+
+        return torch.vstack((x, y, z)).T
+
+
+@functional_transform("random_spherical_surface_noise")
+class RandomSphericalSurfaceNoise(BaseTransform):
+    def __init__(self, radius=1) -> None:
+        self.radius = radius
+
+    def __call__(self, data: Data) -> Data:
+        if self.radius == None or self.radius == 0:
+            return data
+
+        data.pos += self.make_sphere_surface_noise(data.pos)
+
+        return data
+
+    def make_sphere_surface_noise(self, pos):
+        size, _ = pos.shape
+        device = pos.device
+
+        # Generate all random values in one call
+        rand_vals = torch.rand((size, 3), device=device)
+
+        phi = rand_vals[:, 0] * 6.28
+        costheta = rand_vals[:, 1] * 2 - 1
+        theta = torch.arccos(costheta)
+
+        # Calculate sin and cos once to avoid redundant computations
+        sin_theta = torch.sin(theta)
+        cos_theta = torch.cos(theta)
+
+        # r = R * torch.pow(u, 1/3)
+        x = self.radius * sin_theta * torch.cos(phi)
+        y = self.radius * sin_theta * torch.sin(phi)
+        z = self.radius * cos_theta
 
         return torch.vstack((x, y, z)).T
 

@@ -1,23 +1,13 @@
-import matplotlib.pyplot as plt
-from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve
-from torch.nn.functional import cosine_similarity
-from torch_geometric.nn import global_max_pool
-import sys
-import os
-import yaml
+import os, sys, yaml
 
+from lightning import Trainer, seed_everything
+import numpy as np
+from torch.nn.functional import cosine_similarity
 import torch
 import torch_geometric
 from matplotlib import cm
-from lightning import Trainer, seed_everything
-from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.callbacks import (
-    EarlyStopping,
-    ModelCheckpoint,
-    LearningRateMonitor,
-    Callback,
-)
-import numpy as np
+import matplotlib.pyplot as plt
+
 
 from utils import *
 from dataset import *
@@ -30,40 +20,25 @@ class SelfSimilarityEvaluation:
         self.dataloader = dataloader
         self.device = device
 
-        max_node_masking = 0.8
-        steps_node_masking = 9
-        max_radius = 20
+        self.max_node_masking = 0.8
+        steps_node_masking = 25
+        self.max_radius = 10
         steps_radius = 11
 
         self.node_masking_range = [
-            float(i) for i in torch.linspace(0, max_node_masking, steps_node_masking)
+            float(i)
+            for i in torch.linspace(0, self.max_node_masking, steps_node_masking)
         ]
         self.radius_range = [
-            float(i) for i in torch.linspace(0, max_radius, steps_radius)
+            float(i) for i in torch.linspace(0, self.max_radius, steps_radius)
         ]
         self.self_similarity = np.zeros((steps_node_masking, steps_radius))
 
-    def create_embeddings(self, node_masking, radius):
-        callbacks = [
-            ValidationDataTransformSetter(node_masking=node_masking, radius=radius)
-        ]
-        self.trainer = Trainer(
-            num_nodes=1,
-            devices=self.device,
-            callbacks=callbacks,
-            accelerator="auto",
-            logger=False,
-            log_every_n_steps=1,
-        )
-        return torch.cat(
-            self.trainer.predict(model=self.model, dataloaders=self.dataloader)
-        )
-
-    def calculate_mean_similarities(self):
-        reference = self.create_embeddings(0, 0)
+    def calculate_mean_similarities(self, num_version):
+        reference = self._create_embeddings(0, 0)
         for i, node_masking in enumerate(self.node_masking_range):
             for j, radius in enumerate(self.radius_range):
-                embeddings = self.create_embeddings(node_masking, radius)
+                embeddings = self._create_embeddings(node_masking, radius)
                 self.self_similarity[i, j] = torch.mean(
                     cosine_similarity(reference, embeddings)
                 )
@@ -84,9 +59,26 @@ class SelfSimilarityEvaluation:
         ax.set_zlim(0, 1.0)
         ax.set_xlabel("Node Masking Ratio")
         ax.set_ylabel("Noise radius / Angstrom")
+        ax.set_ylim(self.max_radius, 0)
+        ax.set_xlim(0, self.max_node_masking)
         ax.set_zlabel("Batch-wise Mean Cosine Similarity")
-        # fig.colorbar(surf, shrink=0.5, aspect=5)
-        plt.savefig("self-similarity.png")
+        plt.savefig(f"self-similarity{num_version}.png")
+
+    def _create_embeddings(self, node_masking, radius):
+        callbacks = [
+            ValidationDataTransformSetter(node_masking=node_masking, radius=radius)
+        ]
+        self.trainer = Trainer(
+            num_nodes=1,
+            devices=self.device,
+            callbacks=callbacks,
+            accelerator="auto",
+            logger=False,
+            log_every_n_steps=1,
+        )
+        return torch.cat(
+            self.trainer.predict(model=self.model, dataloaders=self.dataloader)
+        )
 
 
 def run(device):
@@ -94,7 +86,7 @@ def run(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 35
+    VS_MODEL_NUMBER = 36
 
     params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
 
@@ -103,6 +95,7 @@ def run(device):
     seed_everything(params["seed"])
     torch.backends.cudnn.determinstic = True
     torch.backends.cudnn.benchmark = False
+
     datamodule = PharmacophoreDataModule(
         PRETRAINING_ROOT,
         VS_ROOT,
@@ -122,7 +115,7 @@ def run(device):
     datamodule.setup("fit")
 
     eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
-    eval.calculate_mean_similarities()
+    eval.calculate_mean_similarities(VS_MODEL_NUMBER)
 
 
 if __name__ == "__main__":

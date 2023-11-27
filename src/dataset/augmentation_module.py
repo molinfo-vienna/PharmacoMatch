@@ -9,6 +9,7 @@ from .dataset_transforms import (
     RandomNodeDeletion,
     CompleteGraph,
     RandomSphericalNoise,
+    RandomSphericalSurfaceNoise,
 )
 
 
@@ -28,7 +29,7 @@ class AugmentationModule(torch.nn.Module):
                 # RandomMasking(), # with mask token, or better deletion? Try both.
                 RandomNodeDeletion(self.node_masking),
                 # Random masking mit bis zu 70%
-                RandomGaussianNoise(self.radius),  # feature-wise tolerance radii
+                RandomSphericalNoise(self.radius),  # feature-wise tolerance radii
                 T.KNNGraph(k=self.knn, force_undirected=True),
                 T.Distance(norm=False),
                 DistanceRDF(num_bins=self.num_edge_features),

@@ -20,7 +20,7 @@ class PharmacophoreDataModule(LightningDataModule):
         self.batch_size = batch_size
         self.small_set_size = small_set_size
 
-    def setup(self, stage: str):
+    def setup(self, stage: str = "fit"):
         if stage == "fit":
             preprocessing_data = PharmacophoreDataset(
                 self.preprocessing_data_dir, transform=None
@@ -34,7 +34,6 @@ class PharmacophoreDataModule(LightningDataModule):
                 preprocessing_data[(int)(num_samples * 0.9) :],
             )
 
-            # if stage == 'virtual_screening':
             self.query = VirtualScreeningDataset(
                 self.virtual_screening_data_dir, path_type="query", transform=None
             )
@@ -103,8 +102,3 @@ class PharmacophoreDataModule(LightningDataModule):
             return DataLoader(self.inactives, batch_size=len(self.test_data))
         else:
             return DataLoader(self.inactives, batch_size=self.batch_size)
-
-    # This is needed as soon as I want to download the data from a repository.
-    # Since I save it on disk, this hook is currently not needed.
-    # def prepare_data(self) -> None:
-    #    return super().prepare_data()
