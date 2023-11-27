@@ -1,4 +1,3 @@
-from .visualize_pharm import visualize_pharm
-from .virtual_screening import VirtualScreening
+from .utility_functions import load_model_from_path, visualize_pharm
 
-__all__ = ["visualize_pharm", "VirtualScreening"]
+__all__ = ["load_model_from_path", "visualize_pharm"]

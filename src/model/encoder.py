@@ -55,10 +55,6 @@ class Encoder(torch.nn.Module):
         self.linear2 = Linear(output_dim, output_dim)
         self.pooling = global_mean_pool
 
-        # input_dimension = output_dim
-        # Graph read-out via node-pooling
-        # self.gmt = GMT(input_dimension, input_dimension, heads=input_dimension)
-
     def forward(self, data):
         # Embedding of OHE features
         x = data.x
@@ -79,7 +75,7 @@ class Encoder(torch.nn.Module):
         x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.linear2(x)
 
-        # Graph-level read-out
+        # Graph-level read-out --> Don't do this directly after Dropout
         representation = self.pooling(x, data.batch)
 
         return representation

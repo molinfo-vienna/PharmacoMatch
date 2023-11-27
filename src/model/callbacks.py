@@ -8,7 +8,6 @@ from torch_geometric.nn import global_max_pool
 from torchmetrics import AUROC
 
 from dataset import *
-from utils import *
 
 
 class ValidationDataTransformSetter(Callback):
@@ -19,7 +18,10 @@ class ValidationDataTransformSetter(Callback):
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         pl_module.val_transform = AugmentationModule(
-            train=True, node_masking=self.node_masking, radius=self.radius
+            train=True,
+            node_masking=self.node_masking,
+            sphere_surface_sampling=True,
+            radius=self.radius,
         )
 
 

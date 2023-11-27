@@ -1,4 +1,4 @@
-import os, sys, yaml
+import sys, yaml
 
 from lightning import Trainer, seed_everything
 import numpy as np
@@ -8,10 +8,9 @@ import torch_geometric
 from matplotlib import cm
 import matplotlib.pyplot as plt
 
-
-from utils import *
 from dataset import *
 from model import *
+from utils import load_model_from_path
 
 
 class SelfSimilarityEvaluation:
@@ -21,7 +20,7 @@ class SelfSimilarityEvaluation:
         self.device = device
 
         self.max_node_masking = 0.8
-        steps_node_masking = 25
+        steps_node_masking = 9
         self.max_radius = 10
         steps_radius = 11
 
@@ -87,6 +86,7 @@ def run(device):
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
     VS_MODEL_NUMBER = 36
+    MODEL_PATH = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/"
 
     params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
 
@@ -103,16 +103,8 @@ def run(device):
         small_set_size=params["num_samples"],
     )
 
-    # load the trained model
-    def load_model(path):
-        for file in os.listdir(path):
-            if file.endswith(".ckpt"):
-                path = os.path.join(path, file)
-        return MODEL.load_from_checkpoint(path)
-
-    path = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/"
-    model = load_model(path)
-    datamodule.setup("fit")
+    model = load_model_from_path(MODEL_PATH, MODEL)
+    datamodule.setup()
 
     eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
     eval.calculate_mean_similarities(VS_MODEL_NUMBER)
