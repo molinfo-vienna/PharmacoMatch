@@ -4,11 +4,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def load_model_from_path(path, model):
-    for file in os.listdir(path):
+def load_model_from_path(folder_path, model_class):
+    model_path = None
+    for file in os.listdir(folder_path):
         if file.endswith(".ckpt"):
-            path = os.path.join(path, file)
-    return model.load_from_checkpoint(path)
+            model_path = os.path.join(folder_path, file)
+    if model_path:
+        return model_class.load_from_checkpoint(model_path)
+    else:
+        return None
 
 
 def visualize_pharm(data_list):

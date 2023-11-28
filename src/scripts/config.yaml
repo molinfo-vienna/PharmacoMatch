@@ -1,5 +1,5 @@
 batch_size: 4096
-epochs: 1000
+epochs: 5000
 
 n_layers_conv: 3
 output_dims_conv: 128
