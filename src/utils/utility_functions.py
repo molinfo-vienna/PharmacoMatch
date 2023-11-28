@@ -6,6 +6,8 @@ import numpy as np
 
 def load_model_from_path(folder_path, model_class):
     model_path = None
+    if not os.path.exists(folder_path):
+        return None
     for file in os.listdir(folder_path):
         if file.endswith(".ckpt"):
             model_path = os.path.join(folder_path, file)

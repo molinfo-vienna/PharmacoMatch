@@ -76,14 +76,12 @@ class PharmCLR(LightningModule):
         )
 
         # Trick 2 (after each step)
-        self.hparams.warmup_epochs = (
-            self.hparams.warmup_epochs * self.train_iters_per_epoch
-        )
+        warmup_epochs = self.hparams.warmup_epochs * self.train_iters_per_epoch
         max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
 
         linear_warmup_cosine_decay = LinearWarmupCosineAnnealingLR(
             optimizer,
-            warmup_epochs=self.hparams.warmup_epochs,
+            warmup_epochs=warmup_epochs,
             max_epochs=max_epochs,
             warmup_start_lr=0,
             eta_min=0,

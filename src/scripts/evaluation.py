@@ -21,9 +21,11 @@ class VirtualScreening:
     def __call__(self, datamodule) -> None:
         # create embeddings
 
-        val_embeddings = torch.cat(self.trainer.predict(
+        val_embeddings = torch.cat(
+            self.trainer.predict(
                 model=self.model, dataloaders=datamodule.create_val_dataloader()
-            ))
+            )
+        )
         query, _ = self.assemble(
             self.trainer.predict(
                 model=self.model, dataloaders=datamodule.query_dataloader()
@@ -53,7 +55,9 @@ class VirtualScreening:
         top_inactives = inactives[inactive_mask]
 
         # plot UMAP of highest scoring active and inactive embeddings
-        self.plot_UMAP(query, top_actives, top_inactives, actives, inactives, val_embeddings)
+        self.plot_UMAP(
+            query, top_actives, top_inactives, actives, inactives, val_embeddings
+        )
 
         # Map similarity [-1, 1] --> [0, 1] and print AUC statistics
         y_pred = torch.cat((active_similarity, inactive_similarity))
@@ -104,12 +108,14 @@ class VirtualScreening:
         plt.plot(precision, recall)
         plt.savefig("plots/prcurve.png")
 
-    def plot_UMAP(self, query, actives, inactives, all_actives, all_inactives, val_embeddings):
+    def plot_UMAP(
+        self, query, actives, inactives, all_actives, all_inactives, val_embeddings
+    ):
         reducer = umap.UMAP()
         reducer.fit(val_embeddings)
         all_inactives_embedded = reducer.transform(all_inactives)
         all_actives_embedded = reducer.transform(all_actives)
-        inactives_embedded = reducer.transform(inactives)  
+        inactives_embedded = reducer.transform(inactives)
         actives_embedded = reducer.transform(actives)
         query_embedded = reducer.transform(query)
 
@@ -117,47 +123,47 @@ class VirtualScreening:
         plt.scatter(
             all_inactives_embedded[:, 0],
             all_inactives_embedded[:, 1],
-            c='cornflowerblue',
+            c="cornflowerblue",
             marker="o",
             s=10,
         )
         plt.scatter(
             all_actives_embedded[:, 0],
             all_actives_embedded[:, 1],
-            c='lightcoral',
+            c="lightcoral",
             marker="o",
-            s=10
+            s=10,
         )
         plt.scatter(
             inactives_embedded[:, 0],
             inactives_embedded[:, 1],
-            c='blue',
+            c="blue",
             marker="o",
-            edgecolor='darkblue',
-            s=20
+            edgecolor="darkblue",
+            s=20,
         )
         plt.scatter(
             actives_embedded[:, 0],
             actives_embedded[:, 1],
-            c='red',
+            c="red",
             marker="o",
-            edgecolor='darkred',
-            s=20
+            edgecolor="darkred",
+            s=20,
         )
         plt.scatter(
             query_embedded[:, 0],
             query_embedded[:, 1],
-            c='yellow',
+            c="yellow",
             marker="*",
             s=300,
-            edgecolor='black'
+            edgecolor="black",
         )
         plt.legend(
             [
-                "Active Conformation (CDK2)",
                 "Inactive Conformation (CDK2)",
-                "Active Conformation, compound-wise highest query similarity",
+                "Active Conformation (CDK2)",
                 "Inactive Conformation, compound-wise highest query similarity",
+                "Active Conformation, compound-wise highest query similarity",
                 "Query (Shared-feature pharamcophore of 1ke6/7/8)",
             ]
         )
