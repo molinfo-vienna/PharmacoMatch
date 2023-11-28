@@ -1,16 +1,29 @@
 import os
+import yaml
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def load_model_from_path(folder_path, model_class):
-    model_path = None
+def load_hparams_from_path(folder_path):
     if not os.path.exists(folder_path):
         return None
+    else:
+        path = os.path.join(folder_path, "hparams.yaml")
+        return yaml.load(open(path, "r"), Loader=yaml.FullLoader)
+
+
+def load_model_from_path(folder_path, model_class):
+    if not os.path.exists(folder_path):
+        return None
+    else:
+        folder_path = os.path.join(folder_path, "checkpoints")
+
+    model_path = None
     for file in os.listdir(folder_path):
         if file.endswith(".ckpt"):
             model_path = os.path.join(folder_path, file)
+
     if model_path:
         return model_class.load_from_checkpoint(model_path)
     else:

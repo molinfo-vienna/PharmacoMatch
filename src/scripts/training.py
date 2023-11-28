@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import yaml
 
 import torch
@@ -12,7 +12,7 @@ from lightning.pytorch.callbacks import (
 
 from dataset import PharmacophoreDataModule
 from model import PharmCLR, VirtualScreeningCallback
-from utils import load_model_from_path
+from utils import load_model_from_path, load_hparams_from_path
 
 
 def training(device):
@@ -21,10 +21,16 @@ def training(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VERSION = 36
-    MODEL_PATH = f"logs/PharmCLR/version_{VERSION}/checkpoints/"
+    VERSION = None
+    MODEL_PATH = f"logs/PharmCLR/version_{VERSION}/"
 
-    params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
+    # Check for pretrained model
+    if os.path.exists(MODEL_PATH):
+        load_model = True
+        params = load_hparams_from_path(MODEL_PATH)
+    else:
+        load_model = False
+        params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
 
     # Settings for determinism
     torch.set_float32_matmul_precision("medium")
@@ -43,9 +49,11 @@ def training(device):
     datamodule.setup("fit")
 
     # Initialize model or load if pretrained model exists
-    model = load_model_from_path(MODEL_PATH, PharmCLR)
-    if model == None:
+    if load_model:
+        model = load_model_from_path(MODEL_PATH, PharmCLR)
+    else:
         model = MODEL(**params)
+
     tb_logger = TensorBoardLogger("logs/", name=f"PharmCLR", default_hp_metric=False)
     callbacks = [
         ModelCheckpoint(monitor="hp/val_loss/dataloader_idx_0", mode="min"),
