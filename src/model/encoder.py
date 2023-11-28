@@ -9,6 +9,7 @@ class Encoder(torch.nn.Module):
     def __init__(
         self,
         input_dim,
+        node_embedding_dim,
         hidden_dim,
         output_dim,
         n_conv_layers,
@@ -21,12 +22,11 @@ class Encoder(torch.nn.Module):
         self.output_dim = output_dim
         self.n_conv_layers = n_conv_layers
         self.num_edge_features = num_edge_features
-        self.num_heads = 10
         self.dropout = dropout
+        self.num_heads = 10
 
-        embedding_dim = 10
-        self.node_embedding = Linear(input_dim, embedding_dim)
-        input_dim = embedding_dim
+        self.node_embedding = Linear(input_dim, node_embedding_dim)
+        input_dim = node_embedding_dim
 
         # Convolutional layers
         # try out spectral layers, maybe 3-6 layers

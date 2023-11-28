@@ -1,19 +1,27 @@
-batch_size: 4096
 epochs: 1000
+num_samples: 100000
+batch_size: 256
 
+node_masking: 0.3
+radius: 0.75
+
+encoder: GAT
 n_layers_conv: 3
-output_dims_conv: 128
-output_dims_lin: 1024
+num_node_features: 7
+num_edge_features: 5
+node_embedding_dim: 10
+hidden_dim_encoder: 128
+input_dim_projector: 1024
+hidden_dim_projector: 1024
+output_dim_projector: 64
+
 dropout: 0.3
-temperature: 0.5
+
+temperature: 0.1
 
 learning_rate: 0.05
-opt_eta: 0.001
-opt_weight_decay: 1.0e-06
+momentum: 0.001
+weight_decay: 1.0e-06
 warmup_epochs: 10
-
-num_samples: 100000
-num_edge_features: 5
-num_node_features: 7
 
 seed: 42

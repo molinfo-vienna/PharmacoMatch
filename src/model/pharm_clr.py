@@ -14,18 +14,26 @@ class PharmCLR(LightningModule):
         self.save_hyperparameters()
 
         # SimCLR architecture
-        self.transform = AugmentationModule(train=True)
+        self.transform = AugmentationModule(
+            train=True,
+            node_masking=self.hparams.node_masking,
+            radius=self.hparams.radius,
+        )
         self.val_transform = AugmentationModule(train=False)
         self.encoder = Encoder(
             input_dim=self.hparams.num_node_features,
-            hidden_dim=self.hparams.output_dims_conv,
-            output_dim=self.hparams.output_dims_lin,
+            node_embedding_dim=self.hparams.node_embedding_dim,
+            hidden_dim=self.hparams.hidden_dim_encoder,
+            output_dim=self.hparams.input_dim_projector,
             n_conv_layers=self.hparams.n_layers_conv,
             num_edge_features=self.hparams.num_edge_features,
             dropout=self.hparams.dropout,
         )
-        input_dimension = self.hparams.output_dims_lin
-        self.projection_head = Projection(input_dimension, input_dimension, 64)
+        self.projection_head = Projection(
+            input_dim=self.hparams.input_dim_projector,
+            hidden_dim=self.hparams.hidden_dim_projector,
+            output_dim=self.hparams.output_dim_projector,
+        )
 
         # validation embeddings
         self.val_embeddings = []
@@ -68,11 +76,11 @@ class PharmCLR(LightningModule):
         # TRICK 1 (Use lars + filter weights)
         # exclude certain parameters
         parameters = self.exclude_from_wt_decay(
-            self.named_parameters(), weight_decay=self.hparams.opt_weight_decay
+            self.named_parameters(), weight_decay=self.hparams.weight_decay
         )
 
         optimizer = LARS(
-            parameters, lr=self.hparams.learning_rate, momentum=self.hparams.opt_eta
+            parameters, lr=self.hparams.learning_rate, momentum=self.hparams.momentum
         )
 
         # Trick 2 (after each step)
