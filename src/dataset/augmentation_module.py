@@ -18,7 +18,7 @@ class AugmentationModule(torch.nn.Module):
         self,
         train=True,
         node_masking=0.3,
-        radius=1.0,
+        radius=0.75,
         sphere_surface_sampling=False,
         num_edge_features=5,
     ) -> None:

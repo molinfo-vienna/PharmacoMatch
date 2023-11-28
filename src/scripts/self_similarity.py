@@ -35,9 +35,11 @@ class SelfSimilarityEvaluation:
 
     def calculate_mean_similarities(self, num_version):
         reference = self._create_embeddings(0, 0)
-        for i, node_masking in enumerate(self.node_masking_range):
-            for j, radius in enumerate(self.radius_range):
-                embeddings = self._create_embeddings(node_masking, radius)
+        for j, radius in enumerate(self.radius_range):
+            for i, node_masking in enumerate(self.node_masking_range):
+                embeddings = self._create_embeddings(
+                    node_masking=node_masking, radius=radius
+                )
                 self.self_similarity[i, j] = torch.mean(
                     cosine_similarity(reference, embeddings)
                 )
@@ -67,7 +69,7 @@ class SelfSimilarityEvaluation:
         callbacks = [
             ValidationDataTransformSetter(node_masking=node_masking, radius=radius)
         ]
-        self.trainer = Trainer(
+        trainer = Trainer(
             num_nodes=1,
             devices=self.device,
             callbacks=callbacks,
@@ -75,9 +77,7 @@ class SelfSimilarityEvaluation:
             logger=False,
             log_every_n_steps=1,
         )
-        return torch.cat(
-            self.trainer.predict(model=self.model, dataloaders=self.dataloader)
-        )
+        return torch.cat(trainer.predict(model=self.model, dataloaders=self.dataloader))
 
 
 def run(device):
@@ -85,7 +85,7 @@ def run(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 36
+    VS_MODEL_NUMBER = 37
     MODEL_PATH = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/checkpoints/"
 
     params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
