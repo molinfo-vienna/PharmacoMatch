@@ -119,7 +119,23 @@ class PharmCLR(LightningModule):
         pos = torch.cat([pos, pos], dim=0)
 
         loss = -torch.log(pos / neg).mean()
-        return loss
+
+        # calc top1-accuracy
+        mask = torch.eye(cov.shape[0], dtype=torch.bool, device=cov.device)
+        cov.masked_fill_(mask, -1e4)
+        mask = mask.roll(shifts=cov.shape[0] // 2, dims=0)
+
+        comb_sim = torch.cat(
+            [
+                cov[mask][:, None],
+                cov.masked_fill(mask, -1e4),
+            ],  # First position positive example
+            dim=-1,
+        )
+        sim_argsort = comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
+        accuracy = (sim_argsort == 0).float().mean()
+
+        return loss, accuracy
 
     def shared_step(self, batch, batch_idx):
         out1 = self(self.transform(batch))
@@ -128,12 +144,20 @@ class PharmCLR(LightningModule):
         return self.nt_xent_loss(out1, out2)
 
     def training_step(self, batch, batch_idx):
-        loss = self.shared_step(batch, batch_idx)
+        loss, accuracy = self.shared_step(batch, batch_idx)
         self.log(
             "hp/train_loss",
             loss,
             prog_bar=True,
             on_step=True,
+            on_epoch=True,
+            batch_size=len(batch),
+        )
+        self.log(
+            "hp/train_accuracy",
+            accuracy,
+            prog_bar=True,
+            on_step=False,
             on_epoch=True,
             batch_size=len(batch),
         )
@@ -146,10 +170,18 @@ class PharmCLR(LightningModule):
     def validation_step(self, batch, batch_idx, dataloader_idx=0):
         # val loss calculation
         if dataloader_idx == 0:
-            val_loss = self.shared_step(batch, batch_idx)
+            val_loss, val_accuracy = self.shared_step(batch, batch_idx)
             self.log(
                 "hp/val_loss",
                 val_loss,
+                prog_bar=True,
+                on_step=False,
+                on_epoch=True,
+                batch_size=len(batch),
+            )
+            self.log(
+                "hp/val_accuracy",
+                val_accuracy,
                 prog_bar=True,
                 on_step=False,
                 on_epoch=True,
