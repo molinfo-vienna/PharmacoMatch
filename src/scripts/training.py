@@ -13,9 +13,10 @@ from lightning.pytorch.callbacks import (
 from dataset import PharmacophoreDataModule
 from model import PharmCLR, VirtualScreeningCallback
 from utils import load_model_from_path, load_hparams_from_path
+from scripts import VirtualScreening, SelfSimilarityEvaluation
 
 
-def training(device):
+def training(device, key, value):
     # Path variables
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
@@ -31,6 +32,9 @@ def training(device):
     else:
         load_model = False
         params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
+
+    # Change one parameter
+    params[key] = value
 
     # Settings for determinism
     torch.set_float32_matmul_precision("medium")
@@ -56,7 +60,7 @@ def training(device):
 
     tb_logger = TensorBoardLogger("logs/", name=f"PharmCLR", default_hp_metric=False)
     callbacks = [
-        ModelCheckpoint(monitor="hp/val_loss/dataloader_idx_0", mode="min"),
+        ModelCheckpoint(monitor="val/val_loss/dataloader_idx_0", mode="min"),
         LearningRateMonitor("epoch"),
         VirtualScreeningCallback(),
     ]
@@ -73,8 +77,35 @@ def training(device):
     )
 
     trainer.fit(model=model, datamodule=datamodule)
-
+    model = PharmCLR.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    vs = VirtualScreening(model, trainer, trainer.logger.version)
+    vs(datamodule)
+    eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
+    eval.calculate_mean_similarities(trainer.logger.version)
 
 if __name__ == "__main__":
     device = [int(i) for i in list(sys.argv[1])]
-    training(device)
+
+    # for value in [0.05, 0.1, 0.2]:
+    #     key = 'temperature'
+    #     training(device, key, value)
+
+    # for value in [0.01, 0.025, 0.1]:
+    #     key = 'learning_rate'
+    #     training(device, key, value)
+
+    # for value in [64, 1024, 4096]:
+    #     key = 'batch_size'
+    #     training(device, key, value)
+
+    # for value in [32, 64, 256]:
+    #     key = 'hidden_dim_encoder'
+    #     training(device, key, value)
+
+    for value in [0.15, 0.45, 0.6]:
+        key = 'node_masking'
+        training(device, key, value)
+
+    for value in [1, 2, 4]:
+        key = 'n_layers_conv'
+        training(device, key, value)

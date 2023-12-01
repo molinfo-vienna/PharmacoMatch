@@ -165,7 +165,7 @@ class VirtualScreening:
                 "Active Conformation (CDK2)",
                 "Inactive Conformation, compound-wise highest query similarity",
                 "Active Conformation, compound-wise highest query similarity",
-                "Query (Shared-feature pharamcophore of 1ke6/7/8)",
+                "Query (Structure-based pharamcophore of 1ke7)",
             ]
         )
         plt.title("UMAP of PharmCLR Embedding Space")

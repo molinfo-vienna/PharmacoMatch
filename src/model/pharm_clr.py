@@ -215,11 +215,11 @@ class PharmCLR(LightningModule):
     def on_train_start(self):
         self.logger.log_hyperparams(
             self.hparams,
-            {"val/rank_me": 0},
-            {"val/val_loss": 0},
-            {"val/val_accuracy": 0},
-            {"train/train_loss": 0},
-            {"train/train_accuracy": 0},
+            {
+                "train/train_accuracy": 0,
+                "val/val_accuracy/dataloader_idx_0": 0,
+                "val/rank_me": 0,
+            }
         )
 
     def predict_step(self, batch, batch_idx):
