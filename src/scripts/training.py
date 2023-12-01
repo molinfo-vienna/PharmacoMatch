@@ -69,7 +69,7 @@ def training(device):
         logger=tb_logger,
         log_every_n_steps=1,
         callbacks=callbacks,
-        precision=16,
+        precision=params['precision'],
     )
 
     trainer.fit(model=model, datamodule=datamodule)

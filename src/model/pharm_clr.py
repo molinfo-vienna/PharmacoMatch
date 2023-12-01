@@ -5,7 +5,7 @@ import torch
 # from utils import visualize_pharm
 from dataset import AugmentationModule
 from .projector import Projection
-from .encoder import Encoder
+from .encoder import GATEncoder
 
 
 class PharmCLR(LightningModule):
@@ -20,15 +20,19 @@ class PharmCLR(LightningModule):
             radius=self.hparams.radius,
         )
         self.val_transform = AugmentationModule(train=False)
-        self.encoder = Encoder(
-            input_dim=self.hparams.num_node_features,
-            node_embedding_dim=self.hparams.node_embedding_dim,
-            hidden_dim=self.hparams.hidden_dim_encoder,
-            output_dim=self.hparams.input_dim_projector,
-            n_conv_layers=self.hparams.n_layers_conv,
-            num_edge_features=self.hparams.num_edge_features,
-            dropout=self.hparams.dropout,
-        )
+
+        if self.hparams.encoder == 'GAT':
+            self.encoder = GATEncoder(
+                input_dim=self.hparams.num_node_features,
+                node_embedding_dim=self.hparams.node_embedding_dim,
+                hidden_dim=self.hparams.hidden_dim_encoder,
+                output_dim=self.hparams.input_dim_projector,
+                n_conv_layers=self.hparams.n_layers_conv,
+                num_edge_features=self.hparams.num_edge_features,
+                dropout=self.hparams.dropout,
+                residual_connection=self.hparams.residual_connection,
+            )
+
         self.projection_head = Projection(
             input_dim=self.hparams.input_dim_projector,
             hidden_dim=self.hparams.hidden_dim_projector,
@@ -146,15 +150,15 @@ class PharmCLR(LightningModule):
     def training_step(self, batch, batch_idx):
         loss, accuracy = self.shared_step(batch, batch_idx)
         self.log(
-            "hp/train_loss",
+            "train/train_loss",
             loss,
             prog_bar=True,
             on_step=True,
-            on_epoch=True,
+            on_epoch=False,
             batch_size=len(batch),
         )
         self.log(
-            "hp/train_accuracy",
+            "train/train_accuracy",
             accuracy,
             prog_bar=True,
             on_step=False,
@@ -172,7 +176,7 @@ class PharmCLR(LightningModule):
         if dataloader_idx == 0:
             val_loss, val_accuracy = self.shared_step(batch, batch_idx)
             self.log(
-                "hp/val_loss",
+                "val/val_loss",
                 val_loss,
                 prog_bar=True,
                 on_step=False,
@@ -180,7 +184,7 @@ class PharmCLR(LightningModule):
                 batch_size=len(batch),
             )
             self.log(
-                "hp/val_accuracy",
+                "val/val_accuracy",
                 val_accuracy,
                 prog_bar=True,
                 on_step=False,
@@ -201,7 +205,7 @@ class PharmCLR(LightningModule):
         singular_values += epsilon
         rank_me = torch.exp(-torch.sum(singular_values * torch.log(singular_values)))
         self.log(
-            "hp/rank_me",
+            "val/rank_me",
             rank_me,
             prog_bar=True,
             on_step=False,
@@ -211,7 +215,11 @@ class PharmCLR(LightningModule):
     def on_train_start(self):
         self.logger.log_hyperparams(
             self.hparams,
-            {"hp/rank_me": 0},
+            {"val/rank_me": 0},
+            {"val/val_loss": 0},
+            {"val/val_accuracy": 0},
+            {"train/train_loss": 0},
+            {"train/train_accuracy": 0},
         )
 
     def predict_step(self, batch, batch_idx):

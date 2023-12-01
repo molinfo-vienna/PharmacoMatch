@@ -14,9 +14,10 @@ from utils import load_model_from_path
 
 
 class VirtualScreening:
-    def __init__(self, model, trainer) -> None:
+    def __init__(self, model, trainer, model_number) -> None:
         self.model = model
         self.trainer = trainer
+        self.model_number = model_number
 
     def __call__(self, datamodule) -> None:
         # create embeddings
@@ -168,7 +169,7 @@ class VirtualScreening:
             ]
         )
         plt.title("UMAP of PharmCLR Embedding Space")
-        plt.savefig("umap.png", dpi=250)
+        plt.savefig(f"umap{self.model_number}.png", dpi=250)
 
 
 def evaluation(device):
@@ -176,7 +177,7 @@ def evaluation(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 39
+    VS_MODEL_NUMBER = 49
     MODEL_PATH = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/"
 
     params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
@@ -206,7 +207,7 @@ def evaluation(device):
         log_every_n_steps=1,
     )
 
-    vs = VirtualScreening(model, trainer)
+    vs = VirtualScreening(model, trainer, VS_MODEL_NUMBER)
     vs(datamodule)
 
 

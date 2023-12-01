@@ -6,6 +6,7 @@ node_masking: 0.3
 radius: 0.75
 
 encoder: GAT
+residual_connection: dense
 n_layers_conv: 3
 num_node_features: 7
 num_edge_features: 5
@@ -13,7 +14,8 @@ node_embedding_dim: 10
 hidden_dim_encoder: 128
 input_dim_projector: 1024
 hidden_dim_projector: 1024
-output_dim_projector: 64
+output_dim_projector: 128
+precision: 16
 
 dropout: 0.3
 
