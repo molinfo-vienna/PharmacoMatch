@@ -1,4 +1,4 @@
-import sys, yaml
+import sys, yaml, os
 
 from lightning import Trainer, seed_everything
 import numpy as np
@@ -19,10 +19,10 @@ class SelfSimilarityEvaluation:
         self.dataloader = dataloader
         self.device = device
 
-        self.max_node_masking = 0.8
-        steps_node_masking = 9
-        self.max_radius = 10
-        steps_radius = 11
+        self.max_node_masking = 0.9
+        steps_node_masking = 10
+        self.max_radius = 5
+        steps_radius = 21
 
         self.node_masking_range = [
             float(i)
@@ -83,12 +83,14 @@ class SelfSimilarityEvaluation:
 def run(device):
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
-    CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
+    # CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 49
+    VS_MODEL_NUMBER = 23
     MODEL_PATH = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/"
 
-    params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
+    params = yaml.load(
+        open(os.path.join(MODEL_PATH, "hparams.yaml"), "r"), Loader=yaml.FullLoader
+    )
 
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(params["seed"])
@@ -104,8 +106,9 @@ def run(device):
     )
 
     model = load_model_from_path(MODEL_PATH, MODEL)
-    datamodule.setup()
+    device = [model.device.index]
 
+    datamodule.setup()
     eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
     eval.calculate_mean_similarities(VS_MODEL_NUMBER)
 

@@ -131,11 +131,11 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
 
     @property
     def raw_file_names(self):
-        return ["actives.pml", "inactives.pml", "query.pml"]
+        return ["ligands.pml", "decoys.pml", "query.pml"]
 
     @property
     def processed_file_names(self):
-        return ["actives.pt", "inactives.pt", "query.pt"]
+        return ["ligands.pt", "decoys.pt", "query.pt"]
 
     def download(self):
         pass

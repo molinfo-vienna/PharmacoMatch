@@ -1,100 +1,46 @@
-import sys
+import sys, os
+from typing import Any
 import yaml
 
 from lightning import Trainer, seed_everything
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, roc_curve, precision_recall_curve
+from torch_geometric.nn import global_mean_pool
 import torch
 import torch_geometric
 import umap
+import numpy as np
 
 from dataset import PharmacophoreDataModule
 from model import PharmCLR
+from virtual_screening import VirtualScreener, VirtualScreeningEmbedder
 from utils import load_model_from_path
 
 
-class VirtualScreening:
-    def __init__(self, model, trainer, model_number) -> None:
-        self.model = model
-        self.trainer = trainer
+class VirtualScreeningExperiment:
+    def __init__(self, embedder, model_number) -> None:
+        self.screener = VirtualScreener(embedder)
         self.model_number = model_number
 
-    def __call__(self, datamodule) -> None:
-        # create embeddings
-
-        val_embeddings = torch.cat(
-            self.trainer.predict(
-                model=self.model, dataloaders=datamodule.create_val_dataloader()
-            )
-        )
-        query, _ = self.assemble(
-            self.trainer.predict(
-                model=self.model, dataloaders=datamodule.query_dataloader()
-            )
-        )
-        actives, active_mol_ids = self.assemble(
-            self.trainer.predict(
-                model=self.model, dataloaders=datamodule.actives_dataloader()
-            )
-        )
-        inactives, inactive_mol_ids = self.assemble(
-            self.trainer.predict(
-                model=self.model, dataloaders=datamodule.inactives_dataloader()
-            )
-        )
-
-        # calculate cosine similarity of (in)actives w.r.t. to query
-        active_similarity = torch.mm(query, actives.T).flatten()
-        inactive_similarity = torch.mm(query, inactives.T).flatten()
-
-        # pick most similar conformation per compound
-        active_mask = self.create_mask(active_similarity, active_mol_ids)
-        inactive_mask = self.create_mask(inactive_similarity, inactive_mol_ids)
-        active_similarity = active_similarity[active_mask]
-        inactive_similarity = inactive_similarity[inactive_mask]
-        top_actives = actives[active_mask]
-        top_inactives = inactives[inactive_mask]
-
+    def __call__(self) -> None:
         # plot UMAP of highest scoring active and inactive embeddings
-        self.plot_UMAP(
-            query, top_actives, top_inactives, actives, inactives, val_embeddings
+        self._plot_UMAP(
+            self.screener.query_embedding,
+            self.screener.top_active_embeddings,
+            self.screener.top_inactive_embeddings,
+            self.screener.active_embeddings,
+            self.screener.inactive_embeddings,
+            self.screener.active_mol_ids,
+            self.screener.inactive_mol_ids,
         )
 
         # Map similarity [-1, 1] --> [0, 1] and print AUC statistics
-        y_pred = torch.cat((active_similarity, inactive_similarity))
-        y_pred = (y_pred + 1) / 2
-        y_true = torch.cat(
-            (
-                torch.ones(len(active_similarity), dtype=torch.int),
-                torch.zeros(len(inactive_similarity), dtype=torch.int),
-            )
-        )
-        y_true = y_true.cpu().numpy()
-        y_pred = y_pred.cpu().numpy()
+        y_true = self.screener.y_true.cpu().numpy()
+        y_pred = self.screener.y_pred.cpu().numpy()
 
-        self.plot_auc(y_true, y_pred)
+        self._plot_auc(y_true, y_pred)
 
-    def assemble(self, prediction_output):
-        predictions = []
-        mol_ids = []
-        for output in prediction_output:
-            prediction, mol_id = output
-            predictions.append(prediction)
-            mol_ids.append(mol_id)
-
-        return torch.vstack(predictions), torch.hstack(mol_ids)
-
-    def create_mask(self, similarities, mol_ids):
-        splits = [similarities[mol_ids == i] for i in range(max(mol_ids + 1))]
-        split_argmax = [torch.argmax(split) for split in splits]
-        mask = [torch.zeros(split.shape) for split in splits]
-        for idx, mask_split in zip(split_argmax, mask):
-            mask_split[idx] = 1
-        mask = torch.cat(mask) != 0
-
-        return mask
-
-    def plot_auc(self, y_true, y_pred):
+    def _plot_auc(self, y_true, y_pred):
         # print metrics & plot figures
         print(roc_auc_score(y_true, y_pred))
         fpr, tpr, thr = roc_curve(y_true, y_pred)
@@ -109,51 +55,61 @@ class VirtualScreening:
         plt.plot(precision, recall)
         plt.savefig("plots/prcurve.png")
 
-    def plot_UMAP(
-        self, query, actives, inactives, all_actives, all_inactives, val_embeddings
+    def _plot_UMAP(
+        self,
+        query_embedding,
+        top_active_embeddings,
+        top_inactive_embeddings,
+        active_embeddings,
+        inactive_embeddings,
+        active_mol_ids,
+        inactive_mol_ids,
     ):
-        reducer = umap.UMAP()
-        reducer.fit(val_embeddings)
-        all_inactives_embedded = reducer.transform(all_inactives)
-        all_actives_embedded = reducer.transform(all_actives)
-        inactives_embedded = reducer.transform(inactives)
-        actives_embedded = reducer.transform(actives)
-        query_embedded = reducer.transform(query)
+        mean_actives = global_mean_pool(active_embeddings, active_mol_ids)
+        mean_inactives = global_mean_pool(inactive_embeddings, inactive_mol_ids)
+
+        reducer = umap.UMAP(metric="cosine")
+        reducer.fit(torch.cat((mean_actives, mean_inactives, query_embedding)))
+        reduced_inactive_embeddings = reducer.transform(inactive_embeddings)
+        reduced_active_embeddings = reducer.transform(active_embeddings)
+        reduced_top_inactive_embeddings = reducer.transform(top_inactive_embeddings)
+        reduced_top_active_embeddings = reducer.transform(top_active_embeddings)
+        reduced_query_embedding = reducer.transform(query_embedding)
 
         fig = plt.figure(figsize=(15, 15))
         plt.scatter(
-            all_inactives_embedded[:, 0],
-            all_inactives_embedded[:, 1],
+            reduced_inactive_embeddings[:, 0],
+            reduced_inactive_embeddings[:, 1],
             c="cornflowerblue",
             marker="o",
             s=10,
         )
         plt.scatter(
-            all_actives_embedded[:, 0],
-            all_actives_embedded[:, 1],
+            reduced_active_embeddings[:, 0],
+            reduced_active_embeddings[:, 1],
             c="lightcoral",
             marker="o",
             s=10,
         )
         plt.scatter(
-            inactives_embedded[:, 0],
-            inactives_embedded[:, 1],
+            reduced_top_inactive_embeddings[:, 0],
+            reduced_top_inactive_embeddings[:, 1],
             c="blue",
             marker="o",
             edgecolor="darkblue",
             s=20,
         )
         plt.scatter(
-            actives_embedded[:, 0],
-            actives_embedded[:, 1],
+            reduced_top_active_embeddings[:, 0],
+            reduced_top_active_embeddings[:, 1],
             c="red",
             marker="o",
             edgecolor="darkred",
             s=20,
         )
         plt.scatter(
-            query_embedded[:, 0],
-            query_embedded[:, 1],
+            reduced_query_embedding[:, 0],
+            reduced_query_embedding[:, 1],
             c="yellow",
             marker="*",
             s=300,
@@ -175,12 +131,13 @@ class VirtualScreening:
 def evaluation(device):
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
-    CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 49
+    VS_MODEL_NUMBER = 23
     MODEL_PATH = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/"
 
-    params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
+    params = yaml.load(
+        open(os.path.join(MODEL_PATH, "hparams.yaml"), "r"), Loader=yaml.FullLoader
+    )
 
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(params["seed"])
@@ -197,6 +154,7 @@ def evaluation(device):
     datamodule.setup()
 
     model = load_model_from_path(MODEL_PATH, MODEL)
+    device = [model.device.index]
 
     trainer = Trainer(
         num_nodes=1,
@@ -207,8 +165,9 @@ def evaluation(device):
         log_every_n_steps=1,
     )
 
-    vs = VirtualScreening(model, trainer, VS_MODEL_NUMBER)
-    vs(datamodule)
+    embedder = VirtualScreeningEmbedder(model, datamodule, trainer)
+    vs = VirtualScreeningExperiment(embedder, VS_MODEL_NUMBER)
+    vs()
 
 
 if __name__ == "__main__":

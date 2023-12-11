@@ -13,16 +13,17 @@ from lightning.pytorch.callbacks import (
 from dataset import PharmacophoreDataModule
 from model import PharmCLR, VirtualScreeningCallback
 from utils import load_model_from_path, load_hparams_from_path
-from scripts import VirtualScreening, SelfSimilarityEvaluation
+from virtual_screening import VirtualScreeningEmbedder
+from scripts import VirtualScreeningExperiment, SelfSimilarityEvaluation
 
 
-def training(device, key, value):
+def training(device):  # , key, value):
     # Path variables
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VERSION = None
+    VERSION = 21
     MODEL_PATH = f"logs/PharmCLR/version_{VERSION}/"
 
     # Check for pretrained model
@@ -34,7 +35,7 @@ def training(device, key, value):
         params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
 
     # Change one parameter
-    params[key] = value
+    # params[key] = value
 
     # Settings for determinism
     torch.set_float32_matmul_precision("medium")
@@ -73,15 +74,17 @@ def training(device, key, value):
         logger=tb_logger,
         log_every_n_steps=1,
         callbacks=callbacks,
-        precision=params['precision'],
+        precision=params["precision"],
     )
 
     trainer.fit(model=model, datamodule=datamodule)
     model = PharmCLR.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-    vs = VirtualScreening(model, trainer, trainer.logger.version)
-    vs(datamodule)
+    embedder = VirtualScreeningEmbedder(model, datamodule, trainer)
+    vs = VirtualScreeningExperiment(embedder, trainer.logger.version)
+    vs()
     eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
     eval.calculate_mean_similarities(trainer.logger.version)
+
 
 if __name__ == "__main__":
     device = [int(i) for i in list(sys.argv[1])]
@@ -102,10 +105,10 @@ if __name__ == "__main__":
     #     key = 'hidden_dim_encoder'
     #     training(device, key, value)
 
-    for value in [0.15, 0.45, 0.6]:
-        key = 'node_masking'
-        training(device, key, value)
+    # for value in [0.1]:
+    #    key = 'node_masking'
+    training(device)
 
-    for value in [1, 2, 4]:
-        key = 'n_layers_conv'
-        training(device, key, value)
+    # for value in [1, 2, 4]:
+    #     key = 'n_layers_conv'
+    #     training(device, key, value)
