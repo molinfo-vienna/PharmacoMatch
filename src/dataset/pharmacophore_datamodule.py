@@ -3,7 +3,6 @@ from lightning.pytorch.utilities.types import EVAL_DATALOADERS
 from torch_geometric.loader import DataLoader
 
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
-from .augmentation_module import AugmentationModule
 
 
 class PharmacophoreDataModule(LightningDataModule):
@@ -87,18 +86,18 @@ class PharmacophoreDataModule(LightningDataModule):
 
     def query_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.query, batch_size=len(self.test_data))
+            return DataLoader(self.query, batch_size=len(self.query))
         else:
             return DataLoader(self.query, batch_size=self.batch_size)
 
     def actives_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.actives, batch_size=len(self.test_data))
+            return DataLoader(self.actives, batch_size=len(self.actives))
         else:
             return DataLoader(self.actives, batch_size=self.batch_size)
 
     def inactives_dataloader(self):
         if self.batch_size == None:
-            return DataLoader(self.inactives, batch_size=len(self.test_data))
+            return DataLoader(self.inactives, batch_size=len(self.inactives))
         else:
             return DataLoader(self.inactives, batch_size=self.batch_size)

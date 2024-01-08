@@ -1,5 +1,6 @@
 import torch
 
+from .feature_count_prefilter import FeatureCountPrefilter
 
 class VirtualScreener:
     def __init__(self, embedder) -> None:
@@ -15,6 +16,11 @@ class VirtualScreener:
             self.inactive_mol_ids,
         ) = self.embedder.get_inactive_embeddings()
 
+        # create mask for feature count prefilter 
+        prefilter = FeatureCountPrefilter(embedder.vs_datamodule)
+        self.actives_prefilter_mask = prefilter.get_actives_mask()
+        self.inactives_prefilter_mask = prefilter.get_inactives_mask()
+
         # calculate cosine similarity of (in)actives w.r.t. to query
         self.active_query_similarity = torch.mm(
             self.query_embedding, self.active_embeddings.T
@@ -24,16 +30,16 @@ class VirtualScreener:
         ).flatten()
 
         # pick most similar conformation per compound
-        active_mask = self._create_mask(
+        self.active_mask = self._create_mask(
             self.active_query_similarity, self.active_mol_ids
         )
-        inactive_mask = self._create_mask(
+        self.inactive_mask = self._create_mask(
             self.inactive_query_similarity, self.inactive_mol_ids
         )
-        self.top_active_similarity = self.active_query_similarity[active_mask]
-        self.top_inactive_similarity = self.inactive_query_similarity[inactive_mask]
-        self.top_active_embeddings = self.active_embeddings[active_mask]
-        self.top_inactive_embeddings = self.inactive_embeddings[inactive_mask]
+        self.top_active_similarity = self.active_query_similarity[self.active_mask]
+        self.top_inactive_similarity = self.inactive_query_similarity[self.inactive_mask]
+        self.top_active_embeddings = self.active_embeddings[self.active_mask]
+        self.top_inactive_embeddings = self.inactive_embeddings[self.inactive_mask]
 
         # Map similarity [-1, 1] --> [0, 1] and print AUC statistics
         self.y_pred = torch.cat(
