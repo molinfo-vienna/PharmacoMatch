@@ -15,7 +15,7 @@ class GATEncoder(torch.nn.Module):
         n_conv_layers,
         num_edge_features,
         dropout,
-        residual_connection
+        residual_connection,
     ):
         super().__init__()
         self.input_dim = input_dim
@@ -48,9 +48,9 @@ class GATEncoder(torch.nn.Module):
                 )
             )
             self.convolution_batch_norm.append(BatchNorm(hidden_dim))
-            if self.residual_connection == 'dense':
+            if self.residual_connection == "dense":
                 input_dim += hidden_dim
-            if self.residual_connection == 'res':
+            if self.residual_connection == "res":
                 input_dim = hidden_dim
 
         # Expand dimensionality before node pooling
@@ -67,9 +67,9 @@ class GATEncoder(torch.nn.Module):
             x_conv = conv(x, data.edge_index, data.edge_attr)
             x_conv = self.convolution_batch_norm[i](x_conv)
             x_conv = torch.nn.functional.gelu(x_conv)
-            if self.residual_connection == 'dense':
+            if self.residual_connection == "dense":
                 x = torch.cat((x, x_conv), dim=1)
-            if self.residual_connection == 'res':
+            if self.residual_connection == "res":
                 x = x + x_conv
             x = F.dropout(x, p=self.dropout, training=self.training)
 
@@ -78,4 +78,3 @@ class GATEncoder(torch.nn.Module):
         representation = self.pooling(x, data.batch)
 
         return representation
-

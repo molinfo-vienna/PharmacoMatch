@@ -4,6 +4,7 @@ import sys
 import torch
 from torch_geometric.data import Data, InMemoryDataset  # , download_url
 import CDPL.Pharm as Pharm
+from CDPL.Pharm import PSDPharmacophoreReader
 import CDPL.Chem as Chem
 
 
@@ -34,7 +35,28 @@ class PharmacophoreDatasetBase(InMemoryDataset):
 
         return x, pos
 
-    def _getReaderByFileExt(self, filename: str) -> Pharm.PharmacophoreReader:
+    def _getMolReaderByFileExt(self, filename: str) -> Chem.MoleculeReader:
+        name_and_ext = os.path.splitext(filename)
+
+        if name_and_ext[1] == "":
+            sys.exit(
+                "Error: could not determine molecule input file format (file extension missing)"
+            )
+
+        # get input handler for the format specified by the input file's extension
+        ipt_handler = Chem.MoleculeIOManager.getInputHandlerByFileExtension(
+            name_and_ext[1][1:].lower()
+        )
+
+        if not ipt_handler:
+            sys.exit(
+                "Error: unsupported molecule input file format '%s'" % name_and_ext[1]
+            )
+
+        # create and return file reader instance
+        return ipt_handler.createReader(filename)
+
+    def _getPharmReaderByFileExt(self, filename: str) -> Pharm.PharmacophoreReader:
         name_and_ext = os.path.splitext(filename)
 
         if name_and_ext[1] == "":
@@ -65,11 +87,11 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
 
     @property
     def raw_file_names(self):
-        return ["pretraining_data_large.cdf"]
+        return ["chembl_data.cdf"]
 
     @property
     def processed_file_names(self):
-        return ["data.pt"]
+        return ["chembl_data.pt"]
 
     def download(self):
         pass
@@ -87,7 +109,7 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
         torch.save((data, slices), self.processed_paths[0])
 
     def data_processing(self, path):
-        reader = self._getReaderByFileExt(path)
+        reader = self._getPharmReaderByFileExt(path)
         ph4 = Pharm.BasicPharmacophore()
         data_list = []
         count = 0
@@ -131,7 +153,7 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
 
     @property
     def raw_file_names(self):
-        return ["actives.pml", "inactives.pml", "query.pml"]
+        return ["actives.psd", "inactives.psd", "query.pml"]
 
     @property
     def processed_file_names(self):
@@ -154,29 +176,56 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
             torch.save((data, slices), self.processed_paths[i])
 
     def data_processing(self, path):
-        reader = self._getReaderByFileExt(path)
-        ph4 = Pharm.BasicPharmacophore()
-        data_list = []
-        name = ""
-        mol_id = -1
-        count = 0
-        skipped_pharmacophores = 0
+        pharm_reader = self._getPharmReaderByFileExt(path)
 
-        while reader.read(ph4):
-            try:
-                if ph4.getNumFeatures() > 3:
-                    if name != Pharm.getName(ph4):
-                        name = Pharm.getName(ph4)
-                        mol_id += 1
-                    x, pos = self._extract_pharmacophore_features(ph4)
-                    data = Data(x=x, pos=pos, mol_id=mol_id)
-                    data_list.append(data)
-                    count += 1
-                else:
-                    skipped_pharmacophores += 1
-                    # Do not include empty and too small graphs
+        if type(pharm_reader) is PSDPharmacophoreReader:
+            db_accessor = Pharm.PSDScreeningDBAccessor(path)
+            ph4 = Pharm.BasicPharmacophore()
+            # mol = Chem.BasicMolecule()
+            num_molecules = db_accessor.getNumMolecules()
+            data_list = []
+            skipped_pharmacophores = 0
 
-            except Exception as e:
-                sys.exit("Error: processing of pharmacophore failed: " + str(e))
+            for i in range(num_molecules):
+                try:
+                    num_pharmacophores = db_accessor.getNumPharmacophores(i)
+                    # db_accessor.getMolecule(i, mol)
+                    for j in range(num_pharmacophores):
+                        db_accessor.getPharmacophore(i, j, ph4)
+                        if ph4.getNumFeatures() > 0:
+                            x, pos = self._extract_pharmacophore_features(ph4)
+                            data = Data(x=x, pos=pos, mol_id=i)
+                            data_list.append(data)
+                        else:
+                            skipped_pharmacophores += 1
+                            # Do not include empty and too small graphs
 
-        return data_list
+                except Exception as e:
+                    sys.exit("Error: processing of pharmacophore failed: " + str(e))
+
+            return data_list
+
+        else:
+            ph4 = Pharm.BasicPharmacophore()
+            data_list = []
+            name = ""
+            mol_id = -1
+            skipped_pharmacophores = 0
+
+            while pharm_reader.read(ph4):
+                try:
+                    if ph4.getNumFeatures() > 0:
+                        if name != Pharm.getName(ph4):
+                            name = Pharm.getName(ph4)
+                            mol_id += 1
+                        x, pos = self._extract_pharmacophore_features(ph4)
+                        data = Data(x=x, pos=pos, mol_id=mol_id)
+                        data_list.append(data)
+                    else:
+                        skipped_pharmacophores += 1
+                        # Do not include empty and too small graphs
+
+                except Exception as e:
+                    sys.exit("Error: processing of pharmacophore failed: " + str(e))
+
+            return data_list

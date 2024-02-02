@@ -21,8 +21,8 @@ class SelfSimilarityEvaluation:
 
         self.max_node_masking = 0.9
         steps_node_masking = 10
-        self.max_radius = 5
-        steps_radius = 21
+        self.max_radius = 10
+        steps_radius = 11
 
         self.node_masking_range = [
             float(i)
@@ -58,11 +58,11 @@ class SelfSimilarityEvaluation:
         )
         ax.plot_wireframe(X, Y, Z, cmap=cm.coolwarm)
         ax.set_zlim(0, 1.0)
-        ax.set_xlabel("Node Masking Ratio")
-        ax.set_ylabel("Noise radius / Angstrom")
+        ax.set_xlabel("Node Deletion Ratio")
+        ax.set_ylabel(r"Displacement Radius / $\AA$")
         ax.set_ylim(self.max_radius, 0)
         ax.set_xlim(0, self.max_node_masking)
-        ax.set_zlabel("Batch-wise Mean Cosine Similarity")
+        ax.set_zlabel("Mean Cosine Similarity")
         plt.savefig(f"self-similarity{num_version}.png")
 
     def _create_embeddings(self, node_masking, radius):
@@ -81,12 +81,12 @@ class SelfSimilarityEvaluation:
 
 
 def run(device):
-    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
-    VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
+    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
+    VS_ROOT = "/data/shared/projects/PhectorDB/litpcba/ESR1_ant"
     # CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 23
-    MODEL_PATH = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/"
+    VS_MODEL_NUMBER = 0
+    MODEL_PATH = f"logs2/PharmCLR/version_{VS_MODEL_NUMBER}/"
 
     params = yaml.load(
         open(os.path.join(MODEL_PATH, "hparams.yaml"), "r"), Loader=yaml.FullLoader

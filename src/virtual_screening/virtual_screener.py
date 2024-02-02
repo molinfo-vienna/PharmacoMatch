@@ -2,8 +2,9 @@ import torch
 
 from .feature_count_prefilter import FeatureCountPrefilter
 
+
 class VirtualScreener:
-    def __init__(self, embedder) -> None:
+    def __init__(self, embedder, query_idx=0) -> None:
         self.embedder = embedder
         self.val_embeddings = self.embedder.get_val_embeddings()
         self.query_embedding, _ = self.embedder.get_query_embeddings()
@@ -16,17 +17,17 @@ class VirtualScreener:
             self.inactive_mol_ids,
         ) = self.embedder.get_inactive_embeddings()
 
-        # create mask for feature count prefilter 
-        prefilter = FeatureCountPrefilter(embedder.vs_datamodule)
-        self.actives_prefilter_mask = prefilter.get_actives_mask()
-        self.inactives_prefilter_mask = prefilter.get_inactives_mask()
+        # create mask for feature count prefilter
+        self.prefilter = FeatureCountPrefilter(embedder.vs_datamodule)
+        self.actives_prefilter_mask = self.prefilter.get_actives_mask(query_idx)
+        self.inactives_prefilter_mask = self.prefilter.get_inactives_mask(query_idx)
 
         # calculate cosine similarity of (in)actives w.r.t. to query
         self.active_query_similarity = torch.mm(
-            self.query_embedding, self.active_embeddings.T
+            self.query_embedding[query_idx].reshape(1, -1), self.active_embeddings.T
         ).flatten()
         self.inactive_query_similarity = torch.mm(
-            self.query_embedding, self.inactive_embeddings.T
+            self.query_embedding[query_idx].reshape(1, -1), self.inactive_embeddings.T
         ).flatten()
 
         # pick most similar conformation per compound
@@ -37,7 +38,9 @@ class VirtualScreener:
             self.inactive_query_similarity, self.inactive_mol_ids
         )
         self.top_active_similarity = self.active_query_similarity[self.active_mask]
-        self.top_inactive_similarity = self.inactive_query_similarity[self.inactive_mask]
+        self.top_inactive_similarity = self.inactive_query_similarity[
+            self.inactive_mask
+        ]
         self.top_active_embeddings = self.active_embeddings[self.active_mask]
         self.top_inactive_embeddings = self.inactive_embeddings[self.inactive_mask]
 

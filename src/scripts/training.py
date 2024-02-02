@@ -19,12 +19,12 @@ from scripts import VirtualScreeningExperiment, SelfSimilarityEvaluation
 
 def training(device):  # , key, value):
     # Path variables
-    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
-    VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
+    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
+    VS_ROOT = "/data/shared/projects/PhectorDB/litpcba/ESR1_ant"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VERSION = 21
-    MODEL_PATH = f"logs/PharmCLR/version_{VERSION}/"
+    VERSION = 1
+    MODEL_PATH = f"logs2/PharmCLR/version_{VERSION}/"
 
     # Check for pretrained model
     if os.path.exists(MODEL_PATH):
@@ -59,7 +59,7 @@ def training(device):  # , key, value):
     else:
         model = MODEL(**params)
 
-    tb_logger = TensorBoardLogger("logs/", name=f"PharmCLR", default_hp_metric=False)
+    tb_logger = TensorBoardLogger("logs2/", name=f"PharmCLR", default_hp_metric=False)
     callbacks = [
         ModelCheckpoint(monitor="val/val_loss/dataloader_idx_0", mode="min"),
         LearningRateMonitor("epoch"),

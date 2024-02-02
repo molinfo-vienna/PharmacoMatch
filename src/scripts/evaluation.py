@@ -129,8 +129,8 @@ class VirtualScreeningExperiment:
 
 
 def evaluation(device):
-    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/chembl_data"
-    VS_ROOT = "/data/shared/projects/PhectorDB/virtual_screening_cdk2"
+    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
+    VS_ROOT = "/data/shared/projects/PhectorDB/litpcba/ESR1_ant"
     MODEL = PharmCLR
     VS_MODEL_NUMBER = 23
     MODEL_PATH = f"logs/PharmCLR/version_{VS_MODEL_NUMBER}/"

@@ -1,29 +1,23 @@
-epochs: 4000
-num_samples: 100000
 batch_size: 256
-
-node_masking: 0.2
-radius: 0.75
-
-encoder: GAT
-residual_connection: dense
-n_layers_conv: 3
-num_node_features: 7
-num_edge_features: 5
-node_embedding_dim: 10
-hidden_dim_encoder: 256
-input_dim_projector: 1024
-hidden_dim_projector: 1024
-output_dim_projector: 256
-precision: 16
-
 dropout: 0.3
-
-temperature: 0.07
-
+encoder: GAT
+epochs: 4000
+hidden_dim_encoder: 256
+hidden_dim_projector: 1024
+input_dim_projector: 1024
 learning_rate: 0.1
 momentum: 0.001
-weight_decay: 1.0e-06
-warmup_epochs: 10
-
+n_layers_conv: 3
+node_embedding_dim: 10
+node_masking: 0.2
+num_edge_features: 5
+num_node_features: 7
+num_samples: 100000
+output_dim_projector: 256
+precision: 16
+radius: 0.75
+residual_connection: dense
 seed: 42
+temperature: 0.07
+warmup_epochs: 10
+weight_decay: 1.0e-06
