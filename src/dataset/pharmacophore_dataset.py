@@ -1,7 +1,9 @@
 import os
 import sys
+from typing import Optional, Callable
 
 import torch
+from torch import Tensor
 from torch_geometric.data import Data, InMemoryDataset  # , download_url
 import CDPL.Pharm as Pharm
 from CDPL.Pharm import PSDPharmacophoreReader
@@ -24,7 +26,9 @@ class PharmacophoreDatasetBase(InMemoryDataset):
 
     _num_node_features = 7
 
-    def _extract_pharmacophore_features(self, ph4):
+    def _extract_pharmacophore_features(
+        self, ph4: Pharm.BasicPharmacophore
+    ) -> tuple[Tensor, Tensor]:
         num_features = ph4.getNumFeatures()
         x = torch.zeros((num_features, self._num_node_features))
         pos = torch.zeros((num_features, 3))
@@ -80,23 +84,29 @@ class PharmacophoreDatasetBase(InMemoryDataset):
 
 
 class PharmacophoreDataset(PharmacophoreDatasetBase):
-    def __init__(self, root, transform=None, pre_transform=None, pre_filter=None):
+    def __init__(
+        self,
+        root: str,
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        pre_filter: Optional[Callable] = None,
+    ) -> None:
         super().__init__(root, transform, pre_transform, pre_filter)
         path = self.processed_paths[0]
         self.data, self.slices = torch.load(path)
 
     @property
-    def raw_file_names(self):
+    def raw_file_names(self) -> list[str]:
         return ["chembl_data.cdf"]
 
     @property
-    def processed_file_names(self):
+    def processed_file_names(self) -> list[str]:
         return ["chembl_data.pt"]
 
-    def download(self):
+    def download(self) -> None:
         pass
 
-    def process(self):
+    def process(self) -> None:
         data_list = self.data_processing(self.raw_paths[0])
 
         if self.pre_filter is not None:
@@ -108,7 +118,7 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
         data, slices = self.collate(data_list)
         torch.save((data, slices), self.processed_paths[0])
 
-    def data_processing(self, path):
+    def data_processing(self, path: str) -> list[Data]:
         reader = self._getPharmReaderByFileExt(path)
         ph4 = Pharm.BasicPharmacophore()
         data_list = []
@@ -130,17 +140,18 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
                 sys.exit("Error: processing of pharmacophore failed: " + str(e))
 
         print(f"{skipped_pharmacophores} pharmacophores were rejected.")
+
         return data_list
 
 
 class VirtualScreeningDataset(PharmacophoreDatasetBase):
     def __init__(
         self,
-        root,
-        path_type="active",
-        transform=None,
-        pre_transform=None,
-        pre_filter=None,
+        root: str,
+        path_type: str = "active",
+        transform: Optional[Callable] = None,
+        pre_transform: Optional[Callable] = None,
+        pre_filter: Optional[Callable] = None,
     ):
         super().__init__(root, transform, pre_transform, pre_filter)
         if path_type == "active":
@@ -152,17 +163,17 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
         self.data, self.slices = torch.load(path)
 
     @property
-    def raw_file_names(self):
+    def raw_file_names(self) -> list[str]:
         return ["actives.psd", "inactives.psd", "query.pml"]
 
     @property
-    def processed_file_names(self):
+    def processed_file_names(self) -> list[str]:
         return ["actives.pt", "inactives.pt", "query.pt"]
 
-    def download(self):
+    def download(self) -> None:
         pass
 
-    def process(self):
+    def process(self) -> None:
         for i in range(len(self.raw_paths)):
             data_list = self.data_processing(self.raw_paths[i])
 
@@ -175,7 +186,7 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
             data, slices = self.collate(data_list)
             torch.save((data, slices), self.processed_paths[i])
 
-    def data_processing(self, path):
+    def data_processing(self, path: str) -> list[str]:
         pharm_reader = self._getPharmReaderByFileExt(path)
 
         if type(pharm_reader) is PSDPharmacophoreReader:

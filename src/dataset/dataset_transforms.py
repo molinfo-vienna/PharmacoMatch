@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import torch
+from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
@@ -9,7 +10,7 @@ from torch_geometric.utils import to_undirected
 
 @functional_transform("distance_ohe")
 class DistanceOHE(BaseTransform):
-    def __init__(self, num_bins=10) -> None:
+    def __init__(self, num_bins: int = 10) -> None:
         self.num_bins = num_bins
 
     def __call__(self, data: Data) -> Data:
@@ -31,7 +32,9 @@ class DistanceOHE(BaseTransform):
 
 @functional_transform("distance_rdf")
 class DistanceRDF(BaseTransform):
-    def __init__(self, num_bins=5, max_dist=10, gamma=0.5) -> None:
+    def __init__(
+        self, num_bins: int = 5, max_dist: float = 10, gamma: float = 0.5
+    ) -> None:
         self.num_bins = num_bins
         self.max_dist = max_dist
         self.gamma = gamma
@@ -51,7 +54,7 @@ class DistanceRDF(BaseTransform):
 
 @functional_transform("random_gaussian_noise")
 class RandomGaussianNoise(BaseTransform):
-    def __init__(self, radius=1.5) -> None:
+    def __init__(self, radius: float = 1.5) -> None:
         self.radius = radius
 
     def __call__(self, data: Data) -> Data:
@@ -70,7 +73,7 @@ class RandomGaussianNoise(BaseTransform):
 
 @functional_transform("random_spherical_noise")
 class RandomSphericalNoise(BaseTransform):
-    def __init__(self, radius=1) -> None:
+    def __init__(self, radius: float = 1) -> None:
         self.radius = radius
 
     def __call__(self, data: Data) -> Data:
@@ -81,7 +84,7 @@ class RandomSphericalNoise(BaseTransform):
 
         return data
 
-    def make_spherical_noise(self, pos):
+    def make_spherical_noise(self, pos: Tensor) -> Tensor:
         size, _ = pos.shape
         device = pos.device
 
@@ -108,7 +111,7 @@ class RandomSphericalNoise(BaseTransform):
 
 @functional_transform("random_spherical_surface_noise")
 class RandomSphericalSurfaceNoise(BaseTransform):
-    def __init__(self, radius=1) -> None:
+    def __init__(self, radius: float = 1) -> None:
         self.radius = radius
 
     def __call__(self, data: Data) -> Data:
@@ -119,7 +122,7 @@ class RandomSphericalSurfaceNoise(BaseTransform):
 
         return data
 
-    def make_sphere_surface_noise(self, pos):
+    def make_sphere_surface_noise(self, pos: Tensor) -> Tensor:
         size, _ = pos.shape
         device = pos.device
 
@@ -144,7 +147,7 @@ class RandomSphericalSurfaceNoise(BaseTransform):
 
 @functional_transform("random_masking")
 class RandomMasking(BaseTransform):
-    def __init__(self, mask_ratio=0.2) -> None:
+    def __init__(self, mask_ratio: float = 0.2) -> None:
         self.mask_ratio = mask_ratio
 
     def __call__(self, data: Data) -> Data:
@@ -161,7 +164,7 @@ class RandomMasking(BaseTransform):
 
 @functional_transform("random_node_deletion")
 class RandomNodeDeletion(BaseTransform):
-    def __init__(self, delete_ratio=0.3) -> None:
+    def __init__(self, delete_ratio: float = 0.3) -> None:
         self.delete_ratio = delete_ratio
 
     def __call__(self, data: Data) -> Data:
@@ -199,7 +202,7 @@ class CompleteGraph(BaseTransform):
         n_nodes_per_graph = data.ptr[1:] - data.ptr[:-1]
         device = data.ptr.device
 
-        def create_edges(num_nodes, ptr):
+        def create_edges(num_nodes: Tensor, ptr: Tensor) -> Tensor:
             idx = torch.combinations(torch.arange(num_nodes, device=device), r=2)
             edge_index = to_undirected(idx.t(), num_nodes=num_nodes)
             return edge_index + ptr

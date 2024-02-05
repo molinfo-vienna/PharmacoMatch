@@ -1,11 +1,12 @@
 import os
 import yaml
 
+from lightning import LightningModule
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def load_hparams_from_path(folder_path):
+def load_hparams_from_path(folder_path: str) -> dict:
     if not os.path.exists(folder_path):
         return None
     else:
@@ -13,7 +14,9 @@ def load_hparams_from_path(folder_path):
         return yaml.load(open(path, "r"), Loader=yaml.FullLoader)
 
 
-def load_model_from_path(folder_path, model_class):
+def load_model_from_path(
+    folder_path: str, model_class: LightningModule
+) -> LightningModule:
     if not os.path.exists(folder_path):
         return None
     else:

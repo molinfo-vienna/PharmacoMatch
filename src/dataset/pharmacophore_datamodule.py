@@ -8,18 +8,18 @@ from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 class PharmacophoreDataModule(LightningDataModule):
     def __init__(
         self,
-        preprocessing_data_dir,
-        virtual_screening_data_dir,
-        batch_size=None,
-        small_set_size=None,
-    ):
+        preprocessing_data_dir: str,
+        virtual_screening_data_dir: str,
+        batch_size: int = None,
+        small_set_size: int = None,
+    ) -> None:
         super(PharmacophoreDataModule, self).__init__()
         self.preprocessing_data_dir = preprocessing_data_dir
         self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
         self.small_set_size = small_set_size
 
-    def setup(self, stage: str = "fit"):
+    def setup(self, stage: str = "fit") -> None:
         if stage == "fit":
             preprocessing_data = PharmacophoreDataset(
                 self.preprocessing_data_dir, transform=None
@@ -45,7 +45,7 @@ class PharmacophoreDataModule(LightningDataModule):
             print(f"Number of active graphs: {len(self.actives)}")
             print(f"Number of inactive graphs: {len(self.inactives)}")
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         if self.batch_size == None:
             return DataLoader(
                 self.train_data,
@@ -61,10 +61,10 @@ class PharmacophoreDataModule(LightningDataModule):
                 drop_last=True,
             )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> list[DataLoader]:
         return [self.create_val_dataloader()] + self.vs_dataloader()
 
-    def create_val_dataloader(self):
+    def create_val_dataloader(self) -> DataLoader:
         if self.batch_size == None:
             return DataLoader(
                 self.val_data,
@@ -77,26 +77,26 @@ class PharmacophoreDataModule(LightningDataModule):
                 self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True
             )
 
-    def vs_dataloader(self):
+    def vs_dataloader(self) -> list[DataLoader]:
         return [
             self.query_dataloader(),
             self.actives_dataloader(),
             self.inactives_dataloader(),
         ]
 
-    def query_dataloader(self):
+    def query_dataloader(self) -> DataLoader:
         if self.batch_size == None:
             return DataLoader(self.query, batch_size=len(self.query))
         else:
             return DataLoader(self.query, batch_size=self.batch_size)
 
-    def actives_dataloader(self):
+    def actives_dataloader(self) -> DataLoader:
         if self.batch_size == None:
             return DataLoader(self.actives, batch_size=len(self.actives))
         else:
             return DataLoader(self.actives, batch_size=self.batch_size)
 
-    def inactives_dataloader(self):
+    def inactives_dataloader(self) -> DataLoader:
         if self.batch_size == None:
             return DataLoader(self.inactives, batch_size=len(self.inactives))
         else:

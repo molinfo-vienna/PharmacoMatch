@@ -1,10 +1,12 @@
 import torch
+from torch import Tensor
 
 from .feature_count_prefilter import FeatureCountPrefilter
+from .virtual_screening_embedder import VirtualScreeningEmbedder
 
 
 class VirtualScreener:
-    def __init__(self, embedder, query_idx=0) -> None:
+    def __init__(self, embedder: VirtualScreeningEmbedder, query_idx: int = 0) -> None:
         self.embedder = embedder
         self.val_embeddings = self.embedder.get_val_embeddings()
         self.query_embedding, _ = self.embedder.get_query_embeddings()
@@ -56,7 +58,7 @@ class VirtualScreener:
             )
         )
 
-    def _create_mask(self, similarities, mol_ids):
+    def _create_mask(self, similarities: Tensor, mol_ids: Tensor) -> Tensor:
         splits = [similarities[mol_ids == i] for i in range(max(mol_ids + 1))]
         split_argmax = [torch.argmax(split) for split in splits]
         mask = [torch.zeros(split.shape) for split in splits]

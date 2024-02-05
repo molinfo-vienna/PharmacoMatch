@@ -17,7 +17,7 @@ from virtual_screening import VirtualScreeningEmbedder
 from scripts import VirtualScreeningExperiment, SelfSimilarityEvaluation
 
 
-def training(device):  # , key, value):
+def training(device):
     # Path variables
     PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
     VS_ROOT = "/data/shared/projects/PhectorDB/litpcba/ESR1_ant"

@@ -6,10 +6,10 @@ import CDPL.Pharm as Pharm
 
 
 class PharmacophoreAlignment:
-    def __init__(self, vs_root) -> None:
+    def __init__(self, vs_root: str) -> None:
         self.vs_root = vs_root
 
-    def align_preprocessed_ligands_to_query(self):
+    def align_preprocessed_ligands_to_query(self) -> None:
         tic = time.perf_counter()
         self._alignment("actives")
         toc = time.perf_counter()
@@ -19,7 +19,7 @@ class PharmacophoreAlignment:
         toc = time.perf_counter()
         print(f"Alignment took {toc - tic:0.4f} seconds")
 
-    def _alignment(self, filename) -> None:
+    def _alignment(self, filename: str) -> None:
         ref_ph4_file = f"{self.vs_root}/raw/query.pml"
         in_file = f"{self.vs_root}/raw/{filename}.psd"
         out_file = f"{self.vs_root}/vs/all_{filename}_aligned.pt"
@@ -48,7 +48,9 @@ class PharmacophoreAlignment:
         )  # set minimum number of top. mapped feature pairs
 
         # create pharmacophore fit score calculator instance
-        almnt_score = Pharm.PharmacophoreFitScore(match_cnt_weight=1.0, pos_match_weight=0.9999, geom_match_weight=0.0)
+        almnt_score = Pharm.PharmacophoreFitScore(
+            match_cnt_weight=1.0, pos_match_weight=0.9999, geom_match_weight=0.0
+        )
 
         almnt_scores = []
 

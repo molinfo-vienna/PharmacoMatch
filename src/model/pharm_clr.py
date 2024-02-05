@@ -1,15 +1,21 @@
+from typing import Generator, Union
+
+import torch
+from torch.optim import Optimizer
 from flash.core.optimizers import LARS, LinearWarmupCosineAnnealingLR
 from lightning import LightningModule
-import torch
+from torch import Tensor
+from torch_geometric.data import Data
 
 # from utils import visualize_pharm
 from dataset import AugmentationModule
-from .projector import Projection
+
 from .encoder import GATEncoder
+from .projector import Projection
 
 
 class PharmCLR(LightningModule):
-    def __init__(self, **params):
+    def __init__(self, **params) -> None:
         super(PharmCLR, self).__init__()
         self.save_hyperparameters()
 
@@ -21,7 +27,7 @@ class PharmCLR(LightningModule):
         )
         self.val_transform = AugmentationModule(train=False)
 
-        if self.hparams.encoder == 'GAT':
+        if self.hparams.encoder == "GAT":
             self.encoder = GATEncoder(
                 input_dim=self.hparams.num_node_features,
                 node_embedding_dim=self.hparams.node_embedding_dim,
@@ -42,7 +48,7 @@ class PharmCLR(LightningModule):
         # validation embeddings
         self.val_embeddings = []
 
-    def forward(self, data):
+    def forward(self, data: Data) -> Tensor:
         # Optional: Visualization of the input pharmacophore
         # visualize_pharm(
         #     [data[0].clone(), self.transform(data[0].clone()), self.transform(data[0].clone())]
@@ -53,13 +59,16 @@ class PharmCLR(LightningModule):
 
         return embedding
 
-    def setup(self, stage):
+    def setup(self, stage: str) -> None:
         global_batch_size = self.trainer.world_size * self.hparams.batch_size
         self.train_iters_per_epoch = self.hparams.num_samples // global_batch_size
 
     def exclude_from_wt_decay(
-        self, named_params, weight_decay, skip_list=["bias", "bn"]
-    ):
+        self,
+        named_params: Generator,
+        weight_decay: float,
+        skip_list: list[str] = ["bias", "bn"],
+    ) -> list[dict]:
         params = []
         excluded_params = []
 
@@ -76,7 +85,7 @@ class PharmCLR(LightningModule):
             {"params": excluded_params, "weight_decay": 0.0},
         ]
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> tuple[list[Optimizer], list[dict]]:
         # TRICK 1 (Use lars + filter weights)
         # exclude certain parameters
         parameters = self.exclude_from_wt_decay(
@@ -107,7 +116,7 @@ class PharmCLR(LightningModule):
 
         return [optimizer], [scheduler]
 
-    def nt_xent_loss(self, out_1, out_2):
+    def nt_xent_loss(self, out_1: Tensor, out_2: Tensor) -> tuple[Tensor, Tensor]:
         out = torch.cat([out_1, out_2], dim=0)
         n_samples = len(out)
 
@@ -141,20 +150,20 @@ class PharmCLR(LightningModule):
 
         return loss, accuracy
 
-    def shared_step(self, batch, batch_idx):
+    def shared_step(self, batch: Data, batch_idx: int) -> tuple[Tensor, Tensor]:
         out1 = self(self.transform(batch))
-        out2 = self(self.transform(batch))
+        out2 = self(self.val_transform(batch))
 
         return self.nt_xent_loss(out1, out2)
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: Data, batch_idx: int) -> Tensor:
         loss, accuracy = self.shared_step(batch, batch_idx)
         self.log(
             "train/train_loss",
             loss,
             prog_bar=True,
-            on_step=True,
-            on_epoch=False,
+            on_step=False,
+            on_epoch=True,
             batch_size=len(batch),
         )
         self.log(
@@ -171,7 +180,9 @@ class PharmCLR(LightningModule):
     def on_validation_epoch_start(self) -> None:
         self.val_embeddings = []
 
-    def validation_step(self, batch, batch_idx, dataloader_idx=0):
+    def validation_step(
+        self, batch: Data, batch_idx: int, dataloader_idx: int = 0
+    ) -> Tensor:
         # val loss calculation
         if dataloader_idx == 0:
             val_loss, val_accuracy = self.shared_step(batch, batch_idx)
@@ -219,10 +230,12 @@ class PharmCLR(LightningModule):
                 "train/train_accuracy": 0,
                 "val/val_accuracy/dataloader_idx_0": 0,
                 "val/rank_me": 0,
-            }
+            },
         )
 
-    def predict_step(self, batch, batch_idx):
+    def predict_step(
+        self, batch: Data, batch_idx: int
+    ) -> Union[Tensor, tuple[Tensor, Tensor]]:
         if "mol_id" in batch.keys:
             return self(self.val_transform(batch)), batch.mol_id
         else:

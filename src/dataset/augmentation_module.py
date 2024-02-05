@@ -1,13 +1,14 @@
 import torch
 from torch_geometric import transforms as T
+from torch_geometric.data import Data
 
 from .dataset_transforms import (
+    CompleteGraph,
     DistanceOHE,
     DistanceRDF,
-    RandomMasking,
     RandomGaussianNoise,
+    RandomMasking,
     RandomNodeDeletion,
-    CompleteGraph,
     RandomSphericalNoise,
     RandomSphericalSurfaceNoise,
 )
@@ -16,11 +17,11 @@ from .dataset_transforms import (
 class AugmentationModule(torch.nn.Module):
     def __init__(
         self,
-        train=True,
-        node_masking=0.3,
-        radius=0.75,
-        sphere_surface_sampling=False,
-        num_edge_features=5,
+        train: bool = True,
+        node_masking: float = 0.3,
+        radius: float = 0.75,
+        sphere_surface_sampling: bool = False,
+        num_edge_features: int = 5,
     ) -> None:
         super(AugmentationModule, self).__init__()
         self.is_training = train
@@ -53,7 +54,7 @@ class AugmentationModule(torch.nn.Module):
         )
 
     @torch.no_grad()
-    def forward(self, data):
+    def forward(self, data: Data) -> Data:
         if self.is_training:
             return self.transform(data.clone())
         else:

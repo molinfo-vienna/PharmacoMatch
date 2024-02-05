@@ -4,6 +4,7 @@ from lightning import LightningModule, Callback, Trainer
 from lightning.pytorch.utilities.types import STEP_OUTPUT
 import torch
 import torch.nn.functional as F
+from torch import Tensor
 from torch_geometric.nn import global_max_pool
 from torchmetrics import AUROC
 
@@ -11,7 +12,7 @@ from dataset import *
 
 
 class ValidationDataTransformSetter(Callback):
-    def __init__(self, node_masking, radius) -> None:
+    def __init__(self, node_masking: float, radius: float) -> None:
         super().__init__()
         self.node_masking = node_masking
         self.radius = radius
@@ -109,7 +110,7 @@ class VirtualScreeningCallback(Callback):
         self.actives = []
         self.inactives = []
 
-    def assemble(self, prediction_output):
+    def assemble(self, prediction_output: list[tuple[Tensor]]) -> tuple[Tensor]:
         predictions = []
         mol_ids = []
         for output in prediction_output:

@@ -1,6 +1,8 @@
 import torch
+from torch import Tensor
 from torch.nn import Linear
 import torch.nn.functional as F
+from torch_geometric.data import Data
 from torch_geometric.nn import GATConv
 from torch_geometric.nn import global_mean_pool, BatchNorm
 
@@ -8,15 +10,15 @@ from torch_geometric.nn import global_mean_pool, BatchNorm
 class GATEncoder(torch.nn.Module):
     def __init__(
         self,
-        input_dim,
-        node_embedding_dim,
-        hidden_dim,
-        output_dim,
-        n_conv_layers,
-        num_edge_features,
-        dropout,
-        residual_connection,
-    ):
+        input_dim: int,
+        node_embedding_dim: int,
+        hidden_dim: int,
+        output_dim: int,
+        n_conv_layers: int,
+        num_edge_features: int,
+        dropout: float,
+        residual_connection: str,
+    ) -> None:
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -57,7 +59,7 @@ class GATEncoder(torch.nn.Module):
         self.linear = Linear(input_dim, output_dim)
         self.pooling = global_mean_pool
 
-    def forward(self, data):
+    def forward(self, data: Data) -> Tensor:
         # Embedding of OHE features
         x = data.x
         x = self.node_embedding(x)
