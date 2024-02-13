@@ -1,0 +1,14 @@
+.vscode
+.env
+.pytest_cache
+alignment_score
+logs
+logs2
+old_logs
+output
+plots
+plots2
+old_plots
+playground
+archived
+__pycache__/
