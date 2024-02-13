@@ -8,7 +8,7 @@ from torch import Tensor
 from torch_geometric.nn import global_max_pool
 from torchmetrics import AUROC
 
-from dataset import *
+from dataset import AugmentationModule
 
 
 class ValidationDataTransformSetter(Callback):
@@ -110,7 +110,9 @@ class VirtualScreeningCallback(Callback):
         self.actives = []
         self.inactives = []
 
-    def assemble(self, prediction_output: list[tuple[Tensor]]) -> tuple[Tensor]:
+    def assemble(
+        self, prediction_output: list[tuple[Tensor, Tensor]]
+    ) -> tuple[Tensor, Tensor]:
         predictions = []
         mol_ids = []
         for output in prediction_output:

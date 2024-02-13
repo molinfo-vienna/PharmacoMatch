@@ -23,7 +23,7 @@ def training(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/litpcba/ESR1_ant"
     CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VERSION = 1
+    VERSION = None
     MODEL_PATH = f"logs2/PharmCLR/version_{VERSION}/"
 
     # Check for pretrained model

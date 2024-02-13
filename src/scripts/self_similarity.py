@@ -85,7 +85,7 @@ def run(device):
     VS_ROOT = "/data/shared/projects/PhectorDB/litpcba/ESR1_ant"
     # CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 0
+    VS_MODEL_NUMBER = 17
     MODEL_PATH = f"logs2/PharmCLR/version_{VS_MODEL_NUMBER}/"
 
     params = yaml.load(

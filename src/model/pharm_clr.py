@@ -6,11 +6,9 @@ from flash.core.optimizers import LARS, LinearWarmupCosineAnnealingLR
 from lightning import LightningModule
 from torch import Tensor
 from torch_geometric.data import Data
-
-# from utils import visualize_pharm
 from dataset import AugmentationModule
 
-from .encoder import GATEncoder
+from .encoder import GATEncoder, PointTransformerEncoder
 from .projector import Projection
 
 
@@ -37,6 +35,16 @@ class PharmCLR(LightningModule):
                 num_edge_features=self.hparams.num_edge_features,
                 dropout=self.hparams.dropout,
                 residual_connection=self.hparams.residual_connection,
+            )
+
+        if self.hparams.encoder == "PointTransformerEncoder":
+            self.encoder = PointTransformerEncoder(
+                input_dim=self.hparams.num_node_features,
+                hidden_dim=self.hparams.hidden_dim_encoder,
+                output_dim=self.hparams.input_dim_projector,
+                n_conv_layers=self.hparams.n_layers_conv,
+                dropout=self.hparams.dropout,
+                k=self.hparams.k,
             )
 
         self.projection_head = Projection(
@@ -152,7 +160,7 @@ class PharmCLR(LightningModule):
 
     def shared_step(self, batch: Data, batch_idx: int) -> tuple[Tensor, Tensor]:
         out1 = self(self.transform(batch))
-        out2 = self(self.val_transform(batch))
+        out2 = self(self.transform(batch))
 
         return self.nt_xent_loss(out1, out2)
 
