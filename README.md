@@ -18,7 +18,31 @@ You should have received an account from Thomas that enables you to access our i
 
 **Setting up the environment**
 
-Set up a new conda environment and pip-install the dependencies from the `requirements.txt` file. Make sure that the pytorch geometric version matches the pytorch and cuda versions. 
+
+
+1. Install conda in the following directory `/data/shared/software/conda/<your name>` and set up a new conda environment
+
+```
+conda create -n <new_env> python==3.10.12
+```
+
+2. Now install the dependencies from the `requirements.txt` file. 
+
+```
+pip install -r requirements.txt
+```
+
+3. We need some of the additional PyG dependencies
+
+```
+pip install torch_scatter torch_sparse torch_cluster -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
+```
+
+4. Make sure that the path to the nightly-build of the CDPKit is added to the `.bashrc` in your `Home` folder by pasting the following line at the end of the *>>>conda initialize>>>* block
+
+```
+export PYTHONPATH="${PYTHONPATH}:/data/shared/software/CDPKit-head-RH7/Python"
+```
 
 **Dataset location**
 

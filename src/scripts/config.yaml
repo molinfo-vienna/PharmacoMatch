@@ -1,6 +1,6 @@
 batch_size: 256
 dropout: 0.3
-encoder: PointTransformerEncoder
+encoder: GAT
 epochs: 4000
 hidden_dim_encoder: 64
 hidden_dim_projector: 1024
