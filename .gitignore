@@ -1,14 +1,5 @@
 .vscode
 .env
 .pytest_cache
-alignment_score
-logs
-logs2
-old_logs
-output
-plots
-plots2
-old_plots
-playground
-archived
+.ipynb_checkpoints
 __pycache__/
