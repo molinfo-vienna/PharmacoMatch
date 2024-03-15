@@ -19,12 +19,13 @@ from scripts import VirtualScreeningExperiment, SelfSimilarityEvaluation
 
 def training(device):
     # Path variables
-    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
-    VS_ROOT = "/data/shared/projects/PhectorDB/litpcba/ESR1_ant"
-    CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
+    PROJECT_ROOT = "/data/shared/projects/PhectorDB"
+    PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
+    VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
+    CONFIG_FILE_PATH = "src/scripts/config.yaml"
     MODEL = PharmCLR
     VERSION = None
-    MODEL_PATH = f"logs2/PharmCLR/version_{VERSION}/"
+    MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     # Check for pretrained model
     if os.path.exists(MODEL_PATH):
@@ -33,9 +34,6 @@ def training(device):
     else:
         load_model = False
         params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
-
-    # Change one parameter
-    # params[key] = value
 
     # Settings for determinism
     torch.set_float32_matmul_precision("medium")
@@ -59,7 +57,9 @@ def training(device):
     else:
         model = MODEL(**params)
 
-    tb_logger = TensorBoardLogger("logs2/", name=f"PharmCLR", default_hp_metric=False)
+    tb_logger = TensorBoardLogger(
+        f"{PROJECT_ROOT}/logs/", name=f"{MODEL.__name__}", default_hp_metric=False
+    )
     callbacks = [
         ModelCheckpoint(monitor="val/val_loss/dataloader_idx_0", mode="min"),
         LearningRateMonitor("epoch"),

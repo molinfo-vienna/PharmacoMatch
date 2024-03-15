@@ -81,12 +81,12 @@ class SelfSimilarityEvaluation:
 
 
 def run(device):
-    PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
-    VS_ROOT = "/data/shared/projects/PhectorDB/litpcba/ESR1_ant"
-    # CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/src/scripts/config.yaml"
+    PROJECT_ROOT = "/data/shared/projects/PhectorDB"
+    PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
+    VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     MODEL = PharmCLR
-    VS_MODEL_NUMBER = 17
-    MODEL_PATH = f"logs2/PharmCLR/version_{VS_MODEL_NUMBER}/"
+    VERSION = 17
+    MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     params = yaml.load(
         open(os.path.join(MODEL_PATH, "hparams.yaml"), "r"), Loader=yaml.FullLoader
@@ -110,7 +110,7 @@ def run(device):
 
     datamodule.setup()
     eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
-    eval.calculate_mean_similarities(VS_MODEL_NUMBER)
+    eval.calculate_mean_similarities(VERSION)
 
 
 if __name__ == "__main__":
