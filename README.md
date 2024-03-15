@@ -42,6 +42,7 @@ pip install torch_scatter torch_sparse torch_cluster -f https://data.pyg.org/whl
 
 ```
 export PYTHONPATH="${PYTHONPATH}:/data/shared/software/CDPKit-head-RH7/Python"
+export PYTHONPATH="${PYTHONPATH}:<your_path_to_folder>/PhectorDB/phector_db"
 ```
 
 **Dataset location**
@@ -54,13 +55,19 @@ The `training_data` folder contains:
 - the `raw` folder contains the corresponding pharmacophores in `.cdf`-format
 - `processed` contains the pytorch dataset saved to disk
 
-[LIT-PCBA](https://drugdesign.unistra.fr/LIT-PCBA/) is a benchmark dataset. The `litpcba` folder currently contains one of the 15 different targets (ESR1_antago)
+ The `litpcba` folder currently contains one of the 15 different targets (ESR1_antago) of the [LIT-PCBA](https://drugdesign.unistra.fr/LIT-PCBA/) benchmark dataset.
 - Here, the `input` folder contains two files, `actives.smi` and `inactives.smi`.
 - the `preprocessing` folder was created analogous to before
 - The `pdb` folder contains one ligand-protein complex of the dataset's target. CDPKit works with the `.pdb` file for the protein and an `.sdf` file for the ligand
 - `raw` contains the actives and inactives in `.psd` format, the pharmacophore screening database format of CDPKit. The `query.pml` file contains the interaction pharmacophore that was generated from the given pdb-structure
 - `vs` contains the results of the pharmacophore alignment score as PyTorch tensors
 - `processed` again contains the pytorch dataset saved to disk
+
+The `logs` folder holds the trained models from previous experiments together with some metadata. It also contains the subfolder `plots`, which contains the plots from the self-similarity experiments and some UMAP embedding figures.
+
+`dataset_statistics` contains some information about feature type occurences in the chembl_dataset which is used for training.
+
+`archived` is a folder from experiments that do not fit into the current project structure anymore, but still should not be deleted, since they document the evolution of the project.
 
 **VS Code extensions**
 
@@ -76,7 +83,7 @@ I am currently using the Black formatter, isort, and the Flake8 linter, I would 
 
 - [ ] Model Validation: Previously, I performed validation by comparing the similarity of a pharmacophore query embedding and the database ligand embeddings with the precomputed alignment score of a virtual screening run with the CDPKit. I would change this validation approach for several reasons, although comparable experiments should be done in the benchmarking section. VS is highly dependent on the selected query and dataset, but more importantly, the two algorithms do not achieve the same thing. The CDPKit VS is a substructure search, but the PhectorDB approach is a similarity search, so we should treat them differently and not compare them directly. I would store the augmented pharmacophores on disc instead of creating them on the fly and precompute the Jaccard-Similarity between the pairs. The model validation will simply be the similarity estimation on the validation set.
 
-- [ ] I have not found a contrastive loss to enable substructure search, but if it exists, it would be definitely interesting, since this could enable actual VS in the classical sense. 
+- [ ] I have found a contrastive loss to enable [substructure search](https://arxiv.org/pdf/2007.03092.pdf), implementing this could enable VS in the classical sense. 
 
 - [ ] SimCLR training took a long time, but training with the contrastive loss should go faster. If so, then it is time to implement an automated model optimization pipeline (grid search, random, or baysian).
 
