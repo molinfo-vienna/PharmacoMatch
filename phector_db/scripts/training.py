@@ -22,7 +22,7 @@ def training(device):
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
-    CONFIG_FILE_PATH = "src/scripts/config.yaml"
+    CONFIG_FILE_PATH = "phector_db/scripts/config.yaml"
     MODEL = PharmCLR
     VERSION = None
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
@@ -88,27 +88,4 @@ def training(device):
 
 if __name__ == "__main__":
     device = [int(i) for i in list(sys.argv[1])]
-
-    # for value in [0.05, 0.1, 0.2]:
-    #     key = 'temperature'
-    #     training(device, key, value)
-
-    # for value in [0.01, 0.025, 0.1]:
-    #     key = 'learning_rate'
-    #     training(device, key, value)
-
-    # for value in [64, 1024, 4096]:
-    #     key = 'batch_size'
-    #     training(device, key, value)
-
-    # for value in [32, 64, 256]:
-    #     key = 'hidden_dim_encoder'
-    #     training(device, key, value)
-
-    # for value in [0.1]:
-    #    key = 'node_masking'
     training(device)
-
-    # for value in [1, 2, 4]:
-    #     key = 'n_layers_conv'
-    #     training(device, key, value)
