@@ -1,8 +1,8 @@
-import os, sys
+import os
+import sys
 from itertools import permutations
 
 import CDPL.Pharm as Pharm
-import CDPL.Chem as Chem
 
 
 class PharmacophoreSubsetGenerator:

@@ -1,5 +1,5 @@
-import sys, os
-from typing import Any
+import os
+import sys
 import yaml
 
 from lightning import Trainer, seed_everything
@@ -9,12 +9,11 @@ from torch_geometric.nn import global_mean_pool
 import torch
 import torch_geometric
 import umap
-import numpy as np
 
 from dataset import PharmacophoreDataModule
 from model import PharmCLR
-from virtual_screening import VirtualScreener, VirtualScreeningEmbedder
 from utils import load_model_from_path
+from virtual_screening import VirtualScreener, VirtualScreeningEmbedder
 
 
 class VirtualScreeningExperiment:

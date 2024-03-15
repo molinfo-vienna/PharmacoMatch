@@ -1,13 +1,11 @@
 import sys
 import os
-import argparse
 
 import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_auc_score
 
 import CDPL.Chem as Chem
-import CDPL.Pharm as Pharm
 
 
 # returns a Chem.MoleculeReader instance for the specified molecule input file format

@@ -3,9 +3,6 @@ from torch import Tensor
 from torch.nn import Linear
 import torch.nn.functional as F
 
-from dataset import *
-from utils import *
-
 
 class Projection(torch.nn.Module):
     def __init__(

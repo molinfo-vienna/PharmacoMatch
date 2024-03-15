@@ -1,13 +1,13 @@
 from typing import Generator, Union
 
-import torch
-from torch.optim import Optimizer
 from flash.core.optimizers import LARS, LinearWarmupCosineAnnealingLR
 from lightning import LightningModule
+import torch
+from torch.optim import Optimizer
 from torch import Tensor
 from torch_geometric.data import Data
-from dataset import AugmentationModule
 
+from dataset import AugmentationModule
 from .encoder import GATEncoder, PointTransformerEncoder
 from .projector import Projection
 
@@ -59,7 +59,8 @@ class PharmCLR(LightningModule):
     def forward(self, data: Data) -> Tensor:
         # Optional: Visualization of the input pharmacophore
         # visualize_pharm(
-        #     [data[0].clone(), self.transform(data[0].clone()), self.transform(data[0].clone())]
+        #     [data[0].clone(), self.transform(data[0].clone()),
+        #      self.transform(data[0].clone())]
         # )
 
         representation = self.encoder(data)

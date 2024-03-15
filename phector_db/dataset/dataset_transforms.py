@@ -58,7 +58,7 @@ class RandomGaussianNoise(BaseTransform):
         self.radius = radius
 
     def __call__(self, data: Data) -> Data:
-        if self.radius == None or self.radius == 0:
+        if self.radius is None or self.radius == 0:
             return data
 
         std = math.sqrt(self.radius**2 / 27)
@@ -77,7 +77,7 @@ class RandomSphericalNoise(BaseTransform):
         self.radius = radius
 
     def __call__(self, data: Data) -> Data:
-        if self.radius == None or self.radius == 0:
+        if self.radius is None or self.radius == 0:
             return data
 
         data.pos += self.make_spherical_noise(data.pos)
@@ -115,7 +115,7 @@ class RandomSphericalSurfaceNoise(BaseTransform):
         self.radius = radius
 
     def __call__(self, data: Data) -> Data:
-        if self.radius == None or self.radius == 0:
+        if self.radius is None or self.radius == 0:
             return data
 
         data.pos += self.make_sphere_surface_noise(data.pos)
@@ -151,7 +151,7 @@ class RandomMasking(BaseTransform):
         self.mask_ratio = mask_ratio
 
     def __call__(self, data: Data) -> Data:
-        if self.mask_ratio == None or self.mask_ratio == 0:
+        if self.mask_ratio is None or self.mask_ratio == 0:
             return Data
 
         size = data.x.shape
@@ -168,7 +168,7 @@ class RandomNodeDeletion(BaseTransform):
         self.delete_ratio = delete_ratio
 
     def __call__(self, data: Data) -> Data:
-        if self.delete_ratio == None or self.delete_ratio == 0:
+        if self.delete_ratio is None or self.delete_ratio == 0:
             return data
 
         device = data.x.device

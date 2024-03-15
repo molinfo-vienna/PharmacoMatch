@@ -19,7 +19,6 @@
 
 
 import sys
-import os
 import argparse
 
 import CDPL.Chem as Chem
@@ -289,7 +288,7 @@ def main() -> None:
                         ):  # output the alignment pose of the molecule
                             sys.exit(
                                 "Error: writing alignment pose of molecule %s failed: %s"
-                                % (mol_id, str(e))
+                                % (mol_id)
                             )
 
                     except (

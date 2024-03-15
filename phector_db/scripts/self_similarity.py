@@ -1,4 +1,6 @@
-import sys, yaml, os
+import os
+import sys
+import yaml
 
 from lightning import Trainer, seed_everything
 import numpy as np
@@ -8,8 +10,8 @@ import torch_geometric
 from matplotlib import cm
 import matplotlib.pyplot as plt
 
-from dataset import *
-from model import *
+from dataset import PharmacophoreDataModule
+from model import PharmCLR, ValidationDataTransformSetter
 from utils import load_model_from_path
 
 

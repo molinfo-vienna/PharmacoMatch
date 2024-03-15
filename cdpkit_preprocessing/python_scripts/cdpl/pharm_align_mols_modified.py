@@ -29,9 +29,7 @@ import time
 
 import torch
 
-import CDPL.Chem as Chem
 import CDPL.Pharm as Pharm
-import CDPL.Math as Math
 
 
 # reads and returns the specified alignment reference pharmacophore
@@ -70,15 +68,15 @@ def main() -> None:
     ref_ph4 = readRefPharmacophore(ref_ph4_file)
 
     # create reader for input molecules (format specified by file extension)
-    #mol_reader = Chem.MoleculeReader(in_file)
+    # mol_reader = Chem.MoleculeReader(in_file)
     pharm_reader = Pharm.PSDPharmacophoreReader(in_file)
 
-    #Chem.setMultiConfImportParameter(
+    # Chem.setMultiConfImportParameter(
     #    mol_reader, False
-    #)  # treat conformers as individual molecules
+    # )  # treat conformers as individual molecules
 
     # create an instance of the default implementation of the Chem.Molecule interface
-    #mol = Chem.BasicMolecule()
+    # mol = Chem.BasicMolecule()
     mol_ph4 = Pharm.BasicPharmacophore()
 
     # create instance of class implementing the pharmacophore alignment algorithm
@@ -107,18 +105,18 @@ def main() -> None:
 
         while pharm_reader.read(mol_ph4):
             # compose a simple molecule identifier
-            #mol_id = Chem.getName(mol).strip()
+            # mol_id = Chem.getName(mol).strip()
 
-            #if mol_id == "":
+            # if mol_id == "":
             #    mol_id = "#" + str(i)  # fallback if name is empty
-            #else:
+            # else:
             #    mol_id = "'%s' (#%s)" % (mol_id, str(i))
 
             # if not args.quiet:
-            #print("- Aligning molecule %s..." % mol_id)
+            # print("- Aligning molecule %s..." % mol_id)
 
             try:
-                #mol_ph4 = genPharmacophore(mol)  # generate input molecule pharmacophore
+                # mol_ph4 = genPharmacophore(mol)  # generate input molecule pharmacophore
 
                 if mol_ph4.getNumFeatures() == 0:
                     continue
@@ -163,7 +161,7 @@ def main() -> None:
             except Exception as e:
                 sys.exit(
                     "Error: pharmacophore alignment of molecule %s failed: %s"
-                    #% (mol_id, str(e))
+                    # % (mol_id, str(e))
                     % (0, str(e))
                 )
 

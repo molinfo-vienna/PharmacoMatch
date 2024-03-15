@@ -1,5 +1,4 @@
 from lightning import LightningDataModule
-from lightning.pytorch.utilities.types import EVAL_DATALOADERS
 from torch_geometric.loader import DataLoader
 
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
@@ -46,7 +45,7 @@ class PharmacophoreDataModule(LightningDataModule):
             print(f"Number of inactive graphs: {len(self.inactives)}")
 
     def train_dataloader(self) -> DataLoader:
-        if self.batch_size == None:
+        if self.batch_size is None:
             return DataLoader(
                 self.train_data,
                 batch_size=len(self.train_data),
@@ -65,7 +64,7 @@ class PharmacophoreDataModule(LightningDataModule):
         return [self.create_val_dataloader()] + self.vs_dataloader()
 
     def create_val_dataloader(self) -> DataLoader:
-        if self.batch_size == None:
+        if self.batch_size is None:
             return DataLoader(
                 self.val_data,
                 batch_size=len(self.val_data),
@@ -85,19 +84,19 @@ class PharmacophoreDataModule(LightningDataModule):
         ]
 
     def query_dataloader(self) -> DataLoader:
-        if self.batch_size == None:
+        if self.batch_size is None:
             return DataLoader(self.query, batch_size=len(self.query))
         else:
             return DataLoader(self.query, batch_size=self.batch_size)
 
     def actives_dataloader(self) -> DataLoader:
-        if self.batch_size == None:
+        if self.batch_size is None:
             return DataLoader(self.actives, batch_size=len(self.actives))
         else:
             return DataLoader(self.actives, batch_size=self.batch_size)
 
     def inactives_dataloader(self) -> DataLoader:
-        if self.batch_size == None:
+        if self.batch_size is None:
             return DataLoader(self.inactives, batch_size=len(self.inactives))
         else:
             return DataLoader(self.inactives, batch_size=self.batch_size)

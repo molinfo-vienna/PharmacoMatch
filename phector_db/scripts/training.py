@@ -1,4 +1,5 @@
-import sys, os
+import os
+import sys
 import yaml
 
 import torch
@@ -12,9 +13,9 @@ from lightning.pytorch.callbacks import (
 
 from dataset import PharmacophoreDataModule
 from model import PharmCLR, VirtualScreeningCallback
+from scripts import VirtualScreeningExperiment, SelfSimilarityEvaluation
 from utils import load_model_from_path, load_hparams_from_path
 from virtual_screening import VirtualScreeningEmbedder
-from scripts import VirtualScreeningExperiment, SelfSimilarityEvaluation
 
 
 def training(device):

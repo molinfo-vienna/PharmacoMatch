@@ -3,11 +3,7 @@ from torch_geometric import transforms as T
 from torch_geometric.data import Data
 
 from .dataset_transforms import (
-    CompleteGraph,
-    DistanceOHE,
     DistanceRDF,
-    RandomGaussianNoise,
-    RandomMasking,
     RandomNodeDeletion,
     RandomSphericalNoise,
     RandomSphericalSurfaceNoise,
@@ -37,7 +33,6 @@ class AugmentationModule(torch.nn.Module):
 
         self.transform = T.Compose(
             [
-                # RandomMasking(), # with mask token, or better deletion? Try both.
                 RandomNodeDeletion(self.node_masking),  # Random masking mit bis zu 70%
                 node_displacement,  # feature-wise tolerance radii
                 T.KNNGraph(k=self.knn, force_undirected=True),
