@@ -88,7 +88,7 @@ def training(device):
         log_every_n_steps=1,
         callbacks=callbacks,
         precision=params["precision"],
-        gradient_clip_val=0.5,
+        gradient_clip_val=1,
         reload_dataloaders_every_n_epochs=1,
     )
 

@@ -42,6 +42,7 @@ class PhectorMatch(LightningModule):
                 num_edge_features=self.hparams.num_edge_features,
                 dropout=self.hparams.dropout,
                 residual_connection=self.hparams.residual_connection,
+                pooling=self.hparams.pooling,
             )
 
         if self.hparams.encoder == "GIN":
@@ -54,6 +55,7 @@ class PhectorMatch(LightningModule):
                 num_edge_features=self.hparams.num_edge_features,
                 dropout=self.hparams.dropout,
                 residual_connection=self.hparams.residual_connection,
+                pooling=self.hparams.pooling,
             )
 
         if self.hparams.encoder == "PointTransformerEncoder":
@@ -214,34 +216,34 @@ class PhectorMatch(LightningModule):
             ** 2,
             dim=1,
         )
-        # negatives_3 = torch.sum(
-        #     torch.max(
-        #         torch.zeros_like(queries),
-        #         queries - torch.roll(queries, batch_size // 2, dims=0),
-        #     )
-        #     ** 2,
-        #     dim=1,
-        # )
-        # negatives_4 = torch.sum(
-        #     torch.max(
-        #         torch.zeros_like(targets),
-        #         targets - torch.roll(targets, batch_size // 2, dims=0),
-        #     )
-        #     ** 2,
-        #     dim=1,
-        # )
+        negatives_3 = torch.sum(
+            torch.max(
+                torch.zeros_like(queries),
+                queries - torch.roll(queries, batch_size // 2, dims=0),
+            )
+            ** 2,
+            dim=1,
+        )
+        negatives_4 = torch.sum(
+            torch.max(
+                torch.zeros_like(targets),
+                targets - torch.roll(targets, batch_size // 2, dims=0),
+            )
+            ** 2,
+            dim=1,
+        )
 
-        # negatives = torch.cat(
-        #     [negatives_1, negatives_2, negatives_3, negatives_4], dim=0
-        # )
-        negatives = torch.cat([negatives_1, negatives_2], dim=0)
+        negatives = torch.cat(
+            [negatives_1, negatives_2, negatives_3, negatives_4], dim=0
+        )
+        # negatives = torch.cat([negatives_1, negatives_2], dim=0)
 
         negatives = torch.max(
             torch.tensor(0.0, device=queries.device),
             self.hparams.margin - negatives,
         )
 
-        return torch.sum(positives) + torch.sum(negatives)
+        return 4 * torch.sum(positives) + torch.sum(negatives)
 
     def shared_step(self, batch: Data, batch_idx: int) -> tuple[Tensor, Tensor]:
         # queries_pos = self(self.transform(batch))

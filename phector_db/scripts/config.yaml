@@ -1,9 +1,9 @@
 batch_size: 256
-dropout: 0.3
+dropout: 0.0
 encoder: GAT
 epochs: 500
 hidden_dim_encoder: 256
-hidden_dim_projector: 256
+hidden_dim_projector: 1024
 input_dim_projector: 1024
 k: 3
 learning_rate: 0.001
@@ -17,6 +17,7 @@ num_node_features: 7
 num_samples: 20000
 output_dim_projector: 64
 precision: 32
+pooling: mean
 radius: 1.5
 residual_connection: dense
 seed: 42
