@@ -4,12 +4,12 @@ import random
 from flash.core.optimizers import LARS, LinearWarmupCosineAnnealingLR
 from lightning import LightningModule
 import torch
-from torch.optim import Optimizer, AdamW
+from torch.optim import Optimizer, AdamW, Adam
 from torch import Tensor
 from torch_geometric.data import Data
 
 from dataset import AugmentationModule
-from .encoder import GATEncoder, PointTransformerEncoder
+from .encoder import GATEncoder, PointTransformerEncoder, GINEncoder
 from .projector import ProjectionPhectorMatch
 
 
@@ -24,10 +24,28 @@ class PhectorMatch(LightningModule):
             node_masking=self.hparams.node_masking,
             radius=self.hparams.radius,
         )
+        self.negative_target_transform = AugmentationModule(
+            train=True,
+            node_masking=None,
+            sphere_surface_sampling=True,
+            radius=3.0,
+        )
         self.val_transform = AugmentationModule(train=False)
 
         if self.hparams.encoder == "GAT":
             self.encoder = GATEncoder(
+                input_dim=self.hparams.num_node_features,
+                node_embedding_dim=self.hparams.node_embedding_dim,
+                hidden_dim=self.hparams.hidden_dim_encoder,
+                output_dim=self.hparams.input_dim_projector,
+                n_conv_layers=self.hparams.n_layers_conv,
+                num_edge_features=self.hparams.num_edge_features,
+                dropout=self.hparams.dropout,
+                residual_connection=self.hparams.residual_connection,
+            )
+
+        if self.hparams.encoder == "GIN":
+            self.encoder = GINEncoder(
                 input_dim=self.hparams.num_node_features,
                 node_embedding_dim=self.hparams.node_embedding_dim,
                 hidden_dim=self.hparams.hidden_dim_encoder,
@@ -73,8 +91,8 @@ class PhectorMatch(LightningModule):
         global_batch_size = self.trainer.world_size * self.hparams.batch_size
         self.train_iters_per_epoch = self.hparams.num_samples // global_batch_size
 
-        # for param in self.encoder.parameters():
-        #    param.requires_grad = False
+        for param in self.encoder.parameters():
+            param.requires_grad = False
 
     # def exclude_from_wt_decay(
     #     self,
@@ -105,7 +123,7 @@ class PhectorMatch(LightningModule):
         #     self.named_parameters(), weight_decay=self.hparams.weight_decay
         # )
 
-        optimizer = AdamW(
+        optimizer = Adam(
             self.parameters(),
             lr=self.hparams.learning_rate,
             # momentum=self.hparams.momentum,
@@ -169,61 +187,61 @@ class PhectorMatch(LightningModule):
         self,
         queries: Tensor,
         targets: Tensor,
-        # targets_neg: Tensor,
+        negative_targets: Tensor,
     ) -> Tensor:
         batch_size = len(queries)
         positives = torch.sum(
             torch.max(
-                torch.zeros_like(targets[: batch_size // 2]),
-                queries[: batch_size // 2] - targets[: batch_size // 2],
+                torch.zeros_like(targets),
+                queries - targets,
             )
             ** 2,
             dim=1,
         )
         negatives_1 = torch.sum(
             torch.max(
-                torch.zeros_like(targets[: batch_size // 2]),
-                queries[: batch_size // 2] - targets[batch_size // 2 :],
+                torch.zeros_like(targets),
+                queries - negative_targets,
             )
             ** 2,
             dim=1,
         )
         negatives_2 = torch.sum(
             torch.max(
-                torch.zeros_like(queries[: batch_size // 2]),
-                queries[: batch_size // 2] - queries[batch_size // 2 :],
+                torch.zeros_like(targets),
+                queries - torch.roll(targets, batch_size // 2, dims=0),
             )
             ** 2,
             dim=1,
         )
-        negatives_3 = torch.sum(
-            torch.max(
-                torch.zeros_like(queries[: batch_size // 2]),
-                targets[: batch_size // 2] - targets[batch_size // 2 :],
-            )
-            ** 2,
-            dim=1,
+        # negatives_3 = torch.sum(
+        #     torch.max(
+        #         torch.zeros_like(queries),
+        #         queries - torch.roll(queries, batch_size // 2, dims=0),
+        #     )
+        #     ** 2,
+        #     dim=1,
+        # )
+        # negatives_4 = torch.sum(
+        #     torch.max(
+        #         torch.zeros_like(targets),
+        #         targets - torch.roll(targets, batch_size // 2, dims=0),
+        #     )
+        #     ** 2,
+        #     dim=1,
+        # )
+
+        # negatives = torch.cat(
+        #     [negatives_1, negatives_2, negatives_3, negatives_4], dim=0
+        # )
+        negatives = torch.cat([negatives_1, negatives_2], dim=0)
+
+        negatives = torch.max(
+            torch.tensor(0.0, device=queries.device),
+            self.hparams.margin - negatives,
         )
 
-        negatives_1 = torch.max(
-            torch.tensor(0.0, device=queries.device),
-            self.hparams.margin - negatives_1,
-        )
-        negatives_2 = torch.max(
-            torch.tensor(0.0, device=queries.device),
-            self.hparams.margin - negatives_2,
-        )
-        negatives_3 = torch.max(
-            torch.tensor(0.0, device=queries.device),
-            self.hparams.margin - negatives_3,
-        )
-
-        return (
-            torch.sum(positives)
-            + torch.sum(negatives_1)
-            + torch.sum(negatives_2)
-            + torch.sum(negatives_3)
-        )
+        return torch.sum(positives) + torch.sum(negatives)
 
     def shared_step(self, batch: Data, batch_idx: int) -> tuple[Tensor, Tensor]:
         # queries_pos = self(self.transform(batch))
@@ -236,8 +254,9 @@ class PhectorMatch(LightningModule):
 
         queries = self(self.transform(batch))
         targets = self(self.val_transform(batch))
+        negative_targets = self(self.negative_target_transform(batch))
 
-        return self.loss(queries, targets)
+        return self.loss(queries, targets, negative_targets)
 
     def training_step(self, batch: Data, batch_idx: int) -> Tensor:
         loss = self.shared_step(batch, batch_idx)

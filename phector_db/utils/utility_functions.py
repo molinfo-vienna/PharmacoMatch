@@ -16,7 +16,7 @@ def load_hparams_from_path(folder_path: str) -> dict:
 
 
 def load_model_from_path(
-    folder_path: str, model_class: LightningModule
+    folder_path: str, model_class: LightningModule, device: int = 0
 ) -> LightningModule:
     if not os.path.exists(folder_path):
         return None
@@ -30,7 +30,7 @@ def load_model_from_path(
 
     if model_path:
         return model_class.load_from_checkpoint(
-            model_path  # , map_location=torch.device("cuda:0")
+            model_path, map_location=torch.device(f"cuda:{device}")
         )
     else:
         return None

@@ -56,13 +56,15 @@ def training(device):
 
     # Initialize model or load if model exists
     if load_model:
-        model = load_model_from_path(MODEL_PATH, MODEL)
+        model = load_model_from_path(MODEL_PATH, MODEL, device[0])
     else:
         model = MODEL(**params)
 
     # Check for pretrained model
     if os.path.exists(PRETRAINED_MODEL_PATH):
-        pretrained_model = load_model_from_path(PRETRAINED_MODEL_PATH, PRETRAINED_MODEL)
+        pretrained_model = load_model_from_path(
+            PRETRAINED_MODEL_PATH, PRETRAINED_MODEL, device[0]
+        )
         model.encoder = pretrained_model.encoder
         print("Using pretrained encoder")
 
@@ -72,7 +74,7 @@ def training(device):
     callbacks = [
         # ModelCheckpoint(monitor="val/val_loss", mode="min"),
         LearningRateMonitor("epoch"),
-        CurriculumLearningScheduler(4, 20),
+        CurriculumLearningScheduler(4, 10),
         # VirtualScreeningCallback(),
     ]
 
@@ -96,9 +98,9 @@ def training(device):
         VS_ROOT,
         batch_size=params["batch_size"],
         small_set_size=params["num_samples"],
-        graph_size_upper_bound=4,
+        # graph_size_upper_bound=4,
     )
-    datamodule.setup("fit")
+    # datamodule.setup("fit")
 
     trainer.fit(model=model, datamodule=datamodule)
     # model = trainer.model
