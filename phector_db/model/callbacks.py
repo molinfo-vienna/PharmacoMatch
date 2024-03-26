@@ -18,14 +18,41 @@ class CurriculumLearningScheduler(Callback):
         super().__init__()
         self.graph_size_at_start = graph_size_at_start
         self.num_epochs_before_increase = num_epochs_before_increase
+        self.loss_at_reference_point = torch.inf
+        self.minimum_improvement_threshold = 0.1
+        self.counter = 0
 
-    def on_train_epoch_start(self, trainer, model):
-        epoch = trainer.current_epoch
-        if epoch % self.num_epochs_before_increase == 0:
-            trainer.datamodule.graph_size_upper_bound = (
-                epoch // self.num_epochs_before_increase + self.graph_size_at_start
-            )
+    def on_fit_start(self, trainer: Trainer, pl_module: LightningModule) -> None:
+        trainer.datamodule.graph_size_upper_bound = self.graph_size_at_start
+        trainer.datamodule.setup("fit")
+
+    def on_validation_epoch_end(
+        self, trainer: Trainer, pl_module: LightningModule
+    ) -> None:
+        current_loss = trainer.logged_metrics["val/val_loss"]
+        if (
+            current_loss + self.minimum_improvement_threshold
+        ) < self.loss_at_reference_point:
+            self.loss_at_reference_point = current_loss
+            self.counter = 0
+        elif self.counter < self.num_epochs_before_increase:
+            self.counter += 1
+        else:
+            trainer.datamodule.graph_size_upper_bound += 1
             trainer.datamodule.setup("fit")
+            self.loss_at_reference_point = torch.inf
+            self.counter = 0
+            print(
+                f"Graph size increased to {trainer.datamodule.graph_size_upper_bound} at epoch {trainer.current_epoch}"
+            )
+
+    # def on_train_epoch_start(self, trainer, model):
+    #     epoch = trainer.current_epoch
+    #     if epoch % self.num_epochs_before_increase == 0:
+    #         trainer.datamodule.graph_size_upper_bound = (
+    #             epoch // self.num_epochs_before_increase + self.graph_size_at_start
+    #         )
+    #         trainer.datamodule.setup("fit")
 
 
 class ValidationDataTransformSetter(Callback):

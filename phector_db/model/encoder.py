@@ -15,21 +15,6 @@ from torch_geometric.nn import (
 from torch_geometric.utils import scatter
 
 
-class PositiveLinear(torch.nn.Module):
-    def __init__(self, in_features, out_features):
-        super(PositiveLinear, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.log_weight = torch.nn.Parameter(torch.Tensor(out_features, in_features))
-        self.reset_parameters()
-
-    def reset_parameters(self):
-        torch.nn.init.xavier_uniform_(self.log_weight)
-
-    def forward(self, input):
-        return torch.nn.functional.linear(input, self.log_weight.exp())
-
-
 class GATEncoder(torch.nn.Module):
     def __init__(
         self,
@@ -77,6 +62,80 @@ class GATEncoder(torch.nn.Module):
                 #     edge_dim=self.num_edge_features,
                 #     train_eps=False,
                 # )
+            )
+            self.convolution_batch_norm.append(BatchNorm(hidden_dim))
+            if self.residual_connection == "dense":
+                input_dim += hidden_dim
+            if self.residual_connection == "res":
+                input_dim = hidden_dim
+
+        # Expand dimensionality before node pooling
+        self.linear = Linear(input_dim, output_dim)
+        self.pooling = global_add_pool
+
+    def forward(self, data: Data) -> Tensor:
+        # Embedding of OHE features
+        x = data.x
+        x = self.node_embedding(x)
+
+        # Graph convolution via message passing
+        for i, conv in enumerate(self.convolution):
+            x_conv = conv(x, data.edge_index, data.edge_attr)
+            x_conv = self.convolution_batch_norm[i](x_conv)
+            x_conv = torch.nn.functional.gelu(x_conv)
+            if self.residual_connection == "dense":
+                x = torch.cat((x, x_conv), dim=1)
+            if self.residual_connection == "res":
+                x = x + x_conv
+            x = F.dropout(x, p=self.dropout, training=self.training)
+
+        # Dimensionality expansion and read-out
+        x = self.linear(x)
+        representation = self.pooling(x, data.batch)
+
+        return representation
+
+
+class GINEncoder(torch.nn.Module):
+    def __init__(
+        self,
+        input_dim: int,
+        node_embedding_dim: int,
+        hidden_dim: int,
+        output_dim: int,
+        n_conv_layers: int,
+        num_edge_features: int,
+        dropout: float,
+        residual_connection: str,
+    ) -> None:
+        super().__init__()
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
+        self.n_conv_layers = n_conv_layers
+        self.num_edge_features = num_edge_features
+        self.dropout = dropout
+        self.residual_connection = residual_connection
+        self.num_heads = 10
+
+        node_embedding_dim = hidden_dim
+        self.node_embedding = Linear(input_dim, node_embedding_dim)
+        input_dim = node_embedding_dim
+
+        # Convolutional layers
+        # try out spectral layers, maybe 3-6 layers
+        self.convolution = torch.nn.ModuleList()
+        self.convolution_batch_norm = torch.nn.ModuleList()
+
+        # input and outputdimension maybe bigger
+        # input to say 32-64, output to maybe 25
+        for _ in range(self.n_conv_layers):
+            self.convolution.append(
+                GINEConv(
+                    MLP([input_dim, hidden_dim]),
+                    edge_dim=self.num_edge_features,
+                    train_eps=False,
+                )
             )
             self.convolution_batch_norm.append(BatchNorm(hidden_dim))
             if self.residual_connection == "dense":

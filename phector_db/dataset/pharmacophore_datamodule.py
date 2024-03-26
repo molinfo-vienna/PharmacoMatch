@@ -28,12 +28,13 @@ class PharmacophoreDataModule(LightningDataModule):
             )
 
             if self.graph_size_upper_bound:
-                idx = torch.tensor(
-                    [
-                        graph.num_ph4_features <= self.graph_size_upper_bound
-                        for graph in preprocessing_data
-                    ]
-                )
+                # idx = torch.tensor(
+                #     [
+                #         graph.num_ph4_features <= self.graph_size_upper_bound
+                #         for graph in preprocessing_data
+                #     ]
+                # )
+                idx = preprocessing_data.num_ph4_features <= self.graph_size_upper_bound
                 preprocessing_data = preprocessing_data.copy(idx)
 
             if self.small_set_size < len(preprocessing_data):
