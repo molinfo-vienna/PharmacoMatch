@@ -43,12 +43,17 @@ class PositiveLinear(torch.nn.Module):
 
 class ProjectionPhectorMatch(torch.nn.Module):
     def __init__(
-        self, input_dim: int = 2048, hidden_dim: int = 2048, output_dim: int = 128
+        self,
+        input_dim: int = 2048,
+        hidden_dim: int = 2048,
+        output_dim: int = 128,
+        normalize: bool = True,
     ) -> None:
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
+        self.normalize = normalize
 
         # Projection head MLP
         self.projection_head = torch.nn.Sequential(
@@ -69,9 +74,11 @@ class ProjectionPhectorMatch(torch.nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         x = self.projection_head(x)
-        # x = torch.abs(x)
-        normalization = torch.norm(x, p=2, dim=1)
-        normalization = 1 / torch.max(torch.ones_like(normalization), normalization)
-        normalization = normalization.view(-1, 1).expand(-1, x.shape[1])
-        return x * normalization
+        if self.normalize:
+            normalization = torch.norm(x, p=2, dim=1)
+            normalization = 1 / torch.max(torch.ones_like(normalization), normalization)
+            normalization = normalization.view(-1, 1).expand(-1, x.shape[1])
+            return x * normalization
+        else:
+            return x
         # return F.normalize(x, p=2, dim=1)

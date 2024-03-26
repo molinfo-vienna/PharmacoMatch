@@ -26,6 +26,7 @@ class GATEncoder(torch.nn.Module):
         num_edge_features: int,
         dropout: float,
         residual_connection: str,
+        pooling: str = "mean",
     ) -> None:
         super().__init__()
         self.input_dim = input_dim
@@ -71,7 +72,11 @@ class GATEncoder(torch.nn.Module):
 
         # Expand dimensionality before node pooling
         self.linear = Linear(input_dim, output_dim)
-        self.pooling = global_add_pool
+
+        if pooling == "mean":
+            self.pooling = global_mean_pool
+        elif pooling == "add":
+            self.pooling = global_add_pool
 
     def forward(self, data: Data) -> Tensor:
         # Embedding of OHE features
@@ -107,6 +112,7 @@ class GINEncoder(torch.nn.Module):
         num_edge_features: int,
         dropout: float,
         residual_connection: str,
+        pooling: str = "mean",
     ) -> None:
         super().__init__()
         self.input_dim = input_dim
@@ -145,7 +151,10 @@ class GINEncoder(torch.nn.Module):
 
         # Expand dimensionality before node pooling
         self.linear = Linear(input_dim, output_dim)
-        self.pooling = global_mean_pool
+        if pooling == "mean":
+            self.pooling = global_mean_pool
+        elif pooling == "add":
+            self.pooling = global_add_pool
 
     def forward(self, data: Data) -> Tensor:
         # Embedding of OHE features
