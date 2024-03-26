@@ -12,7 +12,12 @@ from lightning.pytorch.callbacks import (
 )
 
 from dataset import PharmacophoreDataModule
-from model import PharmCLR, VirtualScreeningCallback
+from model import (
+    PharmCLR,
+    VirtualScreeningCallback,
+    PhectorMatch,
+    CurriculumLearningScheduler,
+)
 from scripts import VirtualScreeningExperiment, SelfSimilarityEvaluation
 from utils import load_model_from_path, load_hparams_from_path
 from virtual_screening import VirtualScreeningEmbedder
@@ -24,11 +29,17 @@ def training(device):
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     CONFIG_FILE_PATH = "phector_db/scripts/config.yaml"
-    MODEL = PharmCLR
+    MODEL = PhectorMatch
     VERSION = None
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
+    PRETRAINED_MODEL = PharmCLR
+    PRETRAINED_VERSION = 23
+    PRETRAINED_MODEL_PATH = (
+        f"{PROJECT_ROOT}/archived/old_logs_2/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
+        # f"{PROJECT_ROOT}/logs/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
+    )
 
-    # Check for pretrained model
+    # Load or create new model parameters
     if os.path.exists(MODEL_PATH):
         load_model = True
         params = load_hparams_from_path(MODEL_PATH)
@@ -43,30 +54,29 @@ def training(device):
     torch.backends.cudnn.determinstic = True
     torch.backends.cudnn.benchmark = False
 
-    # Load dataset
-    datamodule = PharmacophoreDataModule(
-        PRETRAINING_ROOT,
-        VS_ROOT,
-        batch_size=params["batch_size"],
-        small_set_size=params["num_samples"],
-    )
-    datamodule.setup("fit")
-
-    # Initialize model or load if pretrained model exists
+    # Initialize model or load if model exists
     if load_model:
-        model = load_model_from_path(MODEL_PATH, PharmCLR)
+        model = load_model_from_path(MODEL_PATH, MODEL)
     else:
         model = MODEL(**params)
+
+    # Check for pretrained model
+    if os.path.exists(PRETRAINED_MODEL_PATH):
+        pretrained_model = load_model_from_path(PRETRAINED_MODEL_PATH, PRETRAINED_MODEL)
+        model.encoder = pretrained_model.encoder
+        print("Using pretrained encoder")
 
     tb_logger = TensorBoardLogger(
         f"{PROJECT_ROOT}/logs/", name=f"{MODEL.__name__}", default_hp_metric=False
     )
     callbacks = [
-        ModelCheckpoint(monitor="val/val_loss/dataloader_idx_0", mode="min"),
+        # ModelCheckpoint(monitor="val/val_loss", mode="min"),
         LearningRateMonitor("epoch"),
-        VirtualScreeningCallback(),
+        CurriculumLearningScheduler(4, 20),
+        # VirtualScreeningCallback(),
     ]
 
+    # for i in range(5, 20):
     # Model training
     trainer = Trainer(
         devices=device,
@@ -76,15 +86,28 @@ def training(device):
         log_every_n_steps=1,
         callbacks=callbacks,
         precision=params["precision"],
+        gradient_clip_val=0.5,
+        reload_dataloaders_every_n_epochs=1,
     )
 
+    # Load dataset
+    datamodule = PharmacophoreDataModule(
+        PRETRAINING_ROOT,
+        VS_ROOT,
+        batch_size=params["batch_size"],
+        small_set_size=params["num_samples"],
+        graph_size_upper_bound=4,
+    )
+    datamodule.setup("fit")
+
     trainer.fit(model=model, datamodule=datamodule)
-    model = PharmCLR.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-    embedder = VirtualScreeningEmbedder(model, datamodule, trainer)
-    vs = VirtualScreeningExperiment(embedder, trainer.logger.version)
-    vs()
-    eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
-    eval.calculate_mean_similarities(trainer.logger.version)
+    # model = trainer.model
+    # model = PharmCLR.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    # embedder = VirtualScreeningEmbedder(model, datamodule, trainer)
+    # vs = VirtualScreeningExperiment(embedder, trainer.logger.version)
+    # vs()
+    # eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
+    # eval.calculate_mean_similarities(trainer.logger.version)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,23 @@ from torchmetrics import AUROC
 from dataset import AugmentationModule
 
 
+class CurriculumLearningScheduler(Callback):
+    def __init__(
+        self, graph_size_at_start: int, num_epochs_before_increase: int
+    ) -> None:
+        super().__init__()
+        self.graph_size_at_start = graph_size_at_start
+        self.num_epochs_before_increase = num_epochs_before_increase
+
+    def on_train_epoch_start(self, trainer, model):
+        epoch = trainer.current_epoch
+        if epoch % self.num_epochs_before_increase == 0:
+            trainer.datamodule.graph_size_upper_bound = (
+                epoch // self.num_epochs_before_increase + self.graph_size_at_start
+            )
+            trainer.datamodule.setup("fit")
+
+
 class ValidationDataTransformSetter(Callback):
     def __init__(self, node_masking: float, radius: float) -> None:
         super().__init__()

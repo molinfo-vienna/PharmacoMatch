@@ -29,15 +29,15 @@ class PharmacophoreDatasetBase(InMemoryDataset):
     def _extract_pharmacophore_features(
         self, ph4: Pharm.BasicPharmacophore
     ) -> tuple[Tensor, Tensor]:
-        num_features = ph4.getNumFeatures()
-        x = torch.zeros((num_features, self._num_node_features))
-        pos = torch.zeros((num_features, 3))
+        num_ph4_features = ph4.getNumFeatures()
+        x = torch.zeros((num_ph4_features, self._num_node_features))
+        pos = torch.zeros((num_ph4_features, 3))
 
         for i, feature in enumerate(ph4):
             x[i, Pharm.getType(feature) - 1] = 1
             pos[i] = torch.tensor(Chem.get3DCoordinates(feature).toArray())
 
-        return x, pos
+        return x, pos, num_ph4_features
 
     def _getMolReaderByFileExt(self, filename: str) -> Chem.MoleculeReader:
         name_and_ext = os.path.splitext(filename)
@@ -128,8 +128,8 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
         while reader.read(ph4):
             try:
                 if ph4.getNumFeatures() > 3:
-                    x, pos = self._extract_pharmacophore_features(ph4)
-                    data = Data(x=x, pos=pos)
+                    x, pos, num_ph4_features = self._extract_pharmacophore_features(ph4)
+                    data = Data(x=x, pos=pos, num_ph4_features=num_ph4_features)
                     data_list.append(data)
                     count += 1
                 else:
@@ -204,8 +204,15 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
                     for j in range(num_pharmacophores):
                         db_accessor.getPharmacophore(i, j, ph4)
                         if ph4.getNumFeatures() > 0:
-                            x, pos = self._extract_pharmacophore_features(ph4)
-                            data = Data(x=x, pos=pos, mol_id=i)
+                            x, pos, num_ph4_features = (
+                                self._extract_pharmacophore_features(ph4)
+                            )
+                            data = Data(
+                                x=x,
+                                pos=pos,
+                                mol_id=i,
+                                num_ph4_features=num_ph4_features,
+                            )
                             data_list.append(data)
                         else:
                             skipped_pharmacophores += 1
@@ -229,8 +236,15 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
                         if name != Pharm.getName(ph4):
                             name = Pharm.getName(ph4)
                             mol_id += 1
-                        x, pos = self._extract_pharmacophore_features(ph4)
-                        data = Data(x=x, pos=pos, mol_id=mol_id)
+                        x, pos, num_ph4_features = self._extract_pharmacophore_features(
+                            ph4
+                        )
+                        data = Data(
+                            x=x,
+                            pos=pos,
+                            mol_id=mol_id,
+                            num_ph4_features=num_ph4_features,
+                        )
                         data_list.append(data)
                     else:
                         skipped_pharmacophores += 1

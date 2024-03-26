@@ -16,9 +16,9 @@ class FeatureCountPrefilter:
             self.vs_datamodule.actives_dataloader()
         )
         actives_count = self.actives_count - query_count[query_idx].reshape(1, -1)
-        # mask = torch.min(actives_count, dim=1).values
-        # mask = mask >= 0
-        mask = torch.norm(actives_count, p=1, dim=1) == 0
+        mask = torch.min(actives_count, dim=1).values
+        mask = mask >= 0
+        # mask = torch.norm(actives_count, p=1, dim=1) == 0
         return mask
 
     def get_inactives_mask(self, query_idx: int = 0) -> Tensor:
@@ -27,9 +27,9 @@ class FeatureCountPrefilter:
             self.vs_datamodule.inactives_dataloader()
         )
         inactives_count = self.inactives_count - query_count[query_idx].reshape(1, -1)
-        # mask = torch.min(inactives_count, dim=1).values
-        # mask = mask >= 0
-        mask = torch.norm(inactives_count, p=1, dim=1) == 0
+        mask = torch.min(inactives_count, dim=1).values
+        mask = mask >= 0
+        # mask = torch.norm(inactives_count, p=1, dim=1) == 0
         return mask
 
     def get_feature_count(self, dataloader: DataLoader) -> Tensor:

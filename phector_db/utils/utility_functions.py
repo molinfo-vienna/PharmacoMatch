@@ -4,6 +4,7 @@ import yaml
 from lightning import LightningModule
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 
 def load_hparams_from_path(folder_path: str) -> dict:
@@ -28,7 +29,9 @@ def load_model_from_path(
             model_path = os.path.join(folder_path, file)
 
     if model_path:
-        return model_class.load_from_checkpoint(model_path)
+        return model_class.load_from_checkpoint(
+            model_path  # , map_location=torch.device("cuda:0")
+        )
     else:
         return None
 

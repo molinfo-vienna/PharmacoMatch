@@ -1,5 +1,6 @@
 from lightning import LightningDataModule
 from torch_geometric.loader import DataLoader
+import torch
 
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
@@ -11,20 +12,33 @@ class PharmacophoreDataModule(LightningDataModule):
         virtual_screening_data_dir: str,
         batch_size: int = None,
         small_set_size: int = None,
+        graph_size_upper_bound: int = None,
     ) -> None:
         super(PharmacophoreDataModule, self).__init__()
         self.preprocessing_data_dir = preprocessing_data_dir
         self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
         self.small_set_size = small_set_size
+        self.graph_size_upper_bound = graph_size_upper_bound
 
     def setup(self, stage: str = "fit") -> None:
         if stage == "fit":
             preprocessing_data = PharmacophoreDataset(
                 self.preprocessing_data_dir, transform=None
             )
-            if self.small_set_size:
+
+            if self.graph_size_upper_bound:
+                idx = torch.tensor(
+                    [
+                        graph.num_ph4_features <= self.graph_size_upper_bound
+                        for graph in preprocessing_data
+                    ]
+                )
+                preprocessing_data = preprocessing_data.copy(idx)
+
+            if self.small_set_size < len(preprocessing_data):
                 preprocessing_data = preprocessing_data[: self.small_set_size]
+
             print(f"Number of training graphs: {len(preprocessing_data)}")
             num_samples = len(preprocessing_data)
             self.train_data, self.val_data = (
@@ -61,7 +75,8 @@ class PharmacophoreDataModule(LightningDataModule):
             )
 
     def val_dataloader(self) -> list[DataLoader]:
-        return [self.create_val_dataloader()] + self.vs_dataloader()
+        return self.create_val_dataloader()
+        # return [self.create_val_dataloader()] + self.vs_dataloader()
 
     def create_val_dataloader(self) -> DataLoader:
         if self.batch_size is None:

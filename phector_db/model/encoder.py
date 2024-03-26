@@ -3,8 +3,8 @@ from torch import Tensor
 from torch.nn import Linear
 import torch.nn.functional as F
 from torch_geometric.data import Data
-from torch_geometric.nn import GATConv
-from torch_geometric.nn import global_mean_pool, BatchNorm
+from torch_geometric.nn import GATConv, GINEConv, MLP
+from torch_geometric.nn import global_mean_pool, BatchNorm, global_add_pool
 from torch_geometric.nn import (
     MLP,
     PointTransformerConv,
@@ -13,6 +13,21 @@ from torch_geometric.nn import (
     knn_graph,
 )
 from torch_geometric.utils import scatter
+
+
+class PositiveLinear(torch.nn.Module):
+    def __init__(self, in_features, out_features):
+        super(PositiveLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.log_weight = torch.nn.Parameter(torch.Tensor(out_features, in_features))
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        torch.nn.init.xavier_uniform_(self.log_weight)
+
+    def forward(self, input):
+        return torch.nn.functional.linear(input, self.log_weight.exp())
 
 
 class GATEncoder(torch.nn.Module):
@@ -37,6 +52,7 @@ class GATEncoder(torch.nn.Module):
         self.residual_connection = residual_connection
         self.num_heads = 10
 
+        # node_embedding_dim = hidden_dim
         self.node_embedding = Linear(input_dim, node_embedding_dim)
         input_dim = node_embedding_dim
 
@@ -56,6 +72,11 @@ class GATEncoder(torch.nn.Module):
                     heads=self.num_heads,
                     concat=False,
                 )
+                # GINEConv(
+                #     MLP([input_dim, hidden_dim]),
+                #     edge_dim=self.num_edge_features,
+                #     train_eps=False,
+                # )
             )
             self.convolution_batch_norm.append(BatchNorm(hidden_dim))
             if self.residual_connection == "dense":
