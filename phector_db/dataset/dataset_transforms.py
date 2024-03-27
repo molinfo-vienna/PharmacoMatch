@@ -172,7 +172,8 @@ class RandomNodeDeletion(BaseTransform):
             return data
 
         device = data.x.device
-        n_nodes_per_graph = data.ptr[1:] - data.ptr[:-1]
+        n_nodes_per_graph = data.num_ph4_features  # data.ptr[1:] - data.ptr[:-1]
+        # Here I can pass an array of probabilities from 0 to 1 or similar
         n_nodes_to_delete = (n_nodes_per_graph * self.delete_ratio).int()
         n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
 
@@ -192,6 +193,7 @@ class RandomNodeDeletion(BaseTransform):
                 torch.cumsum(n_nodes_to_keep, dim=0),
             )
         )
+        data.num_ph4_features = n_nodes_to_keep
 
         return data
 

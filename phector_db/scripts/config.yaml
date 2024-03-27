@@ -6,7 +6,7 @@ hidden_dim_encoder: 256
 hidden_dim_projector: 1024
 input_dim_projector: 1024
 k: 3
-learning_rate: 0.001
+learning_rate: 0.0003
 margin: 0.1
 momentum: 0.001
 n_layers_conv: 3
@@ -14,10 +14,10 @@ node_embedding_dim: 10
 node_masking: 0.5
 num_edge_features: 5
 num_node_features: 7
-num_samples: 20000
+num_samples: 100000
 output_dim_projector: 64
 precision: 32
-pooling: mean
+pooling: add
 radius: 1.5
 residual_connection: dense
 seed: 42
