@@ -72,11 +72,13 @@ class ProjectionPhectorMatch(torch.nn.Module):
             PositiveLinear(self.hidden_dim, self.output_dim),
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Tensor, num_ph4_features: Tensor) -> Tensor:
         x = self.projection_head(x)
         if self.normalize:
             normalization = torch.norm(x, p=2, dim=1)
-            normalization = 1 / torch.max(torch.ones_like(normalization), normalization)
+            normalization = 1 / torch.max(
+                torch.ones_like(normalization), normalization / num_ph4_features
+            )
             normalization = normalization.view(-1, 1).expand(-1, x.shape[1])
             return x * normalization
         else:

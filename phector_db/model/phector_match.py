@@ -85,7 +85,7 @@ class PhectorMatch(LightningModule):
         # )
 
         representation = self.encoder(data)
-        embedding = self.projection_head(representation)
+        embedding = self.projection_head(representation, data.num_ph4_features)
 
         return embedding
 
