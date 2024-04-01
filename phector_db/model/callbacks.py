@@ -29,7 +29,10 @@ class CurriculumLearningScheduler(Callback):
     def on_validation_epoch_end(
         self, trainer: Trainer, pl_module: LightningModule
     ) -> None:
-        current_loss = trainer.logged_metrics["val/val_loss"]
+        if trainer.current_epoch == 0:
+            return
+
+        current_loss = trainer.logged_metrics["val/inner_val_loss/dataloader_idx_0"]
         if (
             current_loss + self.minimum_improvement_threshold
         ) < self.loss_at_reference_point:

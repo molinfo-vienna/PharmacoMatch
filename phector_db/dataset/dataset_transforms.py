@@ -174,6 +174,47 @@ class RandomNodeDeletion(BaseTransform):
         device = data.x.device
         n_nodes_per_graph = data.num_ph4_features  # data.ptr[1:] - data.ptr[:-1]
         # Here I can pass an array of probabilities from 0 to 1 or similar
+        # n_nodes_to_delete = (n_nodes_per_graph * self.delete_ratio).int()
+        n_nodes_to_delete = (
+            torch.rand(n_nodes_per_graph.shape, device=n_nodes_per_graph.device) * 0.99
+        )
+        n_nodes_to_delete = ((n_nodes_per_graph - 1) * n_nodes_to_delete).int() + 1
+        # n_nodes_to_delete[n_nodes_to_delete == 0] = 1
+        n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
+
+        idx = torch.cat(
+            [
+                (torch.randperm(i + j, device=device) + k)[:i]
+                for i, j, k in zip(n_nodes_to_keep, n_nodes_to_delete, data.ptr[0:-1])
+            ]
+        )
+
+        data.x = data.x[idx]
+        data.pos = data.pos[idx]
+        data.batch = data.batch[idx]
+        data.ptr = torch.cat(
+            (
+                torch.zeros(1, device=device, dtype=torch.long),
+                torch.cumsum(n_nodes_to_keep, dim=0),
+            )
+        )
+        data.num_ph4_features = n_nodes_to_keep
+
+        return data
+
+
+@functional_transform("random_node_deletion_by_ratio")
+class RandomNodeDeletionByRatio(BaseTransform):
+    def __init__(self, delete_ratio: float = 0.3) -> None:
+        self.delete_ratio = delete_ratio
+
+    def __call__(self, data: Data) -> Data:
+        if self.delete_ratio is None or self.delete_ratio == 0:
+            return data
+
+        device = data.x.device
+        n_nodes_per_graph = data.num_ph4_features  # data.ptr[1:] - data.ptr[:-1]
+        # Here I can pass an array of probabilities from 0 to 1 or similar
         n_nodes_to_delete = (n_nodes_per_graph * self.delete_ratio).int()
         n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
 

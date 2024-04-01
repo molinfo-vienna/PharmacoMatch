@@ -23,8 +23,13 @@ class PharmacophoreDataModule(LightningDataModule):
 
     def setup(self, stage: str = "fit") -> None:
         if stage == "fit":
-            preprocessing_data = PharmacophoreDataset(
+            full_data = PharmacophoreDataset(
                 self.preprocessing_data_dir, transform=None
+            )
+
+            inner_data, self.outer_val_data = (
+                full_data[: (int)(len(full_data) * 0.98)],
+                full_data[(int)(len(full_data) * 0.98) :],
             )
 
             if self.graph_size_upper_bound:
@@ -34,17 +39,17 @@ class PharmacophoreDataModule(LightningDataModule):
                 #         for graph in preprocessing_data
                 #     ]
                 # )
-                idx = preprocessing_data.num_ph4_features <= self.graph_size_upper_bound
-                preprocessing_data = preprocessing_data.copy(idx)
+                idx = inner_data.num_ph4_features <= self.graph_size_upper_bound
+                inner_data = inner_data.copy(idx)
 
-            if self.small_set_size < len(preprocessing_data):
-                preprocessing_data = preprocessing_data[: self.small_set_size]
+            if self.small_set_size < len(inner_data):
+                inner_data = inner_data[: self.small_set_size]
 
-            print(f"Number of training graphs: {len(preprocessing_data)}")
-            num_samples = len(preprocessing_data)
-            self.train_data, self.val_data = (
-                preprocessing_data[: (int)(num_samples * 0.9)],
-                preprocessing_data[(int)(num_samples * 0.9) :],
+            print(f"Number of training graphs: {len(inner_data)}")
+            num_samples = len(inner_data)
+            self.train_data, self.inner_val_data = (
+                inner_data[: (int)(num_samples * 0.9)],
+                inner_data[(int)(num_samples * 0.9) :],
             )
 
             self.query = VirtualScreeningDataset(
@@ -76,20 +81,24 @@ class PharmacophoreDataModule(LightningDataModule):
             )
 
     def val_dataloader(self) -> list[DataLoader]:
-        return self.create_val_dataloader()
+        # return self.create_val_dataloader(self.inner_val_data)
+        return [
+            self.create_val_dataloader(self.inner_val_data),
+            self.create_val_dataloader(self.outer_val_data),
+        ]
         # return [self.create_val_dataloader()] + self.vs_dataloader()
 
-    def create_val_dataloader(self) -> DataLoader:
+    def create_val_dataloader(self, data) -> DataLoader:
         if self.batch_size is None:
             return DataLoader(
-                self.val_data,
-                batch_size=len(self.val_data),
+                data,
+                batch_size=len(data),
                 shuffle=False,
                 drop_last=True,
             )
         else:
             return DataLoader(
-                self.val_data, batch_size=self.batch_size, shuffle=False, drop_last=True
+                data, batch_size=self.batch_size, shuffle=False, drop_last=True
             )
 
     def vs_dataloader(self) -> list[DataLoader]:

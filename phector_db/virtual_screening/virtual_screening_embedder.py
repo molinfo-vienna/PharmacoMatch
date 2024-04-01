@@ -14,12 +14,12 @@ class VirtualScreeningEmbedder:
         self.vs_datamodule = vs_datamodule
         self.trainer = trainer
 
-    def get_val_embeddings(self) -> Tensor:
-        return torch.cat(
-            self.trainer.predict(
-                model=self.model, dataloaders=self.vs_datamodule.create_val_dataloader()
-            )
-        )
+    # def get_val_embeddings(self) -> Tensor:
+    #     return torch.cat(
+    #         self.trainer.predict(
+    #             model=self.model, dataloaders=self.vs_datamodule.create_val_dataloader()
+    #         )
+    #     )
 
     def get_query_embeddings(self) -> Tensor:
         return self._assemble(
