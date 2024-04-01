@@ -9,7 +9,7 @@ from .virtual_screening_embedder import VirtualScreeningEmbedder
 class VirtualScreener:
     def __init__(self, embedder: VirtualScreeningEmbedder, query_idx: int = 0) -> None:
         self.embedder = embedder
-        self.val_embeddings = self.embedder.get_val_embeddings()
+        # self.val_embeddings = self.embedder.get_val_embeddings()
         self.query_embedding, _ = self.embedder.get_query_embeddings()
         (
             self.active_embeddings,

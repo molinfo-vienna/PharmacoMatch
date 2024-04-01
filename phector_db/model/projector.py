@@ -38,7 +38,7 @@ class PositiveLinear(torch.nn.Module):
         torch.nn.init.xavier_uniform_(self.log_weight)
 
     def forward(self, input):
-        return torch.nn.functional.linear(input, self.log_weight.exp())
+        return torch.nn.functional.linear(input, self.log_weight.abs())
 
 
 class ProjectionPhectorMatch(torch.nn.Module):
@@ -75,10 +75,11 @@ class ProjectionPhectorMatch(torch.nn.Module):
     def forward(self, x: Tensor, num_ph4_features: Tensor) -> Tensor:
         x = self.projection_head(x)
         if self.normalize:
-            normalization = torch.norm(x, p=2, dim=1)
+            normalization = torch.norm(x, p=1, dim=1)
             normalization = 1 / torch.max(
                 torch.ones_like(normalization), normalization / num_ph4_features
             )
+            # normalization = 1 / (normalization / num_ph4_features)
             normalization = normalization.view(-1, 1).expand(-1, x.shape[1])
             return x * normalization
         else:
