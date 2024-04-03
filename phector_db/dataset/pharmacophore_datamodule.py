@@ -83,12 +83,12 @@ class PharmacophoreDataModule(LightningDataModule):
     def val_dataloader(self) -> list[DataLoader]:
         # return self.create_val_dataloader(self.inner_val_data)
         return [
-            self.create_val_dataloader(self.inner_val_data),
-            self.create_val_dataloader(self.outer_val_data),
+            self._create_val_dataloader(self.inner_val_data),
+            self._create_val_dataloader(self.outer_val_data),
         ]
         # return [self.create_val_dataloader()] + self.vs_dataloader()
 
-    def create_val_dataloader(self, data) -> DataLoader:
+    def _create_val_dataloader(self, data) -> DataLoader:
         if self.batch_size is None:
             return DataLoader(
                 data,
