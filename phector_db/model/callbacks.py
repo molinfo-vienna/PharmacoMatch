@@ -59,10 +59,13 @@ class CurriculumLearningScheduler(Callback):
 
 
 class ValidationDataTransformSetter(Callback):
-    def __init__(self, node_masking: float, radius: float) -> None:
+    def __init__(
+        self, node_masking: float, radius: float, node_to_keep_lower_bound: int = None
+    ) -> None:
         super().__init__()
         self.node_masking = node_masking
         self.radius = radius
+        self.node_to_keep_lower_bound = node_to_keep_lower_bound
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
         pl_module.val_transform = AugmentationModule(
@@ -70,6 +73,7 @@ class ValidationDataTransformSetter(Callback):
             node_masking=self.node_masking,
             sphere_surface_sampling=True,
             radius=self.radius,
+            node_to_keep_lower_bound=self.node_to_keep_lower_bound,
         )
 
 

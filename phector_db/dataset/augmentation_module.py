@@ -18,12 +18,14 @@ class AugmentationModule(torch.nn.Module):
         radius: float = 0.75,
         sphere_surface_sampling: bool = False,
         num_edge_features: int = 5,
+        node_to_keep_lower_bound: int = None,
     ) -> None:
         super(AugmentationModule, self).__init__()
         self.is_training = train
         self.node_masking = node_masking
         self.radius = radius
         self.num_edge_features = num_edge_features
+        self.node_to_keep_lower_bound = node_to_keep_lower_bound
         self.knn = 50
 
         if sphere_surface_sampling:
@@ -33,7 +35,9 @@ class AugmentationModule(torch.nn.Module):
 
         self.transform = T.Compose(
             [
-                RandomNodeDeletion(self.node_masking),  # Random masking mit bis zu 70%
+                RandomNodeDeletion(
+                    self.node_masking, self.node_to_keep_lower_bound
+                ),  # Random masking mit bis zu 70%
                 node_displacement,  # feature-wise tolerance radii
                 T.KNNGraph(k=self.knn, force_undirected=True),
                 T.Distance(norm=False),

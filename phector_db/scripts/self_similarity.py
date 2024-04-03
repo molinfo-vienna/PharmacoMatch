@@ -11,7 +11,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 
 from dataset import PharmacophoreDataModule
-from model import PharmCLR, ValidationDataTransformSetter
+from model import PharmCLR, ValidationDataTransformSetter, PhectorMatch
 from utils import load_model_from_path
 
 
@@ -34,13 +34,56 @@ class SelfSimilarityEvaluation:
             float(i) for i in torch.linspace(0, self.max_radius, steps_radius)
         ]
         self.self_similarity = np.zeros((steps_node_masking, steps_radius))
+        self.subgraph_isomorphism = np.zeros(steps_radius)
+        self.subgraph_isomorphism_target_query = np.zeros(steps_radius)
+
+    def subgraph_isomorphism_evaluation(self, num_version):
+        target = self._create_embeddings(0, 0, None)
+        for i, radius in enumerate(self.radius_range):
+            queries = self._create_embeddings(
+                node_masking=1, radius=radius, node_to_keep_lower_bound=3
+            )
+            threshold = 0
+            self.subgraph_isomorphism[i] = torch.sum(
+                torch.sum(
+                    torch.max(
+                        torch.zeros_like(target),
+                        queries - target,
+                    )
+                    ** 2,
+                    dim=1,
+                )
+                <= threshold
+            ) / len(queries)
+
+            self.subgraph_isomorphism_target_query[i] = torch.sum(
+                torch.sum(
+                    torch.max(
+                        torch.zeros_like(target),
+                        target - queries,
+                    )
+                    ** 2,
+                    dim=1,
+                )
+                <= threshold
+            ) / len(queries)
+
+        fig = plt.figure()
+        plt.plot(self.radius_range, self.subgraph_isomorphism)
+        plt.plot(self.radius_range, self.subgraph_isomorphism_target_query)
+        plt.xlabel(r"Displacement Radius / $\AA$")
+        plt.ylabel("Subgraph Isomorphism Positive Rate")
+        plt.legend(["Query-Target", "Target-Query"])
+        plt.savefig(f"subgraph_isomorphism_{num_version}.png")
 
     def calculate_mean_similarities(self, num_version):
-        reference = self._create_embeddings(0, 0)
+        reference = self._create_embeddings(0, 0, None)
         for j, radius in enumerate(self.radius_range):
             for i, node_masking in enumerate(self.node_masking_range):
                 embeddings = self._create_embeddings(
-                    node_masking=node_masking, radius=radius
+                    node_masking=node_masking,
+                    radius=radius,
+                    node_to_keep_lower_bound=None,
                 )
                 self.self_similarity[i, j] = torch.mean(
                     cosine_similarity(reference, embeddings)
@@ -67,9 +110,13 @@ class SelfSimilarityEvaluation:
         ax.set_zlabel("Mean Cosine Similarity")
         plt.savefig(f"self-similarity{num_version}.png")
 
-    def _create_embeddings(self, node_masking, radius):
+    def _create_embeddings(self, node_masking, radius, node_to_keep_lower_bound):
         callbacks = [
-            ValidationDataTransformSetter(node_masking=node_masking, radius=radius)
+            ValidationDataTransformSetter(
+                node_masking=node_masking,
+                radius=radius,
+                node_to_keep_lower_bound=node_to_keep_lower_bound,
+            )
         ]
         trainer = Trainer(
             num_nodes=1,
@@ -86,8 +133,8 @@ def run(device):
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
-    MODEL = PharmCLR
-    VERSION = 17
+    MODEL = PhectorMatch
+    VERSION = 200
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     params = yaml.load(
@@ -111,8 +158,8 @@ def run(device):
     device = [model.device.index]
 
     datamodule.setup()
-    eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
-    eval.calculate_mean_similarities(VERSION)
+    eval = SelfSimilarityEvaluation(model, datamodule.val_dataloader()[1], device)
+    eval.subgraph_isomorphism_evaluation(VERSION)
 
 
 if __name__ == "__main__":
