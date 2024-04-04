@@ -165,7 +165,7 @@ class RandomMasking(BaseTransform):
 @functional_transform("random_node_deletion")
 class RandomNodeDeletion(BaseTransform):
     def __init__(
-        self, delete_ratio: float = 0.3, node_to_keep_lower_bound: int = None
+        self, delete_ratio: float = 0.3, node_to_keep_lower_bound: int = 3
     ) -> None:
         self.delete_ratio = delete_ratio
         self.node_to_keep_lower_bound = node_to_keep_lower_bound
@@ -176,17 +176,12 @@ class RandomNodeDeletion(BaseTransform):
 
         device = data.x.device
         n_nodes_per_graph = data.num_ph4_features
-        n_nodes_to_delete = (
-            torch.rand(n_nodes_per_graph.shape, device=n_nodes_per_graph.device) * 0.99
+        n_nodes_to_delete = n_nodes_per_graph - self.node_to_keep_lower_bound
+        uniform_distribution = (
+            torch.rand(n_nodes_per_graph.shape, device=device) * 0.999
         )
-        n_nodes_to_delete = ((n_nodes_per_graph - 1) * n_nodes_to_delete).int() + 1
+        n_nodes_to_delete = (n_nodes_to_delete * uniform_distribution).int() + 1
         n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
-        if self.node_to_keep_lower_bound:
-            n_nodes_to_keep = torch.max(
-                n_nodes_to_keep,
-                self.node_to_keep_lower_bound * torch.ones_like(n_nodes_to_keep),
-            )
-            n_nodes_to_delete = n_nodes_per_graph - n_nodes_to_keep
 
         idx = torch.cat(
             [

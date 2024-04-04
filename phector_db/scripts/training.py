@@ -33,7 +33,7 @@ def training(device):
     VERSION = None
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
     PRETRAINED_MODEL = PharmCLR
-    PRETRAINED_VERSION = 23
+    PRETRAINED_VERSION = None
     PRETRAINED_MODEL_PATH = (
         f"{PROJECT_ROOT}/archived/old_logs_2/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
         # f"{PROJECT_ROOT}/logs/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"

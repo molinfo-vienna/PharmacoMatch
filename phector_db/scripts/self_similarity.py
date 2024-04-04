@@ -23,8 +23,8 @@ class SelfSimilarityEvaluation:
 
         self.max_node_masking = 0.9
         steps_node_masking = 10
-        self.max_radius = 10
-        steps_radius = 11
+        self.max_radius = 5
+        steps_radius = 6
 
         self.node_masking_range = [
             float(i)
@@ -43,7 +43,7 @@ class SelfSimilarityEvaluation:
             queries = self._create_embeddings(
                 node_masking=1, radius=radius, node_to_keep_lower_bound=3
             )
-            threshold = 0
+            threshold = 0.1
             self.subgraph_isomorphism[i] = torch.sum(
                 torch.sum(
                     torch.max(
@@ -134,7 +134,7 @@ def run(device):
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     MODEL = PhectorMatch
-    VERSION = 200
+    VERSION = 214
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     params = yaml.load(

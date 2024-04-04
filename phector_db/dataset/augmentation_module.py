@@ -18,7 +18,7 @@ class AugmentationModule(torch.nn.Module):
         radius: float = 0.75,
         sphere_surface_sampling: bool = False,
         num_edge_features: int = 5,
-        node_to_keep_lower_bound: int = None,
+        node_to_keep_lower_bound: int = 3,
     ) -> None:
         super(AugmentationModule, self).__init__()
         self.is_training = train

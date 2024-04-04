@@ -1,8 +1,10 @@
 batch_size: 256
-dropout: 0.0
-encoder: GAT
+dropout: 0.2
+dropout_projector: 0.2
+encoder: NNConv
 epochs: 500
-hidden_dim_encoder: 256
+freeze_encoder: false
+hidden_dim_encoder: 64
 hidden_dim_projector: 1024
 input_dim_projector: 1024
 k: 3
@@ -10,6 +12,7 @@ learning_rate: 0.001
 margin: 0.1
 momentum: 0.001
 n_layers_conv: 3
+n_layers_projector: 1
 node_embedding_dim: 10
 node_masking: 0.5
 num_edge_features: 5
@@ -18,8 +21,11 @@ num_samples: 1000000
 output_dim_projector: 64
 precision: 32
 pooling: add
+positives_multiplier: 1
 radius: 0.5
 radius_negative: 1.5
+regularization_lambda: 0.01
+regularization_p_norm: 1
 residual_connection: dense
 seed: 42
 temperature: 0.07
