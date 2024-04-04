@@ -10,7 +10,7 @@ from torch_geometric.data import Data
 from torchmetrics import ROC, Accuracy
 
 from dataset import AugmentationModule
-from .encoder import GATEncoder, PointTransformerEncoder, GINEncoder
+from .encoder import GATEncoder, PointTransformerEncoder, GINEncoder, NNConvEncoder
 from .projector import ProjectionPhectorMatch
 
 
@@ -19,7 +19,6 @@ class PhectorMatch(LightningModule):
         super(PhectorMatch, self).__init__()
         self.save_hyperparameters()
 
-        # SimCLR architecture
         self.transform = AugmentationModule(
             train=True,
             node_masking=self.hparams.node_masking,
@@ -59,6 +58,19 @@ class PhectorMatch(LightningModule):
                 pooling=self.hparams.pooling,
             )
 
+        if self.hparams.encoder == "NNConv":
+            self.encoder = NNConvEncoder(
+                input_dim=self.hparams.num_node_features,
+                node_embedding_dim=self.hparams.node_embedding_dim,
+                hidden_dim=self.hparams.hidden_dim_encoder,
+                output_dim=self.hparams.input_dim_projector,
+                n_conv_layers=self.hparams.n_layers_conv,
+                num_edge_features=self.hparams.num_edge_features,
+                dropout=self.hparams.dropout,
+                residual_connection=self.hparams.residual_connection,
+                pooling=self.hparams.pooling,
+            )
+
         if self.hparams.encoder == "PointTransformerEncoder":
             self.encoder = PointTransformerEncoder(
                 input_dim=self.hparams.num_node_features,
@@ -73,7 +85,9 @@ class PhectorMatch(LightningModule):
             input_dim=self.hparams.input_dim_projector,
             hidden_dim=self.hparams.hidden_dim_projector,
             output_dim=self.hparams.output_dim_projector,
-            normalize=False,
+            num_layers=self.hparams.n_layers_projector,
+            dropout=self.hparams.dropout_projector,
+            norm=None,
         )
 
     def forward(self, data: Data) -> Tensor:
@@ -86,8 +100,9 @@ class PhectorMatch(LightningModule):
         global_batch_size = self.trainer.world_size * self.hparams.batch_size
         self.train_iters_per_epoch = self.hparams.num_samples // global_batch_size
 
-        for param in self.encoder.parameters():
-            param.requires_grad = False
+        if self.hparams.freeze_encoder:
+            for param in self.encoder.parameters():
+                param.requires_grad = False
 
     def configure_optimizers(self) -> tuple[list[Optimizer], list[dict]]:
         optimizer = Adam(
@@ -119,10 +134,14 @@ class PhectorMatch(LightningModule):
 
         # Regularization loss term
         vector_norm = torch.norm(
-            torch.cat((queries, targets, negative_targets)), p=1, dim=1
+            torch.cat((queries, targets, negative_targets)),
+            p=self.hparams.regularization_p_norm,
+            dim=1,
         )
 
-        regularization_term = 0.01 * torch.sum((vector_norm - num_features) ** 2)
+        regularization_term = self.hparams.regularization_lambda * torch.sum(
+            (vector_norm - num_features) ** 2
+        )
 
         # Positive loss term
         positives = torch.sum(
@@ -170,10 +189,18 @@ class PhectorMatch(LightningModule):
 
         # Calculate the accuracy of the positives and negatives w.r.t. the embedding space property
         accuracy_positives = torch.sum(positives <= 0) / batch_size
-        accuracy_negatives_1 = 1 - (torch.sum(negatives_1 <= 0) / batch_size)
-        accuracy_negatives_2 = 1 - (torch.sum(negatives_2 <= 0) / batch_size)
-        accuracy_negatives_3 = 1 - (torch.sum(negatives_3 <= 0) / batch_size)
-        accuracy_negatives_4 = 1 - (torch.sum(negatives_4 <= 0) / batch_size)
+        accuracy_negatives_1 = (
+            torch.sum(negatives_1 >= self.hparams.margin) / batch_size
+        )
+        accuracy_negatives_2 = (
+            torch.sum(negatives_2 >= self.hparams.margin) / batch_size
+        )
+        accuracy_negatives_3 = (
+            torch.sum(negatives_3 >= self.hparams.margin) / batch_size
+        )
+        accuracy_negatives_4 = (
+            torch.sum(negatives_4 >= self.hparams.margin) / batch_size
+        )
 
         negatives = torch.cat(
             [negatives_1, negatives_2, negatives_3, negatives_4], dim=0
@@ -207,7 +234,9 @@ class PhectorMatch(LightningModule):
         )
 
         return (
-            torch.sum(positives) + torch.sum(negatives) + regularization_term,
+            self.hparams.positives_multiplier * torch.sum(positives)
+            + torch.sum(negatives)
+            + regularization_term,
             accuracy_positives,
             accuracy_negatives_1,
             accuracy_negatives_2,
