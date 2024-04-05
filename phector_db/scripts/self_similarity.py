@@ -23,8 +23,10 @@ class SelfSimilarityEvaluation:
 
         self.max_node_masking = 0.9
         steps_node_masking = 10
-        self.max_radius = 5
+        self.max_radius = 10
         steps_radius = 6
+        self.max_threshold = 0.2
+        steps_threshold = 50
 
         self.node_masking_range = [
             float(i)
@@ -33,48 +35,88 @@ class SelfSimilarityEvaluation:
         self.radius_range = [
             float(i) for i in torch.linspace(0, self.max_radius, steps_radius)
         ]
+        self.threshold_range = [
+            float(i) for i in torch.linspace(self.max_threshold, 0, steps_threshold)
+        ]
+
         self.self_similarity = np.zeros((steps_node_masking, steps_radius))
-        self.subgraph_isomorphism = np.zeros(steps_radius)
-        self.subgraph_isomorphism_target_query = np.zeros(steps_radius)
+        self.subgraph_isomorphism = np.zeros((steps_threshold, steps_radius))
+        self.subgraph_isomorphism_target_query = np.zeros(
+            (steps_threshold, steps_radius)
+        )
 
     def subgraph_isomorphism_evaluation(self, num_version):
         target = self._create_embeddings(0, 0, None)
-        for i, radius in enumerate(self.radius_range):
+        for j, radius in enumerate(self.radius_range):
             queries = self._create_embeddings(
                 node_masking=1, radius=radius, node_to_keep_lower_bound=3
             )
-            threshold = 0.1
-            self.subgraph_isomorphism[i] = torch.sum(
-                torch.sum(
-                    torch.max(
-                        torch.zeros_like(target),
-                        queries - target,
+            for i, threshold in enumerate(self.threshold_range):
+                self.subgraph_isomorphism[i, j] = torch.sum(
+                    torch.sum(
+                        torch.max(
+                            torch.zeros_like(target),
+                            queries - target,
+                        )
+                        ** 2,
+                        dim=1,
                     )
-                    ** 2,
-                    dim=1,
-                )
-                <= threshold
-            ) / len(queries)
+                    <= threshold
+                ) / len(queries)
 
-            self.subgraph_isomorphism_target_query[i] = torch.sum(
-                torch.sum(
-                    torch.max(
-                        torch.zeros_like(target),
-                        target - queries,
+                self.subgraph_isomorphism_target_query[i, j] = torch.sum(
+                    torch.sum(
+                        torch.max(
+                            torch.zeros_like(target),
+                            target - queries,
+                        )
+                        ** 2,
+                        dim=1,
                     )
-                    ** 2,
-                    dim=1,
-                )
-                <= threshold
-            ) / len(queries)
+                    <= threshold
+                ) / len(queries)
 
-        fig = plt.figure()
-        plt.plot(self.radius_range, self.subgraph_isomorphism)
-        plt.plot(self.radius_range, self.subgraph_isomorphism_target_query)
-        plt.xlabel(r"Displacement Radius / $\AA$")
-        plt.ylabel("Subgraph Isomorphism Positive Rate")
-        plt.legend(["Query-Target", "Target-Query"])
-        plt.savefig(f"subgraph_isomorphism_{num_version}.png")
+        X, Y = np.meshgrid(self.threshold_range, self.radius_range)
+        Z = self.subgraph_isomorphism.T
+
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        surf = ax.plot_surface(
+            X,
+            Y,
+            Z,
+            cmap=cm.coolwarm,
+            linewidth=0,
+            antialiased=False,
+        )
+        ax.plot_wireframe(X, Y, Z, cmap=cm.coolwarm)
+        ax.set_zlim(0, 1.0)
+        ax.set_xlabel("Threshold")
+        ax.set_ylabel(r"Displacement Radius / $\AA$")
+        ax.set_ylim(self.max_radius, 0)
+        ax.set_xlim(self.max_threshold, 0)
+        ax.set_zlabel("Subgraph Positive Rate")
+        plt.savefig(f"{num_version}_Query-Target.png")
+
+        X, Y = np.meshgrid(self.threshold_range, self.radius_range)
+        Z = self.subgraph_isomorphism_target_query.T
+
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        surf = ax.plot_surface(
+            X,
+            Y,
+            Z,
+            cmap=cm.coolwarm,
+            linewidth=0,
+            antialiased=False,
+        )
+        ax.plot_wireframe(X, Y, Z, cmap=cm.coolwarm)
+        ax.set_zlim(0, 1.0)
+        ax.set_xlabel("Threshold")
+        ax.set_ylabel(r"Displacement Radius / $\AA$")
+        ax.set_ylim(self.max_radius, 0)
+        ax.set_xlim(self.max_threshold, 0)
+        ax.set_zlabel("Subgraph Positive Rate")
+        plt.savefig(f"{num_version}_Target_Query.png")
 
     def calculate_mean_similarities(self, num_version):
         reference = self._create_embeddings(0, 0, None)
@@ -96,7 +138,7 @@ class SelfSimilarityEvaluation:
         surf = ax.plot_surface(
             X,
             Y,
-            self.self_similarity.T,
+            Z,
             cmap=cm.coolwarm,
             linewidth=0,
             antialiased=False,
@@ -134,7 +176,7 @@ def run(device):
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     MODEL = PhectorMatch
-    VERSION = 214
+    VERSION = 226
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     params = yaml.load(
