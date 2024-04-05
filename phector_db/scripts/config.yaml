@@ -24,7 +24,7 @@ pooling: add
 positives_multiplier: 1
 radius: 0.5
 radius_negative: 1.5
-regularization_lambda: 0.01
+regularization_lambda: 0
 regularization_p_norm: 1
 residual_connection: dense
 seed: 42
