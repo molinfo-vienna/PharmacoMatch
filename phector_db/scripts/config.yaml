@@ -22,7 +22,7 @@ output_dim_projector: 256
 precision: 32
 pooling: add
 positives_multiplier: 1
-radius: 0.25
+radius: 0.05
 radius_negative: 1.5
 regularization_lambda: 0
 regularization_p_norm: 1
