@@ -9,7 +9,7 @@ from torch import Tensor
 from torch_geometric.data import Data
 from torchmetrics import ROC, Accuracy
 
-from dataset import AugmentationModule
+from dataset import AugmentationModule, RandomNodeDeletion
 from .encoder import GATEncoder, PointTransformerEncoder, GINEncoder, NNConvEncoder
 from .projector import ProjectionPhectorMatch
 
@@ -18,19 +18,19 @@ class PhectorMatch(LightningModule):
     def __init__(self, **params) -> None:
         super(PhectorMatch, self).__init__()
         self.save_hyperparameters()
-
-        self.transform = AugmentationModule(
+        self.node_deletion = RandomNodeDeletion(self.hparams.node_masking, 3)
+        self.query_transform = AugmentationModule(
             train=True,
-            node_masking=self.hparams.node_masking,
+            node_masking=None,
             radius=self.hparams.radius,
         )
-        self.negative_target_transform = AugmentationModule(
+        self.negative_query_transform = AugmentationModule(
             train=True,
             node_masking=None,
             sphere_surface_sampling=True,
             radius=self.hparams.radius_negative,
         )
-        self.val_transform = AugmentationModule(train=False)
+        self.target_transform = AugmentationModule(train=False)
 
         if self.hparams.encoder == "GAT":
             self.encoder = GATEncoder(
@@ -115,26 +115,26 @@ class PhectorMatch(LightningModule):
     def loss(
         self,
         queries: Tensor,
+        negative_queries: Tensor,
         targets: Tensor,
-        negative_targets: Tensor,
     ) -> Tensor:
         # Extract number of features per ph4
         queries_num_features = queries.num_ph4_features
+        negative_queries_num_features = negative_queries.num_ph4_features
         targets_num_features = targets.num_ph4_features
-        negative_targets_num_features = negative_targets.num_ph4_features
         num_features = torch.cat(
-            (queries_num_features, targets_num_features, negative_targets_num_features)
+            (queries_num_features, negative_queries_num_features, targets_num_features)
         )
 
         # Extract the embeddings
         queries = self(queries)
+        negative_queries = self(negative_queries)
         targets = self(targets)
-        negative_targets = self(negative_targets)
         batch_size = len(queries)
 
         # Regularization loss term
         vector_norm = torch.norm(
-            torch.cat((queries, targets, negative_targets)),
+            torch.cat((queries, negative_queries, targets)),
             p=self.hparams.regularization_p_norm,
             dim=1,
         )
@@ -157,7 +157,7 @@ class PhectorMatch(LightningModule):
         negatives_1 = torch.sum(
             torch.max(
                 torch.zeros_like(targets),
-                queries - negative_targets,
+                negative_queries - targets,
             )
             ** 2,
             dim=1,
@@ -245,11 +245,12 @@ class PhectorMatch(LightningModule):
         )
 
     def shared_step(self, batch: Data, batch_idx: int) -> tuple[Tensor, Tensor]:
-        queries = self.transform(batch)
-        targets = self.val_transform(batch)
-        negative_targets = self.negative_target_transform(batch)
+        targets = self.target_transform(batch)
+        batch = self.node_deletion(batch)
+        queries = self.query_transform(batch)
+        negative_queries = self.negative_query_transform(batch)
 
-        return self.loss(queries, targets, negative_targets)
+        return self.loss(queries, negative_queries, targets)
 
     def training_step(self, batch: Data, batch_idx: int) -> Tensor:
         (
@@ -452,6 +453,6 @@ class PhectorMatch(LightningModule):
         self, batch: Data, batch_idx: int
     ) -> Union[Tensor, tuple[Tensor, Tensor]]:
         if "mol_id" in batch.keys:
-            return self(self.val_transform(batch)), batch.mol_id
+            return self(self.target_transform(batch)), batch.mol_id
         else:
-            return self(self.val_transform(batch))
+            return self(self.target_transform(batch))
