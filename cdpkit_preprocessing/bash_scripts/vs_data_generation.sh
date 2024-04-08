@@ -3,7 +3,7 @@
 # This script implements a pipeline to transform SMILES data into the ScreeningDatabase format
 root='/data/shared/projects/PhectorDB'
 dataset='litpcba'
-target='ESR1_ant'
+target='TP53'
 path="$root/$dataset/$target"
 cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
 python_scripts='/home/drose/git/PhectorDB/cdpkit_preprocessing/python_scripts'

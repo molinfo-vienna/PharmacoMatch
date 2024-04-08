@@ -68,7 +68,7 @@ class ValidationDataTransformSetter(Callback):
         self.node_to_keep_lower_bound = node_to_keep_lower_bound
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-        pl_module.val_transform = AugmentationModule(
+        pl_module.target_transform = AugmentationModule(
             train=True,
             node_masking=self.node_masking,
             sphere_surface_sampling=True,

@@ -72,7 +72,7 @@ def training(device):
         f"{PROJECT_ROOT}/logs/", name=f"{MODEL.__name__}", default_hp_metric=False
     )
     callbacks = [
-        ModelCheckpoint(monitor="val/outer_val_loss/dataloader_idx_1", mode="min"),
+        # ModelCheckpoint(monitor="val/outer_val_loss/dataloader_idx_1", mode="min"),
         LearningRateMonitor("epoch"),
         CurriculumLearningScheduler(4, 10),
         # VirtualScreeningCallback(),
