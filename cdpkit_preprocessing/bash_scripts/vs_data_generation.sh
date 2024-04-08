@@ -7,7 +7,7 @@ target='TP53'
 path="$root/$dataset/$target"
 cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
 python_scripts='/home/drose/git/PhectorDB/cdpkit_preprocessing/python_scripts'
-filenames=('actives', 'inactives')
+filenames=('actives' 'inactives')
 
 mkdir $path/preprocessing
 mkdir $path/processed
