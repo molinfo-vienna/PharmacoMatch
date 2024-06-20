@@ -2,5 +2,5 @@
 .env
 .pytest_cache
 .ipynb_checkpoints
-plots/
+plots
 __pycache__/
