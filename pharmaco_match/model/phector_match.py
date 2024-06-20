@@ -15,7 +15,7 @@ class PhectorMatch(LightningModule):
     def __init__(self, **params) -> None:
         super(PhectorMatch, self).__init__()
         self.save_hyperparameters()
-        self.node_deletion = RandomNodeDeletion(self.hparams.node_masking, 3)
+        self.node_deletion = RandomNodeDeletion(3)
         self.query_transform = AugmentationModule(
             train=True,
             node_masking=None,

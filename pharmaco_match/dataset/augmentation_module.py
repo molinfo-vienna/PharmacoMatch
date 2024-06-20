@@ -11,6 +11,27 @@ from .dataset_transforms import (
 
 
 class AugmentationModule(torch.nn.Module):
+    r"""Module for augmenting the input data.
+
+    The module applies a series of transformations to the input data and creates a
+    complete graph from the feature positions.
+
+    Args:
+        train (bool, optional): If set to False, the module creates the complete graph
+            representation without prior augmentation. Defaults to True.
+        node_masking (float, optional): Percentage of nodes to be deleted.
+            Defaults to 0.3.
+        radius (float, optional): Features are displaced by adding uniform random noise
+            from a sphere of the given radius. Defaults to 0.75.
+        sphere_surface_sampling (bool, optional): If set to True, uniform random noise
+            gets sampled from a sphere surface. Otherwise, noise gets sampled from
+            within the sphere. Defaults to False.
+        num_edge_features (int, optional): Number of bins of the created edge attribute
+            vectors. Defaults to 5.
+        node_to_keep_lower_bound (int, optional): Minimum number of nodes that shall
+            remain after random node deletion. Defaults to 3.
+    """
+
     def __init__(
         self,
         train: bool = True,
@@ -35,7 +56,7 @@ class AugmentationModule(torch.nn.Module):
 
         self.transform = T.Compose(
             [
-                RandomNodeDeletion(self.node_masking, self.node_to_keep_lower_bound),
+                RandomNodeDeletion(self.node_to_keep_lower_bound),
                 node_displacement,
                 T.KNNGraph(k=self.knn, force_undirected=True),
                 T.Distance(norm=False),

@@ -1,8 +1,6 @@
 from .dataset_transforms import (
-    DistanceOHE,
     DistanceRDF,
     RandomGaussianNoise,
-    RandomMasking,
     RandomNodeDeletion,
     RandomSphericalNoise,
 )
@@ -12,15 +10,12 @@ from .augmentation_module import AugmentationModule
 
 
 __all__ = [
-    "DistanceOHE",
     "DistanceRDF",
     "RandomGaussianNoise",
-    "RandomMasking",
     "RandomNodeDeletion",
     "PharmacophoreDataset",
     "VirtualScreeningDataset",
     "PharmacophoreDataModule",
     "AugmentationModule",
-    "CompleteGraph",
     "RandomSphericalNoise",
 ]

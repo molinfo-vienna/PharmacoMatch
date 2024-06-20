@@ -1,32 +1,9 @@
-import numpy as np
 import math
 import torch
 from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
-
-
-@functional_transform("distance_ohe")
-class DistanceOHE(BaseTransform):
-    def __init__(self, num_bins: int = 10) -> None:
-        self.num_bins = num_bins
-
-    def __call__(self, data: Data) -> Data:
-        _, num_features = data.edge_attr.shape
-        if num_features == 1:
-            idx = (
-                torch.round(torch.where(data.edge_attr * 2 < 9, data.edge_attr * 2, 9))
-                .cpu()
-                .numpy()
-                .astype(int)
-                .flatten()
-            )
-            features = np.zeros((data.num_edges, self.num_bins))
-            features[np.arange(data.num_edges), idx] = 1
-            data.edge_attr = torch.tensor(features, dtype=torch.float)
-
-        return data
 
 
 @functional_transform("distance_rdf")
@@ -139,35 +116,12 @@ class RandomSphericalSurfaceNoise(BaseTransform):
         return torch.vstack((x, y, z)).T
 
 
-@functional_transform("random_masking")
-class RandomMasking(BaseTransform):
-    def __init__(self, mask_ratio: float = 0.2) -> None:
-        self.mask_ratio = mask_ratio
-
-    def __call__(self, data: Data) -> Data:
-        if self.mask_ratio is None or self.mask_ratio == 0:
-            return Data
-
-        size = data.x.shape
-        device = data.x.device
-        mask = torch.rand(size, device=device) < self.mask_ratio
-        data.x[mask] = 0
-
-        return data
-
-
 @functional_transform("random_node_deletion")
 class RandomNodeDeletion(BaseTransform):
-    def __init__(
-        self, delete_ratio: float = 0.3, node_to_keep_lower_bound: int = 3
-    ) -> None:
-        self.delete_ratio = delete_ratio
+    def __init__(self, node_to_keep_lower_bound: int = 3) -> None:
         self.node_to_keep_lower_bound = node_to_keep_lower_bound
 
     def __call__(self, data: Data) -> Data:
-        if self.delete_ratio is None or self.delete_ratio == 0:
-            return data
-
         device = data.x.device
         n_nodes_per_graph = data.num_ph4_features
         n_nodes_to_delete = n_nodes_per_graph - self.node_to_keep_lower_bound
