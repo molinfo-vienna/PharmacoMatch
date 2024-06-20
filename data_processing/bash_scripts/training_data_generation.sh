@@ -5,7 +5,7 @@ dataset='training_data'
 path="$root/$dataset"
 filename="chembl_data"
 cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
-python_scripts='/home/drose/git/PhectorDB/cdpkit_preprocessing/python_scripts'
+python_scripts='/home/drose/git/PhectorDB/data_processing/python_scripts'
 
 mkdir $path/preprocessing
 mkdir $path/processed

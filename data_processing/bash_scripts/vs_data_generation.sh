@@ -6,7 +6,7 @@ dataset='litpcba'
 target='TP53'
 path="$root/$dataset/$target"
 cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
-python_scripts='/home/drose/git/PhectorDB/cdpkit_preprocessing/python_scripts'
+python_scripts='/home/drose/git/PhectorDB/data_processing/python_scripts'
 filenames=('actives' 'inactives')
 
 mkdir $path/preprocessing
