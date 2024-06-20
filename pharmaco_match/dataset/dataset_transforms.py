@@ -8,6 +8,24 @@ from torch_geometric.transforms import BaseTransform
 
 @functional_transform("distance_rdf")
 class DistanceRDF(BaseTransform):
+    r"""Transform to calculate RDF distance encodings from pair-wise edge distances.
+
+    Pair-wise distances are represented by radial distance functions (RDF):
+
+        e_k(r) = exp(-gamma * (r - mu_k)^2)
+
+    where r is the pair-wise distance, mu_k is the k-th bin center, and gamma is a
+    smoothing factor.
+
+    Args:
+        num_bins (int, optional): Number of bins with uniform spacing between bin
+            centers. Defaults to 5.
+        max_dist (float, optional): Maximum distance of the uniform grid of distance
+            bins. Defaults to 10 Angstrom.
+        gamma (float, optional): Smoothing factor, determines the width of the Gaussian
+            shape. Defaults to 0.5.
+    """
+
     def __init__(
         self, num_bins: int = 5, max_dist: float = 10, gamma: float = 0.5
     ) -> None:
@@ -30,6 +48,13 @@ class DistanceRDF(BaseTransform):
 
 @functional_transform("random_gaussian_noise")
 class RandomGaussianNoise(BaseTransform):
+    """Transform to add random Gaussian noise to the node positions.
+
+    Args:
+        radius (float, optional): Width of the Gaussian, radius corresponds to 3*sigma.
+            Defaults to 1.5.
+    """
+
     def __init__(self, radius: float = 1.5) -> None:
         self.radius = radius
 
@@ -48,6 +73,14 @@ class RandomGaussianNoise(BaseTransform):
 
 @functional_transform("random_spherical_noise")
 class RandomSphericalNoise(BaseTransform):
+    """Transform to add random noise sampled from a sphere to the node positions.
+
+    Random displacements are sampled uniformly at random from a sphere with radius r.
+
+    Args:
+        radius (float, optional): radius of the sphere. Defaults to 1.
+    """
+
     def __init__(self, radius: float = 1) -> None:
         self.radius = radius
 
@@ -84,6 +117,15 @@ class RandomSphericalNoise(BaseTransform):
 
 @functional_transform("random_spherical_surface_noise")
 class RandomSphericalSurfaceNoise(BaseTransform):
+    """Transform to add random noise sampled from a sphere surface to node positions.
+
+    Random displacements are sampled uniformly at random from the surface of a sphere
+    with radius r.
+
+    Args:
+        radius (float, optional): radius of the sphere. Defaults to 1.
+    """
+
     def __init__(self, radius: float = 1) -> None:
         self.radius = radius
 
@@ -118,6 +160,17 @@ class RandomSphericalSurfaceNoise(BaseTransform):
 
 @functional_transform("random_node_deletion")
 class RandomNodeDeletion(BaseTransform):
+    """Transform that deletes a random subset of nodes from the input data.
+
+    Random node deletion involved removing at least one node, with the upper bound
+    determined by the cardinality of the set of nodes V_i of graph G_i. The number of
+    nodes to delete was drawn uniformly at random.
+
+    Args:
+        node_to_keep_lower_bound (int, optional): Minimum number of nodes that shall
+            remain after node deletion. Defaults to 3.
+    """
+
     def __init__(self, node_to_keep_lower_bound: int = 3) -> None:
         self.node_to_keep_lower_bound = node_to_keep_lower_bound
 
@@ -154,6 +207,13 @@ class RandomNodeDeletion(BaseTransform):
 
 @functional_transform("random_node_deletion_by_ratio")
 class RandomNodeDeletionByRatio(BaseTransform):
+    """Transform that deletes a random subset of nodes from the input data.
+
+    Args:
+        delete_ratio (float, optional): The number of nodes to delete is determined by
+            this ratio. Defaults to 0.3.
+    """
+
     def __init__(self, delete_ratio: float = 0.3) -> None:
         self.delete_ratio = delete_ratio
 
