@@ -5,7 +5,6 @@ from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
-from torch_geometric.utils import to_undirected
 
 
 @functional_transform("distance_ohe")
@@ -47,7 +46,7 @@ class DistanceRDF(BaseTransform):
             gamma = self.gamma
             mu = torch.linspace(0, self.max_dist, self.num_bins, device=device)
             rdf = torch.exp(-gamma * (r - mu) ** 2)
-            data.edge_attr = rdf  # torch.tensor(rdf, dtype=torch.float)
+            data.edge_attr = rdf
 
         return data
 
@@ -62,7 +61,6 @@ class RandomGaussianNoise(BaseTransform):
             return data
 
         std = math.sqrt(self.radius**2 / 27)
-
         size = data.pos.shape
         device = data.pos.device
         random_noise = torch.normal(mean=0, std=std, size=size, device=device)
@@ -90,11 +88,9 @@ class RandomSphericalNoise(BaseTransform):
 
         # Generate all random values in one call
         rand_vals = torch.rand((size, 3), device=device)
-
         phi = rand_vals[:, 0] * 6.28
         costheta = rand_vals[:, 1] * 2 - 1
         u = rand_vals[:, 2]
-
         theta = torch.arccos(costheta)
 
         # Calculate sin and cos once to avoid redundant computations
@@ -128,7 +124,6 @@ class RandomSphericalSurfaceNoise(BaseTransform):
 
         # Generate all random values in one call
         rand_vals = torch.rand((size, 3), device=device)
-
         phi = rand_vals[:, 0] * 6.28
         costheta = rand_vals[:, 1] * 2 - 1
         theta = torch.arccos(costheta)
@@ -137,7 +132,6 @@ class RandomSphericalSurfaceNoise(BaseTransform):
         sin_theta = torch.sin(theta)
         cos_theta = torch.cos(theta)
 
-        # r = R * torch.pow(u, 1/3)
         x = self.radius * sin_theta * torch.cos(phi)
         y = self.radius * sin_theta * torch.sin(phi)
         z = self.radius * cos_theta
@@ -214,8 +208,7 @@ class RandomNodeDeletionByRatio(BaseTransform):
             return data
 
         device = data.x.device
-        n_nodes_per_graph = data.num_ph4_features  # data.ptr[1:] - data.ptr[:-1]
-        # Here I can pass an array of probabilities from 0 to 1 or similar
+        n_nodes_per_graph = data.num_ph4_features
         n_nodes_to_delete = (n_nodes_per_graph * self.delete_ratio).int()
         n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
 
@@ -236,29 +229,5 @@ class RandomNodeDeletionByRatio(BaseTransform):
             )
         )
         data.num_ph4_features = n_nodes_to_keep
-
-        return data
-
-
-@functional_transform("complete_graph")
-class CompleteGraph(BaseTransform):
-    def __call__(self, data: Data) -> Data:
-        n_nodes_per_graph = data.ptr[1:] - data.ptr[:-1]
-        device = data.ptr.device
-
-        def create_edges(num_nodes: Tensor, ptr: Tensor) -> Tensor:
-            idx = torch.combinations(torch.arange(num_nodes, device=device), r=2)
-            edge_index = to_undirected(idx.t(), num_nodes=num_nodes)
-            return edge_index + ptr
-
-        data.edge_index = torch.cat(
-            (
-                [
-                    create_edges(num_nodes, ptr)
-                    for num_nodes, ptr in zip(n_nodes_per_graph, data.ptr[:-1])
-                ]
-            ),
-            dim=1,
-        )
 
         return data

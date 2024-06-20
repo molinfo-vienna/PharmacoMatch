@@ -8,7 +8,7 @@ from torch import Tensor
 from torch_geometric.data import Data
 
 from dataset import AugmentationModule
-from .encoder import GATEncoder, PointTransformerEncoder
+from .encoder import GATEncoder
 from .projector import Projection
 
 
@@ -37,23 +37,12 @@ class PharmCLR(LightningModule):
                 residual_connection=self.hparams.residual_connection,
             )
 
-        if self.hparams.encoder == "PointTransformerEncoder":
-            self.encoder = PointTransformerEncoder(
-                input_dim=self.hparams.num_node_features,
-                hidden_dim=self.hparams.hidden_dim_encoder,
-                output_dim=self.hparams.input_dim_projector,
-                n_conv_layers=self.hparams.n_layers_conv,
-                dropout=self.hparams.dropout,
-                k=self.hparams.k,
-            )
-
         self.projection_head = Projection(
             input_dim=self.hparams.input_dim_projector,
             hidden_dim=self.hparams.hidden_dim_projector,
             output_dim=self.hparams.output_dim_projector,
         )
 
-        # validation embeddings
         self.val_embeddings = []
 
     def forward(self, data: Data) -> Tensor:
@@ -95,7 +84,7 @@ class PharmCLR(LightningModule):
         ]
 
     def configure_optimizers(self) -> tuple[list[Optimizer], list[dict]]:
-        # TRICK 1 (Use lars + filter weights)
+        # Use lars + filter weights
         # exclude certain parameters
         parameters = self.exclude_from_wt_decay(
             self.named_parameters(), weight_decay=self.hparams.weight_decay
@@ -105,7 +94,7 @@ class PharmCLR(LightningModule):
             parameters, lr=self.hparams.learning_rate, momentum=self.hparams.momentum
         )
 
-        # Trick 2 (after each step)
+        # LR Scheduler
         warmup_epochs = self.hparams.warmup_epochs * self.train_iters_per_epoch
         max_epochs = self.trainer.max_epochs * self.train_iters_per_epoch
 

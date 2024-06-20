@@ -35,10 +35,8 @@ class AugmentationModule(torch.nn.Module):
 
         self.transform = T.Compose(
             [
-                RandomNodeDeletion(
-                    self.node_masking, self.node_to_keep_lower_bound
-                ),  # Random masking mit bis zu 70%
-                node_displacement,  # feature-wise tolerance radii
+                RandomNodeDeletion(self.node_masking, self.node_to_keep_lower_bound),
+                node_displacement,
                 T.KNNGraph(k=self.knn, force_undirected=True),
                 T.Distance(norm=False),
                 DistanceRDF(num_bins=self.num_edge_features),

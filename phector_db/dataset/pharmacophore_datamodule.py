@@ -1,6 +1,5 @@
 from lightning import LightningDataModule
 from torch_geometric.loader import DataLoader
-import torch
 
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
@@ -33,12 +32,6 @@ class PharmacophoreDataModule(LightningDataModule):
             )
 
             if self.graph_size_upper_bound:
-                # idx = torch.tensor(
-                #     [
-                #         graph.num_ph4_features <= self.graph_size_upper_bound
-                #         for graph in preprocessing_data
-                #     ]
-                # )
                 idx = inner_data.num_ph4_features <= self.graph_size_upper_bound
                 inner_data = inner_data.copy(idx)
 
@@ -81,12 +74,10 @@ class PharmacophoreDataModule(LightningDataModule):
             )
 
     def val_dataloader(self) -> list[DataLoader]:
-        # return self.create_val_dataloader(self.inner_val_data)
         return [
             self._create_val_dataloader(self.inner_val_data),
             self._create_val_dataloader(self.outer_val_data),
         ]
-        # return [self.create_val_dataloader()] + self.vs_dataloader()
 
     def _create_val_dataloader(self, data) -> DataLoader:
         if self.batch_size is None:

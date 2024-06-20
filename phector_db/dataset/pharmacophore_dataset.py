@@ -127,6 +127,7 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
 
         while reader.read(ph4):
             try:
+                # Do not include empty and too small graphs
                 if ph4.getNumFeatures() > 3:
                     x, pos, num_ph4_features = self._extract_pharmacophore_features(ph4)
                     data = Data(x=x, pos=pos, num_ph4_features=num_ph4_features)
@@ -134,7 +135,6 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
                     count += 1
                 else:
                     skipped_pharmacophores += 1
-                    # Do not include empty and too small graphs
 
             except Exception as e:
                 sys.exit("Error: processing of pharmacophore failed: " + str(e))
@@ -192,7 +192,6 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
         if type(pharm_reader) is PSDPharmacophoreReader:
             db_accessor = Pharm.PSDScreeningDBAccessor(path)
             ph4 = Pharm.BasicPharmacophore()
-            # mol = Chem.BasicMolecule()
             num_molecules = db_accessor.getNumMolecules()
             data_list = []
             skipped_pharmacophores = 0
@@ -200,9 +199,9 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
             for i in range(num_molecules):
                 try:
                     num_pharmacophores = db_accessor.getNumPharmacophores(i)
-                    # db_accessor.getMolecule(i, mol)
                     for j in range(num_pharmacophores):
                         db_accessor.getPharmacophore(i, j, ph4)
+                        # Do not include empty graphs
                         if ph4.getNumFeatures() > 0:
                             x, pos, num_ph4_features = (
                                 self._extract_pharmacophore_features(ph4)
@@ -216,7 +215,6 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
                             data_list.append(data)
                         else:
                             skipped_pharmacophores += 1
-                            # Do not include empty and too small graphs
 
                 except Exception as e:
                     sys.exit("Error: processing of pharmacophore failed: " + str(e))
@@ -232,6 +230,7 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
 
             while pharm_reader.read(ph4):
                 try:
+                    # Do not include empty graphs
                     if ph4.getNumFeatures() > 0:
                         if name != Pharm.getName(ph4):
                             name = Pharm.getName(ph4)
@@ -248,7 +247,6 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
                         data_list.append(data)
                     else:
                         skipped_pharmacophores += 1
-                        # Do not include empty and too small graphs
 
                 except Exception as e:
                     sys.exit("Error: processing of pharmacophore failed: " + str(e))

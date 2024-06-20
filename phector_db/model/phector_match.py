@@ -1,16 +1,13 @@
-from typing import Generator, Union
-import random
+from typing import Union
 
-from flash.core.optimizers import LARS, LinearWarmupCosineAnnealingLR
 from lightning import LightningModule
 import torch
-from torch.optim import Optimizer, AdamW, Adam
+from torch.optim import Optimizer, Adam
 from torch import Tensor
 from torch_geometric.data import Data
-from torchmetrics import ROC, Accuracy
 
 from dataset import AugmentationModule, RandomNodeDeletion
-from .encoder import GATEncoder, PointTransformerEncoder, GINEncoder, NNConvEncoder
+from .encoder import GATEncoder, GINEncoder, NNConvEncoder
 from .projector import ProjectionPhectorMatch
 
 
@@ -69,16 +66,6 @@ class PhectorMatch(LightningModule):
                 dropout=self.hparams.dropout,
                 residual_connection=self.hparams.residual_connection,
                 pooling=self.hparams.pooling,
-            )
-
-        if self.hparams.encoder == "PointTransformerEncoder":
-            self.encoder = PointTransformerEncoder(
-                input_dim=self.hparams.num_node_features,
-                hidden_dim=self.hparams.hidden_dim_encoder,
-                output_dim=self.hparams.input_dim_projector,
-                n_conv_layers=self.hparams.n_layers_conv,
-                dropout=self.hparams.dropout,
-                k=self.hparams.k,
             )
 
         self.projection_head = ProjectionPhectorMatch(

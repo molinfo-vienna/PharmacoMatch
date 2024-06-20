@@ -7,20 +7,15 @@ import torch_geometric
 from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.callbacks import (
-    ModelCheckpoint,
     LearningRateMonitor,
 )
 
 from dataset import PharmacophoreDataModule
 from model import (
-    PharmCLR,
-    VirtualScreeningCallback,
     PhectorMatch,
     CurriculumLearningScheduler,
 )
-from scripts import VirtualScreeningExperiment, SelfSimilarityEvaluation
 from utils import load_model_from_path, load_hparams_from_path
-from virtual_screening import VirtualScreeningEmbedder
 
 
 def training(device):
@@ -32,12 +27,12 @@ def training(device):
     MODEL = PhectorMatch
     VERSION = None
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
-    PRETRAINED_MODEL = PharmCLR
-    PRETRAINED_VERSION = None
-    PRETRAINED_MODEL_PATH = (
-        f"{PROJECT_ROOT}/archived/old_logs_2/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
-        # f"{PROJECT_ROOT}/logs/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
-    )
+    # PRETRAINED_MODEL = PharmCLR
+    # PRETRAINED_VERSION = None
+    # PRETRAINED_MODEL_PATH = (
+    #     f"{PROJECT_ROOT}/archived/old_logs_2/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
+    #     # f"{PROJECT_ROOT}/logs/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
+    # )
 
     # Load or create new model parameters
     if os.path.exists(MODEL_PATH):
@@ -60,13 +55,13 @@ def training(device):
     else:
         model = MODEL(**params)
 
-    # Check for pretrained model
-    if os.path.exists(PRETRAINED_MODEL_PATH):
-        pretrained_model = load_model_from_path(
-            PRETRAINED_MODEL_PATH, PRETRAINED_MODEL, device[0]
-        )
-        model.encoder = pretrained_model.encoder
-        print("Using pretrained encoder")
+    # # Check for pretrained model
+    # if os.path.exists(PRETRAINED_MODEL_PATH):
+    #     pretrained_model = load_model_from_path(
+    #         PRETRAINED_MODEL_PATH, PRETRAINED_MODEL, device[0]
+    #     )
+    #     model.encoder = pretrained_model.encoder
+    #     print("Using pretrained encoder")
 
     tb_logger = TensorBoardLogger(
         f"{PROJECT_ROOT}/logs/", name=f"{MODEL.__name__}", default_hp_metric=False
@@ -75,10 +70,8 @@ def training(device):
         # ModelCheckpoint(monitor="val/outer_val_loss/dataloader_idx_1", mode="min"),
         LearningRateMonitor("epoch"),
         CurriculumLearningScheduler(4, 10),
-        # VirtualScreeningCallback(),
     ]
 
-    # for i in range(5, 20):
     # Model training
     trainer = Trainer(
         devices=device,
@@ -98,9 +91,7 @@ def training(device):
         VS_ROOT,
         batch_size=params["batch_size"],
         small_set_size=params["num_samples"],
-        # graph_size_upper_bound=4,
     )
-    # datamodule.setup("fit")
 
     trainer.fit(model=model, datamodule=datamodule)
     # model = trainer.model

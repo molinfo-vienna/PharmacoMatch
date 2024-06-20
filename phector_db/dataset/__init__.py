@@ -4,7 +4,6 @@ from .dataset_transforms import (
     RandomGaussianNoise,
     RandomMasking,
     RandomNodeDeletion,
-    CompleteGraph,
     RandomSphericalNoise,
 )
 from .pharmacophore_datamodule import PharmacophoreDataModule
