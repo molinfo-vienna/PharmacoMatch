@@ -49,7 +49,7 @@ class PharmacophoreAlignment:
 
         # create pharmacophore fit score calculator instance
         almnt_score = Pharm.PharmacophoreFitScore(
-            match_cnt_weight=1.0, pos_match_weight=0.9999, geom_match_weight=0.0
+            match_cnt_weight=1.0, pos_match_weight=0.9, geom_match_weight=0.0
         )
 
         almnt_scores = []

@@ -23,8 +23,8 @@ class SelfSimilarityEvaluation:
 
         self.max_node_masking = 0.9
         steps_node_masking = 10
-        self.max_radius = 5
-        steps_radius = 6
+        self.max_radius = 10
+        steps_radius = 21
         self.max_threshold = 10
         steps_threshold = 50
 
@@ -78,6 +78,12 @@ class SelfSimilarityEvaluation:
 
         X, Y = np.meshgrid(self.threshold_range, self.radius_range)
         Z = self.subgraph_isomorphism.T
+        
+        # fig = plt.figure()
+        # plt.plot(self.radius_range, self.subgraph_isomorphism[0])
+        # plt.xlabel(r"Displacement Radius / $\AA$")
+        # plt.ylabel("Subgraph Prediction Function")
+        # plt.savefig("test.png", dpi=300)
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
         surf = ax.plot_surface(
@@ -176,7 +182,7 @@ def run(device):
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     MODEL = PhectorMatch
-    VERSION = 238
+    VERSION = 239
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     params = yaml.load(

@@ -1,3 +1,5 @@
+import time
+
 import torch
 from torch import Tensor
 from torch_geometric.nn import global_max_pool
@@ -10,6 +12,7 @@ class VirtualScreener:
     def __init__(self, embedder: VirtualScreeningEmbedder, query_idx: int = 0) -> None:
         self.embedder = embedder
         # self.val_embeddings = self.embedder.get_val_embeddings()
+        start = time.time()
         self.query_embedding, _ = self.embedder.get_query_embeddings()
         (
             self.active_embeddings,
@@ -19,6 +22,8 @@ class VirtualScreener:
             self.inactive_embeddings,
             self.inactive_mol_ids,
         ) = self.embedder.get_inactive_embeddings()
+        ende = time.time()
+        print(f"Embedding time: {ende - start}")
 
         # create mask for feature count prefilter
         self.prefilter = FeatureCountPrefilter(embedder.vs_datamodule)
@@ -27,6 +32,7 @@ class VirtualScreener:
 
         # calculate decision function of (in)actives w.r.t. to query
 
+        start = time.time()
         self.active_query_match = torch.sum(
             torch.max(
                 torch.zeros_like(self.active_embeddings),
@@ -45,6 +51,8 @@ class VirtualScreener:
             ** 2,
             dim=1,
         )
+        end = time.time()
+        print(f"Matching calculation time: {end - start}")
         # self.active_query_match = torch.max(
         #     self.query_embedding.expand(self.active_embeddings.shape)
         #     - self.active_embeddings,

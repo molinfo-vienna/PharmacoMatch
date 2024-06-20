@@ -1,10 +1,8 @@
 #!/bin/bash
 
-root='/data/shared/projects/PhectorDB/virtual_screening_ESR1_ant'
+root='/data/shared/projects/PhectorDB/litpcba/ESR1_ant'
 filename='inactives'
 cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
-python_scripts='/home/drose/git/PhectorDB/cdpkit_preprocessing/python_scripts'
-files='/home/drose/git/PhectorDB/cdpkit_preprocessing/files'
 
 
 # Alignment to reference pharmacophore
@@ -17,5 +15,7 @@ files='/home/drose/git/PhectorDB/cdpkit_preprocessing/files'
 $cdpkit/psdinfo -i $root/raw/$filename.psd -C -P -F
 
 # Screening Database Usage
-$cdpkit/psdscreen -d $root/raw/$filename.psd -q $root/raw/queries.pml -o $root/vs/${filename}_aligned.sdf -S -I -C -D -m BEST-MATCH -x 0 -b -P -N
-
+start=$SECONDS
+$cdpkit/psdscreen -d $root/raw/$filename.psd -q $root/raw/query.pml -o $root/vs/${filename}_aligned.sdf -S -I -C -D -x 0 -P -N
+duration=$(( SECONDS - start ))
+echo "Completed in $duration seconds"
