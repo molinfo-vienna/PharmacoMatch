@@ -46,31 +46,6 @@ class DistanceRDF(BaseTransform):
         return data
 
 
-@functional_transform("random_gaussian_noise")
-class RandomGaussianNoise(BaseTransform):
-    """Transform to add random Gaussian noise to the node positions.
-
-    Args:
-        radius (float, optional): Width of the Gaussian, radius corresponds to 3*sigma.
-            Defaults to 1.5.
-    """
-
-    def __init__(self, radius: float = 1.5) -> None:
-        self.radius = radius
-
-    def __call__(self, data: Data) -> Data:
-        if self.radius is None or self.radius == 0:
-            return data
-
-        std = math.sqrt(self.radius**2 / 27)
-        size = data.pos.shape
-        device = data.pos.device
-        random_noise = torch.normal(mean=0, std=std, size=size, device=device)
-        data.pos += random_noise
-
-        return data
-
-
 @functional_transform("random_spherical_noise")
 class RandomSphericalNoise(BaseTransform):
     """Transform to add random noise sampled from a sphere to the node positions.
@@ -156,6 +131,33 @@ class RandomSphericalSurfaceNoise(BaseTransform):
         z = self.radius * cos_theta
 
         return torch.vstack((x, y, z)).T
+
+
+@functional_transform("random_gaussian_noise")
+class RandomGaussianNoise(BaseTransform):
+    """Transform to add random Gaussian noise to the node positions.
+
+    Will be removed in the future.
+
+    Args:
+        radius (float, optional): Width of the Gaussian, radius corresponds to 3*sigma.
+            Defaults to 1.5.
+    """
+
+    def __init__(self, radius: float = 1.5) -> None:
+        self.radius = radius
+
+    def __call__(self, data: Data) -> Data:
+        if self.radius is None or self.radius == 0:
+            return data
+
+        std = math.sqrt(self.radius**2 / 27)
+        size = data.pos.shape
+        device = data.pos.device
+        random_noise = torch.normal(mean=0, std=std, size=size, device=device)
+        data.pos += random_noise
+
+        return data
 
 
 @functional_transform("random_node_deletion")
