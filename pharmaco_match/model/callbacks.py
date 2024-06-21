@@ -12,6 +12,17 @@ from dataset import AugmentationModule
 
 
 class CurriculumLearningScheduler(Callback):
+    """A callback to increase the graph size during training.
+
+    The callback increases the upper bound on the graph size of the training data by one
+    node if the validation loss does not improve for a certain number of epochs.
+
+    Args:
+        graph_size_at_start (int): Graph size at the beginning of training.
+        num_epochs_before_increase (int): Number of epochs without improvement before
+            increasing the graph size.
+    """
+
     def __init__(
         self, graph_size_at_start: int, num_epochs_before_increase: int
     ) -> None:
@@ -51,6 +62,19 @@ class CurriculumLearningScheduler(Callback):
 
 
 class ValidationDataTransformSetter(Callback):
+    """A callback to set/change parameters of the validation data transform.
+
+    This callback is used in the self-similarity experiment for perception of 3D
+    positional features to alter the parameters of the validation data transform.
+    It further sets the displacement mode to sphere surface sampling.
+
+    Args:
+        node_masking (float): Percentage of nodes to be deleted.
+        radius (float): Displacement radius for the node positions.
+        node_to_keep_lower_bound (int, optional): Minimum number of nodes that shall
+            remain after random node deletion. Defaults to None.
+    """
+
     def __init__(
         self, node_masking: float, radius: float, node_to_keep_lower_bound: int = None
     ) -> None:
@@ -70,6 +94,12 @@ class ValidationDataTransformSetter(Callback):
 
 
 class VirtualScreeningCallback(Callback):
+    """A callback to evaluate the virtual screening performance during training.
+
+    This callback was used initially to evaluate the virtual screening performance of
+    the model during training. Will probably be removed in the future.
+    """
+
     def __init__(self) -> None:
         super().__init__()
         self.query = []
