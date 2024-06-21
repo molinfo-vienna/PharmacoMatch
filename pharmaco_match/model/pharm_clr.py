@@ -13,11 +13,16 @@ from .projector import Projection
 
 
 class PharmCLR(LightningModule):
+    """Implementation of the SimCLR model for pharmacophore similarity.
+
+    I will remove this class for the final version of the project, but I will maintain a
+    fork of this for potential future applications.
+    """
+
     def __init__(self, **params) -> None:
         super(PharmCLR, self).__init__()
         self.save_hyperparameters()
 
-        # SimCLR architecture
         self.transform = AugmentationModule(
             train=True,
             node_masking=self.hparams.node_masking,
