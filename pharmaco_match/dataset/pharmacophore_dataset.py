@@ -11,6 +11,12 @@ import CDPL.Chem as Chem
 
 
 class PharmacophoreDatasetBase(InMemoryDataset):
+    """Abstract Base Class for pharmacophore datasets.
+
+    Extends the InMemoryDataset class from PyTorch Geometric to provide functionality
+    for reading pharmacophore data from files and creating Tensor objects from those.
+    """
+
     _ftr_type_str = {
         Pharm.FeatureType.UNKNOWN: "UNKNOWN",
         Pharm.FeatureType.HYDROPHOBIC: "HYDROPHOBIC",
@@ -84,6 +90,24 @@ class PharmacophoreDatasetBase(InMemoryDataset):
 
 
 class PharmacophoreDataset(PharmacophoreDatasetBase):
+    """Implementation of the PharmacophoreDataset class for unlabeled training data.
+
+    Args:
+        root (str): Path to the location of the unlabeled pharmacophore dataset.
+        transform (Optional[Callable], optional): Parameter of the InMemoryDataset
+            class. A function/transform that takes in a `torch_geometric.data.Data`
+            object and returns a transformed version. The data object will be
+            transformed before every access. Defaults to None.
+        pre_transform (Optional[Callable], optional): Parameter of the InMemoryDataset
+            class. A function/transform that takes in a `torch_geometric.data.Data`
+            object and returns a transformed version. The data object will be
+            transformed before being saved to disk. Defaults to None.
+        pre_filter (Optional[Callable], optional): Parameter of the InMemoryDataset
+            class. A function that takes in a `torch_geometric.data.Data` object and
+            returns a boolean value, indicating whether the data object should be
+            included in the final dataset. Defaults to None.
+    """
+
     def __init__(
         self,
         root: str,
@@ -145,6 +169,27 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
 
 
 class VirtualScreeningDataset(PharmacophoreDatasetBase):
+    """Implementation of the PharmacophoreDataset class for labeled benchmark data.
+
+    Args:
+        root (str): Path to the location of the labeled virtual screening dataset.
+        path_type (str, optional): VS benchnmark data comes with "active" ligands,
+            "inactive" ligands, and a "query". This parameters indicates which data
+            shall be retrieved. Defaults to "active".
+        transform (Optional[Callable], optional): Parameter of the InMemoryDataset
+            class. A function/transform that takes in a `torch_geometric.data.Data`
+            object and returns a transformed version. The data object will be
+            transformed before every access. Defaults to None.
+        pre_transform (Optional[Callable], optional): Parameter of the InMemoryDataset
+            class. A function/transform that takes in a `torch_geometric.data.Data`
+            object and returns a transformed version. The data object will be
+            transformed before being saved to disk. Defaults to None.
+        pre_filter (Optional[Callable], optional): Parameter of the InMemoryDataset
+            class. A function that takes in a `torch_geometric.data.Data` object and
+            returns a boolean value, indicating whether the data object should be
+            included in the final dataset. Defaults to None.
+    """
+
     def __init__(
         self,
         root: str,

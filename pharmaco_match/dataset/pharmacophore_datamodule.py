@@ -5,6 +5,33 @@ from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
 
 class PharmacophoreDataModule(LightningDataModule):
+    """Implementation of a LightningDataModule for the pharmacophore dataset.
+
+    The data module provides data loaders for training, validation, and virtual
+    screening. The module offers two validation sets, an inner validation set and an
+    outer validation set. Curriculum learning is applied by training only on the subset
+    of graphs with a number of nodes that is bounded by the graph_size_upper_bound
+    parameter. The inner validation data is a split of this subset, the outer validation
+    data is a split of the complete dataset. Tracking model performance on the inner
+    validation data indicates when to increase the graph_size_upper_bound parameter,
+    tracking the outer data reflects the overall model performance.
+
+    Args:
+        preprocessing_data_dir (str): Path to the location of the unlabeled
+            pharmacophore dataset for model training.
+        virtual_screening_data_dir (str): Path to the location of the labeled virtual
+            screening dataset for model evaluation.
+        batch_size (int, optional): Batch size of the data loaders. If None, the
+            dataloader works in full batch mode. Defaults to None.
+        small_set_size (int, optional): Upper bound on the number of graphs in the
+            training data. If None, training is performed on the full dataset. Defaults
+            to None.
+        graph_size_upper_bound (int, optional): Upper bound on the number of nodes per
+            pharmacophore graph to be included in the training data. If None, there
+            number of nodes is unbounded. This parameter is used by the
+            CurriculumLearningScheduler class. Defaults to None.
+    """
+
     def __init__(
         self,
         preprocessing_data_dir: str,

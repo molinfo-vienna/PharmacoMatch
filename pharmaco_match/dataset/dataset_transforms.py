@@ -8,7 +8,7 @@ from torch_geometric.transforms import BaseTransform
 
 @functional_transform("distance_rdf")
 class DistanceRDF(BaseTransform):
-    r"""Transform to calculate RDF distance encodings from pair-wise edge distances.
+    """Transform to calculate RDF distance encodings from pair-wise edge distances.
 
     Pair-wise distances are represented by radial distance functions (RDF):
 

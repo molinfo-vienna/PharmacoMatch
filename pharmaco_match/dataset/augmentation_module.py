@@ -11,7 +11,7 @@ from .dataset_transforms import (
 
 
 class AugmentationModule(torch.nn.Module):
-    r"""Module for augmenting the input data.
+    """Module for augmenting the input data.
 
     The module applies a series of transformations to the input data and creates a
     complete graph from the feature positions.
