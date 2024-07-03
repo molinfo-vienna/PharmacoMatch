@@ -22,7 +22,7 @@ class VirtualScreener:
             self.inactive_mol_ids,
         ) = self.embedder.get_inactive_embeddings()
         ende = time.time()
-        print(f"Embedding time: {ende - start}")
+        self.embedding_time = ende - start
 
         # create mask for feature count prefilter
         self.prefilter = FeatureCountPrefilter(embedder.vs_datamodule)
@@ -30,7 +30,6 @@ class VirtualScreener:
         self.inactives_prefilter_mask = self.prefilter.get_inactives_mask(query_idx)
 
         # calculate decision function of (in)actives w.r.t. to query
-
         start = time.time()
         self.active_query_match = torch.sum(
             torch.max(
@@ -51,7 +50,7 @@ class VirtualScreener:
             dim=1,
         )
         end = time.time()
-        print(f"Matching calculation time: {end - start}")
+        self.matching_time = end - start
         # self.active_query_match = torch.max(
         #     self.query_embedding.expand(self.active_embeddings.shape)
         #     - self.active_embeddings,

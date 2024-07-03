@@ -12,12 +12,9 @@ class PharmacophoreAlignment:
     def align_preprocessed_ligands_to_query(self) -> None:
         tic = time.perf_counter()
         self._alignment("actives")
-        toc = time.perf_counter()
-        print(f"Alignment took {toc - tic:0.4f} seconds")
-        tic = time.perf_counter()
         self._alignment("inactives")
         toc = time.perf_counter()
-        print(f"Alignment took {toc - tic:0.4f} seconds")
+        self.alignment_time = toc - tic
 
     def _alignment(self, filename: str) -> None:
         ref_ph4_file = f"{self.vs_root}/raw/query.pml"

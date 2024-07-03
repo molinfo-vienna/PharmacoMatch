@@ -1,6 +1,6 @@
 #!/bin/bash
 
-root='/data/shared/projects/PhectorDB/litpcba/ESR1_ant'
+root='/data/shared/projects/PhectorDB/DUDE-Z/UROK'
 filename='inactives'
 cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
 
