@@ -23,7 +23,7 @@ def training(device):
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
-    CONFIG_FILE_PATH = "phector_db/scripts/config.yaml"
+    CONFIG_FILE_PATH = "pharmaco_match/scripts/config.yaml"
     MODEL = PhectorMatch
     VERSION = None
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"

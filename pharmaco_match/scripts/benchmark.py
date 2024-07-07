@@ -38,10 +38,11 @@ DATASET_ROOT = f"{PROJECT_ROOT}/DUDE-Z"
 
 for TARGET in os.listdir(DATASET_ROOT):
     try:
+        print(TARGET)
         # Define global variables
         VS_ROOT = f"{DATASET_ROOT}/{TARGET}"
         MODEL = PhectorMatch
-        VS_MODEL_NUMBER = 239
+        VS_MODEL_NUMBER = 250
         MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VS_MODEL_NUMBER}/"
         HPARAMS_FILE = "hparams.yaml"
 

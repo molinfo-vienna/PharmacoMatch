@@ -19,10 +19,10 @@ num_edge_features: 5
 num_node_features: 7
 num_samples: 100000
 output_dim_projector: 256
-precision: 32
 pooling: add
 positives_multiplier: 1
-radius: 0.05
+precision: 32
+radius: 0.25
 radius_negative: 1.5
 regularization_lambda: 0
 regularization_p_norm: 1

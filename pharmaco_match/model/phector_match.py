@@ -120,15 +120,15 @@ class PhectorMatch(LightningModule):
         batch_size = len(queries)
 
         # Regularization loss term
-        vector_norm = torch.norm(
-            torch.cat((queries, negative_queries, targets)),
-            p=self.hparams.regularization_p_norm,
-            dim=1,
-        )
+        # vector_norm = torch.norm(
+        #     torch.cat((queries, negative_queries, targets)),
+        #     p=self.hparams.regularization_p_norm,
+        #     dim=1,
+        # )
 
-        regularization_term = self.hparams.regularization_lambda * torch.sum(
-            (vector_norm - num_features) ** 2
-        )
+        # regularization_term = self.hparams.regularization_lambda * torch.sum(
+        #     (vector_norm - num_features) ** 2
+        # )
 
         # Positive loss term
         positives = torch.sum(
@@ -140,7 +140,7 @@ class PhectorMatch(LightningModule):
             dim=1,
         )
 
-        # Negative loss term
+        # Negative loss term - fine-grained negatives by displacement of tolerance sphere radius
         negatives_1 = torch.sum(
             torch.max(
                 torch.zeros_like(targets),
@@ -149,6 +149,8 @@ class PhectorMatch(LightningModule):
             ** 2,
             dim=1,
         )
+
+        # Coarse-grained negatives by mapping pairs that should not match
         negatives_2 = torch.sum(
             torch.max(
                 torch.zeros_like(targets),
@@ -175,7 +177,7 @@ class PhectorMatch(LightningModule):
         )
 
         # Calculate the accuracy of the positives and negatives w.r.t. the embedding space property
-        accuracy_positives = torch.sum(positives <= 0) / batch_size
+        accuracy_positives = torch.sum(positives <= self.hparams.margin) / batch_size
         accuracy_negatives_1 = (
             torch.sum(negatives_1 >= self.hparams.margin) / batch_size
         )
@@ -189,9 +191,7 @@ class PhectorMatch(LightningModule):
             torch.sum(negatives_4 >= self.hparams.margin) / batch_size
         )
 
-        negatives = torch.cat(
-            [negatives_1, negatives_2, negatives_3, negatives_4], dim=0
-        )
+        negatives_coarse = torch.cat([negatives_2, negatives_3, negatives_4], dim=0)
         # negatives = torch.cat([negatives_1, negatives_2], dim=0)
 
         # right here I can calculate the best threshold via auroc, and the MCC of the positives and negatives
@@ -215,15 +215,26 @@ class PhectorMatch(LightningModule):
         # pred = pred <= best_threshold
         # self.mcc.update(pred.int(), target.int())
 
-        negatives = torch.max(
+        # positives = torch.max(
+        #     torch.tensor(0.0, device=queries.device),
+        #     positives - self.hparams.margin,
+        # )
+
+        negatives_fine = torch.max(
             torch.tensor(0.0, device=queries.device),
-            self.hparams.margin - negatives,
+            self.hparams.margin - negatives_1,
+        )
+
+        negatives_coarse = torch.max(
+            torch.tensor(0.0, device=queries.device),
+            self.hparams.margin - negatives_coarse,
         )
 
         return (
             self.hparams.positives_multiplier * torch.sum(positives)
-            + torch.sum(negatives)
-            + regularization_term,
+            + torch.sum(negatives_fine)
+            + torch.sum(negatives_coarse),
+            # + regularization_term,
             accuracy_positives,
             accuracy_negatives_1,
             accuracy_negatives_2,

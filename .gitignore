@@ -4,4 +4,9 @@
 .ipynb_checkpoints
 plots
 visualization
+notebooks/comparison*
+notebooks/PCA*
+notebooks/final_results*
+notebooks/hit*
+notebooks/embeddings_*
 __pycache__/
