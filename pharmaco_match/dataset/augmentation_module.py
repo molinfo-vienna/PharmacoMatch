@@ -7,9 +7,10 @@ from .dataset_transforms import (
     RandomNodeDeletion,
     RandomSphericalNoise,
     RandomSphericalSurfaceNoise,
+    FurthestSphericalSurfaceDisplacement,
 )
 
-
+# TODO: The augmentation module signature is quite unsound. I need to rethink the design.
 class AugmentationModule(torch.nn.Module):
     """Module for augmenting the input data.
 
@@ -50,13 +51,13 @@ class AugmentationModule(torch.nn.Module):
         self.knn = 50
 
         if sphere_surface_sampling:
-            node_displacement = RandomSphericalSurfaceNoise(self.radius)
+            node_displacement = FurthestSphericalSurfaceDisplacement(self.radius)
         else:
             node_displacement = RandomSphericalNoise(self.radius)
 
         self.transform = T.Compose(
             [
-                RandomNodeDeletion(self.node_to_keep_lower_bound),
+                RandomNodeDeletion(self.node_to_keep_lower_bound, node_masking),
                 node_displacement,
                 T.KNNGraph(k=self.knn, force_undirected=True),
                 T.Distance(norm=False),

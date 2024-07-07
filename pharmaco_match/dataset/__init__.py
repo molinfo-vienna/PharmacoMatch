@@ -3,6 +3,7 @@ from .dataset_transforms import (
     RandomGaussianNoise,
     RandomNodeDeletion,
     RandomSphericalNoise,
+    FurthestSphericalSurfaceDisplacement,
 )
 from .pharmacophore_datamodule import PharmacophoreDataModule
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
@@ -18,4 +19,5 @@ __all__ = [
     "PharmacophoreDataModule",
     "AugmentationModule",
     "RandomSphericalNoise",
+    "FurthestSphericalSurfaceDisplacement",
 ]

@@ -4,6 +4,8 @@ from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
+from torch_geometric.nn import global_mean_pool
+from torch.nn.functional import normalize
 
 
 @functional_transform("distance_rdf")
@@ -133,6 +135,40 @@ class RandomSphericalSurfaceNoise(BaseTransform):
         return torch.vstack((x, y, z)).T
 
 
+@functional_transform("furthest_spherical_surface_displacement")
+class FurthestSphericalSurfaceDisplacement(BaseTransform):
+    """Transform to displace features into the opposite direction of the center of mass.
+
+    Displacements of features on the surface of a sphere with radius r s.t. they are
+    displaced in the opposite direction of the center of mass. This shall prevent the
+    creation of negative samples that might actually align to the initial pharmacophore.
+
+    Args:
+        radius (float, optional): radius of the sphere. Defaults to 1.
+    """
+
+    def __init__(self, radius: float = 1) -> None:
+        self.radius = radius
+
+    def __call__(self, data: Data) -> Data:
+        if self.radius is None or self.radius == 0:
+            return data
+
+        data.pos += self.calculate_displacement(data.pos, data.batch)
+
+        return data
+
+    def calculate_displacement(self, pos: Tensor, batch: Tensor) -> Tensor:
+        size, _ = pos.shape
+        device = pos.device
+
+        positional_mean = global_mean_pool(pos, batch)  # center of mass
+        displacement = pos - positional_mean[batch]
+        displacement = normalize(displacement, dim=1) * self.radius
+
+        return displacement
+
+
 @functional_transform("random_gaussian_noise")
 class RandomGaussianNoise(BaseTransform):
     """Transform to add random Gaussian noise to the node positions.
@@ -173,10 +209,16 @@ class RandomNodeDeletion(BaseTransform):
             remain after node deletion. Defaults to 3.
     """
 
-    def __init__(self, node_to_keep_lower_bound: int = 3) -> None:
+    def __init__(
+        self, node_to_keep_lower_bound: int = 3, node_deletion: float = 1
+    ) -> None:
         self.node_to_keep_lower_bound = node_to_keep_lower_bound
+        self.node_deletion = node_deletion
 
     def __call__(self, data: Data) -> Data:
+        if self.node_deletion is None or self.node_deletion == 0:
+            return data
+
         device = data.x.device
         n_nodes_per_graph = data.num_ph4_features
         n_nodes_to_delete = n_nodes_per_graph - self.node_to_keep_lower_bound
