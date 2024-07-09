@@ -6,9 +6,7 @@ import torch
 import torch_geometric
 from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.callbacks import (
-    LearningRateMonitor,
-)
+from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 
 from dataset import PharmacophoreDataModule
 from model import (
@@ -67,7 +65,7 @@ def training(device):
         f"{PROJECT_ROOT}/logs/", name=f"{MODEL.__name__}", default_hp_metric=False
     )
     callbacks = [
-        # ModelCheckpoint(monitor="val/outer_val_loss/dataloader_idx_1", mode="min"),
+        # ModelCheckpoint(monitor="val/outer_val_auroc/dataloader_idx_1", mode="max"),
         LearningRateMonitor("epoch"),
         CurriculumLearningScheduler(4, 10),
     ]

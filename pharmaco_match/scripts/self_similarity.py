@@ -78,7 +78,7 @@ class SelfSimilarityEvaluation:
 
         X, Y = np.meshgrid(self.threshold_range, self.radius_range)
         Z = self.subgraph_isomorphism.T
-        
+
         # fig = plt.figure()
         # plt.plot(self.radius_range, self.subgraph_isomorphism[0])
         # plt.xlabel(r"Displacement Radius / $\AA$")
@@ -182,7 +182,7 @@ def run(device):
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     MODEL = PhectorMatch
-    VERSION = 239
+    VERSION = 240
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     params = yaml.load(
