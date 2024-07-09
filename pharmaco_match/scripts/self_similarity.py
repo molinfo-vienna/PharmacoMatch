@@ -25,7 +25,7 @@ class SelfSimilarityEvaluation:
         steps_node_masking = 10
         self.max_radius = 10
         steps_radius = 21
-        self.max_threshold = 2000
+        self.max_threshold = 100
         steps_threshold = 50
 
         self.node_masking_range = [
@@ -182,7 +182,7 @@ def run(device):
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     MODEL = PhectorMatch
-    VERSION = 259
+    VERSION = 258
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     params = yaml.load(

@@ -11,7 +11,7 @@ from torch_geometric import transforms as T
 
 @functional_transform("distance_rdf")
 class DistanceRDF(BaseTransform):
-    """Transform to calculate RDF distance encodings from pair-wise edge distances.
+    """Transform to calculate RDF encodings from pair-wise edge distances.
 
     Pair-wise distances are represented by radial distance functions (RDF):
 
@@ -290,6 +290,17 @@ class RandomNodeDeletionByRatio(BaseTransform):
 
 
 class PositionsToGraphTransform(torch.nn.Module):
+    """A transform that converts node positions to a complete graph.
+
+    Composition of transforms, that creates a complete graph from node positions,
+    calculates pair-wise euclidean distances, and encodes them as radial distance
+    functions.
+
+    Args:
+        num_edge_features (int, optional): Number of bins of the distance encodings.
+            Defaults to 5.
+    """
+
     def __init__(
         self,
         num_edge_features: int = 5,

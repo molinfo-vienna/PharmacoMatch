@@ -26,14 +26,6 @@ class PhectorMatch(LightningModule):
         # Data transforms for positive and negative pairs
         self.node_deletion = RandomNodeDeletion()
 
-        # self.target_transform = T.Compose(
-        #     [
-        #         T.KNNGraph(k=50, force_undirected=True),
-        #         T.Distance(norm=False),
-        #         DistanceRDF(),
-        #     ]
-        # )
-
         self.target_transform = T.Compose([PositionsToGraphTransform()])
 
         self.query_transform = T.Compose(
