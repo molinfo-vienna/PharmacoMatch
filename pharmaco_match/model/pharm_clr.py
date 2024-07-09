@@ -6,8 +6,13 @@ import torch
 from torch.optim import Optimizer
 from torch import Tensor
 from torch_geometric.data import Data
+from torch_geometric import transforms as T
 
-from dataset import AugmentationModule
+from dataset import (
+    RandomNodeDeletionByRatio,
+    RandomSphericalNoise,
+    PositionsToGraphTransform,
+)
 from .encoder import GATEncoder
 from .projector import Projection
 
@@ -23,12 +28,15 @@ class PharmCLR(LightningModule):
         super(PharmCLR, self).__init__()
         self.save_hyperparameters()
 
-        self.transform = AugmentationModule(
-            train=True,
-            node_masking=self.hparams.node_masking,
-            radius=self.hparams.radius,
+        self.transform = T.Compose(
+            [
+                RandomNodeDeletionByRatio(self.hparams.node_masking),
+                RandomSphericalNoise(self.hparams.radius),
+                PositionsToGraphTransform(),
+            ]
         )
-        self.val_transform = AugmentationModule(train=False)
+
+        self.val_transform = T.Compose([PositionsToGraphTransform()])
 
         if self.hparams.encoder == "GAT":
             self.encoder = GATEncoder(
@@ -154,8 +162,8 @@ class PharmCLR(LightningModule):
         return loss, accuracy
 
     def shared_step(self, batch: Data, batch_idx: int) -> tuple[Tensor, Tensor]:
-        out1 = self(self.transform(batch))
-        out2 = self(self.transform(batch))
+        out1 = self(self.transform(batch.clone()))
+        out2 = self(self.transform(batch.clone()))
 
         return self.nt_xent_loss(out1, out2)
 
@@ -207,7 +215,7 @@ class PharmCLR(LightningModule):
             )
 
             # rankme criterion
-            self.val_embeddings.append(self(self.val_transform(batch)))
+            self.val_embeddings.append(self(self.val_transform(batch.clone())))
 
             return val_loss
 
@@ -240,6 +248,6 @@ class PharmCLR(LightningModule):
         self, batch: Data, batch_idx: int
     ) -> Union[Tensor, tuple[Tensor, Tensor]]:
         if "mol_id" in batch.keys:
-            return self(self.val_transform(batch)), batch.mol_id
+            return self(self.val_transform(batch.clone())), batch.mol_id
         else:
-            return self(self.val_transform(batch))
+            return self(self.val_transform(batch.clone()))

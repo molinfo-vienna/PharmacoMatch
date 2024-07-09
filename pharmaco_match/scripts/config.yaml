@@ -9,7 +9,7 @@ hidden_dim_projector: 1024
 input_dim_projector: 1024
 k: 3
 learning_rate: 0.001
-margin: 0.1
+margin: 10.
 momentum: 0.001
 n_layers_conv: 3
 n_layers_projector: 3

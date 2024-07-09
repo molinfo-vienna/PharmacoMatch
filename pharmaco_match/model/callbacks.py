@@ -6,9 +6,15 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch_geometric.nn import global_max_pool
+from torch_geometric import transforms as T
 from torchmetrics import AUROC
 
-from dataset import AugmentationModule
+
+from dataset import (
+    RandomNodeDeletion,
+    FurthestSphericalSurfaceDisplacement,
+    PositionsToGraphTransform,
+)
 
 
 class CurriculumLearningScheduler(Callback):
@@ -84,13 +90,29 @@ class ValidationDataTransformSetter(Callback):
         self.node_to_keep_lower_bound = node_to_keep_lower_bound
 
     def setup(self, trainer: Trainer, pl_module: LightningModule, stage: str) -> None:
-        pl_module.target_transform = AugmentationModule(
-            train=True,
-            node_masking=self.node_masking,
-            sphere_surface_sampling=True,
-            radius=self.radius,
-            node_to_keep_lower_bound=self.node_to_keep_lower_bound,
-        )
+        # pl_module.target_transform = AugmentationModule(
+        #     train=True,
+        #     node_masking=self.node_masking,
+        #     sphere_surface_sampling=True,
+        #     radius=self.radius,
+        #     node_to_keep_lower_bound=self.node_to_keep_lower_bound,
+        # )
+
+        if self.node_masking == 0 or self.node_masking is None:
+            pl_module.target_transform = T.Compose(
+                [
+                    FurthestSphericalSurfaceDisplacement(self.radius),
+                    PositionsToGraphTransform(),
+                ]
+            )
+        else:
+            pl_module.target_transform = T.Compose(
+                [
+                    RandomNodeDeletion(self.node_to_keep_lower_bound),
+                    FurthestSphericalSurfaceDisplacement(self.radius),
+                    PositionsToGraphTransform(),
+                ]
+            )
 
 
 class VirtualScreeningCallback(Callback):

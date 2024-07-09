@@ -6,6 +6,7 @@ from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.nn import global_mean_pool
 from torch.nn.functional import normalize
+from torch_geometric import transforms as T
 
 
 @functional_transform("distance_rdf")
@@ -209,14 +210,11 @@ class RandomNodeDeletion(BaseTransform):
             remain after node deletion. Defaults to 3.
     """
 
-    def __init__(
-        self, node_to_keep_lower_bound: int = 3, node_deletion: float = 1
-    ) -> None:
+    def __init__(self, node_to_keep_lower_bound: int = 3) -> None:
         self.node_to_keep_lower_bound = node_to_keep_lower_bound
-        self.node_deletion = node_deletion
 
     def __call__(self, data: Data) -> Data:
-        if self.node_deletion is None or self.node_deletion == 0:
+        if len(data) == 0 or data is None:
             return data
 
         device = data.x.device
@@ -289,3 +287,25 @@ class RandomNodeDeletionByRatio(BaseTransform):
         data.num_ph4_features = n_nodes_to_keep
 
         return data
+
+
+class PositionsToGraphTransform(torch.nn.Module):
+    def __init__(
+        self,
+        num_edge_features: int = 5,
+    ) -> None:
+        super(PositionsToGraphTransform, self).__init__()
+        self.num_edge_features = num_edge_features
+        self.knn = 50
+
+        self.transform = T.Compose(
+            [
+                T.KNNGraph(k=self.knn, force_undirected=True),
+                T.Distance(norm=False),
+                DistanceRDF(num_bins=self.num_edge_features),
+            ]
+        )
+
+    @torch.no_grad()
+    def forward(self, data: Data) -> Data:
+        return self.transform(data.clone())

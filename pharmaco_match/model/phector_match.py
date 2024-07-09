@@ -5,49 +5,56 @@ import torch
 from torch.optim import Optimizer, Adam
 from torch import Tensor
 from torch_geometric.data import Data
+from torch_geometric import transforms as T
 from torchmetrics.classification import BinaryAUROC
 
-from dataset import AugmentationModule, RandomNodeDeletion
-from .encoder import GATEncoder, GINEncoder, NNConvEncoder
+from .encoder import GINEncoder, NNConvEncoder
 from .projector import ProjectionPhectorMatch
+from dataset import (
+    RandomNodeDeletion,
+    RandomSphericalNoise,
+    FurthestSphericalSurfaceDisplacement,
+    PositionsToGraphTransform,
+)
 
 
 class PhectorMatch(LightningModule):
     def __init__(self, **params) -> None:
         super(PhectorMatch, self).__init__()
         self.save_hyperparameters()
-        self.node_deletion = RandomNodeDeletion(3)
-        self.query_transform = AugmentationModule(
-            train=True,
-            node_masking=None,
-            radius=self.hparams.radius,
-        )
-        self.reference_transform = AugmentationModule(
-            train=True,
-            node_masking=None,
-            radius=self.hparams.radius_negative,
-        )
-        self.negative_query_transform = AugmentationModule(
-            train=True,
-            node_masking=None,
-            sphere_surface_sampling=True,
-            radius=self.hparams.radius_negative,
-        )
-        self.target_transform = AugmentationModule(train=False)
 
-        if self.hparams.encoder == "GAT":
-            self.encoder = GATEncoder(
-                input_dim=self.hparams.num_node_features,
-                node_embedding_dim=self.hparams.node_embedding_dim,
-                hidden_dim=self.hparams.hidden_dim_encoder,
-                output_dim=self.hparams.input_dim_projector,
-                n_conv_layers=self.hparams.n_layers_conv,
-                num_edge_features=self.hparams.num_edge_features,
-                dropout=self.hparams.dropout,
-                residual_connection=self.hparams.residual_connection,
-                pooling=self.hparams.pooling,
-            )
+        # Data transforms for positive and negative pairs
+        self.node_deletion = RandomNodeDeletion()
 
+        # self.target_transform = T.Compose(
+        #     [
+        #         T.KNNGraph(k=50, force_undirected=True),
+        #         T.Distance(norm=False),
+        #         DistanceRDF(),
+        #     ]
+        # )
+
+        self.target_transform = T.Compose([PositionsToGraphTransform()])
+
+        self.query_transform = T.Compose(
+            [RandomSphericalNoise(self.hparams.radius), PositionsToGraphTransform()]
+        )
+
+        self.reference_transform = T.Compose(
+            [
+                RandomSphericalNoise(self.hparams.radius_negative),
+                PositionsToGraphTransform(),
+            ]
+        )
+
+        self.negative_query_transform = T.Compose(
+            [
+                FurthestSphericalSurfaceDisplacement(self.hparams.radius_negative),
+                PositionsToGraphTransform(),
+            ]
+        )
+
+        # Encoder and projector
         if self.hparams.encoder == "GIN":
             self.encoder = GINEncoder(
                 input_dim=self.hparams.num_node_features,
@@ -235,11 +242,11 @@ class PhectorMatch(LightningModule):
         )
 
     def shared_step(self, batch: Data, batch_idx: int) -> tuple[Tensor, Tensor]:
-        targets = self.target_transform(batch)
-        batch = self.node_deletion(batch)
-        queries = self.query_transform(batch)
-        reference_queries = self.reference_transform(batch)
-        negative_queries = self.negative_query_transform(batch)
+        targets = self.target_transform(batch.clone())
+        batch = self.node_deletion(batch.clone())
+        queries = self.query_transform(batch.clone())
+        reference_queries = self.reference_transform(batch.clone())
+        negative_queries = self.negative_query_transform(batch.clone())
 
         return self.loss(queries, reference_queries, negative_queries, targets)
 
@@ -443,6 +450,6 @@ class PhectorMatch(LightningModule):
         self, batch: Data, batch_idx: int
     ) -> Union[Tensor, tuple[Tensor, Tensor]]:
         if "mol_id" in batch.keys:
-            return self(self.target_transform(batch)), batch.mol_id
+            return self(self.target_transform(batch.clone())), batch.mol_id
         else:
-            return self(self.target_transform(batch))
+            return self(self.target_transform(batch.clone()))
