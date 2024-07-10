@@ -1,5 +1,4 @@
 from .callbacks import (
-    VirtualScreeningCallback,
     ValidationDataTransformSetter,
     CurriculumLearningScheduler,
 )
@@ -8,7 +7,6 @@ from .phector_match import PhectorMatch
 
 __all__ = [
     "PharmCLR",
-    "VirtualScreeningCallback",
     "ValidationDataTransformSetter",
     "PhectorMatch",
     "CurriculumLearningScheduler",
