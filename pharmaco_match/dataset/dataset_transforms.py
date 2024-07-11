@@ -292,7 +292,7 @@ class RandomNodeDeletionByRatio(BaseTransform):
 class PositionsToGraphTransform(torch.nn.Module):
     """A transform that converts node positions to a complete graph.
 
-    Composition of transforms, that creates a complete graph from node positions,
+    Composition of transforms that creates a complete graph from node positions,
     calculates pair-wise euclidean distances, and encodes them as radial distance
     functions.
 
