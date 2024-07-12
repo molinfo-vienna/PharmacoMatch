@@ -22,6 +22,7 @@ from utils import (
     enrichment_factor,
     UmapEmbeddingPlotter,
     PcaEmbeddingPlotter,
+    bedroc_score,
 )
 from virtual_screening import (
     VirtualScreeningEmbedder,
@@ -204,7 +205,9 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         path = "matching.png"
         fpr, tpr, threshold = roc_curve(y_true, y_pred)
         auroc = roc_auc_score(y_true, y_pred)
+        bedroc = bedroc_score(y_true, y_pred)
         experiment_data["order_embedding_auroc"] = auroc
+        experiment_data["order_embedding_bedroc"] = bedroc
         j = tpr - fpr
         idx = np.argmax(j)
 
@@ -248,7 +251,9 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         path = "matching.png"
         fpr, tpr, threshold = roc_curve(y_true, y_pred)
         auroc_cdp = roc_auc_score(y_true, y_pred)
+        bedroc_cdp = bedroc_score(y_true, y_pred)
         experiment_data["cdpkit_auroc"] = auroc_cdp
+        experiment_data["cdpkit_bedroc"] = bedroc_cdp
 
         j = tpr - fpr
         idx = np.argmax(j)

@@ -5,7 +5,7 @@ from typing import Optional, Callable
 import pandas as pd
 import torch
 from torch import Tensor
-from torch_geometric.data import Data, InMemoryDataset  # , download_url
+from torch_geometric.data import Data, InMemoryDataset
 import CDPL.Pharm as Pharm
 from CDPL.Pharm import PSDPharmacophoreReader
 import CDPL.Chem as Chem

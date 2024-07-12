@@ -1,14 +1,52 @@
 import os
 import sys
 import yaml
+from typing import Callable, Tuple
 
 from lightning import LightningModule
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch import Tensor
+from rdkit.ML.Scoring.Scoring import CalcBEDROC
 
 import CDPL.Pharm as Pharm
+
+
+def bootstrap_metric(
+    y_true: Tensor, y_pred: Tensor, metric: Callable, num_bootstrap: int = 100
+) -> Tuple[float, float]:
+    vals = []
+    for _ in range(num_bootstrap):
+        idx = (np.random.uniform(size=len(y_true)) * len(y_true)).astype(int)
+        vals.append(metric(y_true[idx], y_pred[idx]))
+
+    return np.mean(vals), np.std(vals)
+
+
+def bedroc_score(y_true: Tensor, y_pred: Tensor, alpha: float = 20) -> float:
+    """
+    Calculate BEDROC score.
+
+    Parameters:
+    - y_true: true binary labels (0 or 1)
+    - y_score: predicted scores or probabilities
+    - alpha: parameter controlling the degree of early retrieval emphasis
+
+    Returns:
+    - BEDROC score
+    """
+
+    # concate res_single and labels
+    scores = np.expand_dims(y_pred, axis=1)
+    y_true = np.expand_dims(y_true, axis=1)
+    # print(scores.shape, y_true.shape)
+    scores = np.concatenate((scores, y_true), axis=1)
+    # inverse sort scores based on first column
+    scores = scores[scores[:, 0].argsort()[::-1]]
+    bedroc = CalcBEDROC(scores, 1, alpha)
+
+    return bedroc
 
 
 def enrichment_factor(y_true: Tensor, y_pred: Tensor, alpha: float) -> float:
