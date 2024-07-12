@@ -12,15 +12,15 @@ import umap
 
 
 class UmapEmbeddingPlotter:
-    def __init__(self, screener, metadata):
+    def __init__(
+        self, screener, datamodule
+    ):
         self.screener = screener
-        self.metadata = metadata
-
         self.metadata = pd.concat(
             (
-                metadata.inactive_metadata,
-                metadata.active_metadata,
-                metadata.query_metadata,
+                datamodule.inactive_metadata,
+                datamodule.active_metadata,
+                datamodule.query_metadata,
             ),
             ignore_index=True,
         )
@@ -137,7 +137,7 @@ class UmapEmbeddingPlotter:
 
 
 class PcaEmbeddingPlotter:
-    def __init__(self, screener, metadata):
+    def __init__(self, screener, datamodule):
         mean_actives = global_mean_pool(
             screener.active_embeddings, screener.active_mol_ids
         )
@@ -146,8 +146,8 @@ class PcaEmbeddingPlotter:
         )
         mean_vectors = torch.cat((mean_actives, mean_inactives))
 
-        self.active_counts = metadata.active_metadata["num_features"].values
-        self.inactive_counts = metadata.inactive_metadata["num_features"].values
+        self.active_counts = datamodule.active_metadata["num_features"].values
+        self.inactive_counts = datamodule.inactive_metadata["num_features"].values
 
         pca = PCA(n_components=4)
         pca.fit(mean_vectors)

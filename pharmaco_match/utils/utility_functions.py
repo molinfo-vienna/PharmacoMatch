@@ -5,7 +5,6 @@ import yaml
 from lightning import LightningModule
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import torch
 from torch import Tensor
 
@@ -40,57 +39,6 @@ def getReaderByFileExt(filename: str) -> Pharm.PharmacophoreReader:
 
     # create and return file reader instance
     return ipt_handler.createReader(filename)
-
-
-class PharmacophoreMetaData:
-    def __init__(self, path: str):
-        inactive_path = os.path.join(path, "raw", "inactives.psd")
-        active_path = os.path.join(path, "raw", "actives.psd")
-        query_path = os.path.join(path, "raw", "query.pml")
-        self.inactive_metadata = self.create_metadata(inactive_path)
-        self.active_metadata = self.create_metadata(active_path)
-        self.query_metadata = self.create_metadata(query_path)
-
-    # Create metadata from pharmacophore file
-    def create_metadata(self, path: str) -> pd.DataFrame:
-        reader = getReaderByFileExt(path)
-        ph4 = Pharm.BasicPharmacophore()
-        names = []
-        features = []
-        index = []
-        conf_index = []
-        num_features = []
-        conf = 0
-        i = 0
-        name = ""
-
-        while reader.read(ph4):
-            if ph4.getNumFeatures() == 0:
-                continue
-            feature_types = Pharm.generateFeatureTypeHistogramString(ph4)
-            if name == Pharm.getName(ph4):
-                conf += 1
-            else:
-                conf = 0
-                name = Pharm.getName(ph4)
-            conf_index.append(conf)
-            features.append(feature_types)
-            names.append(name)
-            index.append(i)
-            num_features.append(ph4.getNumFeatures())
-            i += 1
-
-        metadata = pd.DataFrame(
-            {
-                "index": index,
-                "name": names,
-                "conf_idx": conf_index,
-                "features": features,
-                "num_features": num_features,
-            }
-        )
-
-        return metadata
 
 
 def load_hparams_from_path(folder_path: str) -> dict:

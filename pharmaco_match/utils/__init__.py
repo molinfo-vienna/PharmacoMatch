@@ -3,7 +3,6 @@ from .utility_functions import (
     visualize_pharm,
     load_hparams_from_path,
     getReaderByFileExt,
-    PharmacophoreMetaData,
     enrichment_factor,
 )
 
@@ -14,7 +13,6 @@ __all__ = [
     "visualize_pharm",
     "load_hparams_from_path",
     "getReaderByFileExt",
-    "PharmacophoreMetaData",
     "enrichment_factor",
     "UmapEmbeddingPlotter",
     "PcaEmbeddingPlotter",

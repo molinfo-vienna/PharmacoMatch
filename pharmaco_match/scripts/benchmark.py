@@ -96,7 +96,7 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         experiment_data["model"] = VS_MODEL_NUMBER
         experiment_data["embedding_time"] = screener.embedding_time
         experiment_data["matching_time"] = screener.matching_time
-        num_features_query = metadata.query_metadata["num_features"].sum()
+        num_features_query = datamodule.query_metadata["num_features"].sum()
         experiment_data["query_num_features"] = num_features_query
         experiment_data["active_ligands"] = (
             torch.max(screener.active_mol_ids).item() + 1
@@ -284,11 +284,11 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         i += 1
 
         # PCA should conserve the order embedding space property
-        pca_plotter = PcaEmbeddingPlotter(screener, metadata)
+        pca_plotter = PcaEmbeddingPlotter(screener, datamodule)
         fig3 = pca_plotter.create_pca_plot()
         fig3.savefig(f"visualization/PCA_{TARGET}.png", dpi=300)
 
-        umap_plotter = UmapEmbeddingPlotter(screener, metadata)
+        umap_plotter = UmapEmbeddingPlotter(screener, datamodule)
         fig4 = umap_plotter.create_umap_plot()
         fig4.savefig(
             f"visualization/embeddings_{TARGET}.png",
