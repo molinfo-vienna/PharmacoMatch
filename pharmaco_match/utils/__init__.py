@@ -2,6 +2,20 @@ from .utility_functions import (
     load_model_from_path,
     visualize_pharm,
     load_hparams_from_path,
+    getReaderByFileExt,
+    PharmacophoreMetaData,
+    enrichment_factor,
 )
 
-__all__ = ["load_model_from_path", "visualize_pharm", "load_hparams_from_path"]
+from .plotting import UmapEmbeddingPlotter, PcaEmbeddingPlotter
+
+__all__ = [
+    "load_model_from_path",
+    "visualize_pharm",
+    "load_hparams_from_path",
+    "getReaderByFileExt",
+    "PharmacophoreMetaData",
+    "enrichment_factor",
+    "UmapEmbeddingPlotter",
+    "PcaEmbeddingPlotter",
+]
