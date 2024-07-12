@@ -18,7 +18,7 @@ node_masking: 0.5
 num_edge_features: 5
 num_node_features: 7
 num_samples: 100000
-output_dim_projector: 256
+output_dim_projector: 512
 pooling: add
 positives_multiplier: 1
 precision: 32

@@ -3,11 +3,11 @@ from torch import Tensor
 from torch_geometric.nn import global_add_pool
 from torch_geometric.loader import DataLoader
 
-from dataset import PharmacophoreDataModule
+from dataset import VirtualScreeningDataModule
 
 
 class FeatureCountPrefilter:
-    def __init__(self, vs_datamodule: PharmacophoreDataModule) -> None:
+    def __init__(self, vs_datamodule: VirtualScreeningDataModule) -> None:
         self.vs_datamodule = vs_datamodule
 
     def get_actives_mask(self, query_idx: int = 0) -> Tensor:

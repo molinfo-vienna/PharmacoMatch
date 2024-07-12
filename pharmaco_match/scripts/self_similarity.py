@@ -11,7 +11,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 
 from dataset import PharmacophoreDataModule
-from model import PharmCLR, ValidationDataTransformSetter, PhectorMatch
+from model import ValidationDataTransformSetter, PhectorMatch
 from utils import load_model_from_path
 
 
@@ -180,7 +180,6 @@ class SelfSimilarityEvaluation:
 def run(device):
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
-    VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     MODEL = PhectorMatch
     VERSION = 250
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
@@ -197,9 +196,7 @@ def run(device):
 
     datamodule = PharmacophoreDataModule(
         PRETRAINING_ROOT,
-        VS_ROOT,
         batch_size=params["batch_size"],
-        small_set_size=params["num_samples"],
     )
 
     model = load_model_from_path(MODEL_PATH, MODEL)

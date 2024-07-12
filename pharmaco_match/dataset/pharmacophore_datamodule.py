@@ -7,20 +7,18 @@ from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 class PharmacophoreDataModule(LightningDataModule):
     """Implementation of a LightningDataModule for the pharmacophore dataset.
 
-    The data module provides data loaders for training, validation, and virtual
-    screening. The module offers two validation sets, an inner validation set and an
-    outer validation set. Curriculum learning is applied by training only on the subset
-    of graphs with a number of nodes that is bounded by the graph_size_upper_bound
-    parameter. The inner validation data is a split of this subset, the outer validation
-    data is a split of the complete dataset. Tracking model performance on the inner
-    validation data indicates when to increase the graph_size_upper_bound parameter,
-    tracking the outer data reflects the overall model performance.
+    The data module provides data loaders for model training and validation. The module
+    offers two validation sets, an inner validation set and an outer validation set.
+    Curriculum learning is applied by training only on the subset of graphs with a
+    number of nodes that is bounded by the graph_size_upper_bound parameter. The inner
+    validation data is a split of this subset, the outer validation data is a split of
+    the complete dataset. Tracking model performance on the inner validation data
+    indicates when to increase the graph_size_upper_bound parameter, tracking the outer
+    data reflects the overall model performance.
 
     Args:
-        preprocessing_data_dir (str): Path to the location of the unlabeled
+        training_data_dir (str): Path to the location of the unlabeled
             pharmacophore dataset for model training.
-        virtual_screening_data_dir (str): Path to the location of the labeled virtual
-            screening dataset for model evaluation.
         batch_size (int, optional): Batch size of the data loaders. If None, the
             dataloader works in full batch mode. Defaults to None.
         small_set_size (int, optional): Upper bound on the number of graphs in the
@@ -34,24 +32,20 @@ class PharmacophoreDataModule(LightningDataModule):
 
     def __init__(
         self,
-        preprocessing_data_dir: str,
-        virtual_screening_data_dir: str,
+        training_data_dir: str,
         batch_size: int = None,
         small_set_size: int = None,
         graph_size_upper_bound: int = None,
     ) -> None:
         super(PharmacophoreDataModule, self).__init__()
-        self.preprocessing_data_dir = preprocessing_data_dir
-        self.virtual_screening_data_dir = virtual_screening_data_dir
+        self.training_data_dir = training_data_dir
         self.batch_size = batch_size
         self.small_set_size = small_set_size
         self.graph_size_upper_bound = graph_size_upper_bound
 
     def setup(self, stage: str = "fit") -> None:
         if stage == "fit":
-            full_data = PharmacophoreDataset(
-                self.preprocessing_data_dir, transform=None
-            )
+            full_data = PharmacophoreDataset(self.training_data_dir, transform=None)
 
             inner_data, self.outer_val_data = (
                 full_data[: (int)(len(full_data) * 0.98)],
@@ -65,24 +59,15 @@ class PharmacophoreDataModule(LightningDataModule):
             if self.small_set_size < len(inner_data):
                 inner_data = inner_data[: self.small_set_size]
 
-            print(f"Number of training graphs: {len(inner_data)}")
             num_samples = len(inner_data)
             self.train_data, self.inner_val_data = (
                 inner_data[: (int)(num_samples * 0.9)],
                 inner_data[(int)(num_samples * 0.9) :],
             )
 
-            self.query = VirtualScreeningDataset(
-                self.virtual_screening_data_dir, path_type="query", transform=None
-            )
-            self.actives = VirtualScreeningDataset(
-                self.virtual_screening_data_dir, path_type="active", transform=None
-            )
-            self.inactives = VirtualScreeningDataset(
-                self.virtual_screening_data_dir, path_type="inactive", transform=None
-            )
-            print(f"Number of active graphs: {len(self.actives)}")
-            print(f"Number of inactive graphs: {len(self.inactives)}")
+            print(f"Number of training graphs: {len(self.train_data)}")
+            print(f"Number of inner validation graphs: {len(self.inner_val_data)}")
+            print(f"Number of outer validation graphs: {len(self.outer_val_data)}")
 
     def train_dataloader(self) -> DataLoader:
         if self.batch_size is None:
@@ -118,6 +103,46 @@ class PharmacophoreDataModule(LightningDataModule):
             return DataLoader(
                 data, batch_size=self.batch_size, shuffle=False, drop_last=True
             )
+
+
+class VirtualScreeningDataModule(LightningDataModule):
+    """Implementation of a LightningDataModule for the virtual screening dataset.
+
+    A virtual screening benchmark dataset consists of three subsets: the query
+    pharmacophore, active ligands, and inactive ligands. The query is stored in
+    .pml-format, the actives and inactives are stored in .psd-format. The data module
+    provides data loaders for each of these subsets.
+
+    Args:
+        virtual_screening_data_dir (str): Path to the location of the labeled virtual
+            screening dataset for model evaluation.
+        batch_size (int, optional): Batch size of the data loaders. If None, the
+            dataloader works in full batch mode. Defaults to None.
+    """
+
+    def __init__(
+        self,
+        virtual_screening_data_dir: str,
+        batch_size: int = None,
+    ) -> None:
+        super(VirtualScreeningDataModule, self).__init__()
+        self.virtual_screening_data_dir = virtual_screening_data_dir
+        self.batch_size = batch_size
+
+    def setup(self, stage: str = "screening") -> None:
+        if stage == "screening":
+            self.query = VirtualScreeningDataset(
+                self.virtual_screening_data_dir, path_type="query", transform=None
+            )
+            self.actives = VirtualScreeningDataset(
+                self.virtual_screening_data_dir, path_type="active", transform=None
+            )
+            self.inactives = VirtualScreeningDataset(
+                self.virtual_screening_data_dir, path_type="inactive", transform=None
+            )
+            print(f"Number of query graphs: {len(self.query)}")
+            print(f"Number of active graphs: {len(self.actives)}")
+            print(f"Number of inactive graphs: {len(self.inactives)}")
 
     def vs_dataloader(self) -> list[DataLoader]:
         return [

@@ -1,14 +1,10 @@
 import os
-import re
 import yaml
 
 from lightning import Trainer, seed_everything
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
 from sklearn.metrics import (
     roc_curve,
     matthews_corrcoef,
@@ -17,10 +13,9 @@ from sklearn.metrics import (
 )
 import torch
 import torch_geometric
-from torch_geometric.nn import global_mean_pool, global_max_pool
-import umap
+from torch_geometric.nn import global_max_pool
 
-from dataset import PharmacophoreDataModule
+from dataset import VirtualScreeningDataModule
 from model import PhectorMatch
 from utils import (
     load_model_from_path,
@@ -37,7 +32,6 @@ from virtual_screening import (
 
 results = []
 PROJECT_ROOT = "/data/shared/projects/PhectorDB"
-PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
 DATASET_ROOT = f"{PROJECT_ROOT}/DUDE-Z"
 
 fig1, axes1 = plt.subplots(2, 5, figsize=(25, 10), sharex=True, sharey=True)
@@ -67,17 +61,14 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         torch.backends.cudnn.benchmark = False
 
         # Setup datamodule
-        datamodule = PharmacophoreDataModule(
-            PRETRAINING_ROOT,
+        datamodule = VirtualScreeningDataModule(
             VS_ROOT,
             batch_size=params["batch_size"],
-            small_set_size=params["num_samples"],
         )
         datamodule.setup()
 
         # Load the model
         model = load_model_from_path(os.path.join(PROJECT_ROOT, MODEL_PATH), MODEL)
-        device = [model.device.index]
         trainer = Trainer(
             num_nodes=1,
             devices=[0],

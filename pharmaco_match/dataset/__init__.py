@@ -7,7 +7,10 @@ from .dataset_transforms import (
     FurthestSphericalSurfaceDisplacement,
     PositionsToGraphTransform,
 )
-from .pharmacophore_datamodule import PharmacophoreDataModule
+from .pharmacophore_datamodule import (
+    PharmacophoreDataModule,
+    VirtualScreeningDataModule,
+)
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
 
@@ -19,6 +22,7 @@ __all__ = [
     "PharmacophoreDataset",
     "VirtualScreeningDataset",
     "PharmacophoreDataModule",
+    "VirtualScreeningDataModule",
     "RandomSphericalNoise",
     "FurthestSphericalSurfaceDisplacement",
     "PositionsToGraphTransform",

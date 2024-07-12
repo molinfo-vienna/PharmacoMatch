@@ -20,7 +20,6 @@ def training(device):
     # Path variables
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
-    VS_ROOT = f"{PROJECT_ROOT}/litpcba/ESR1_ant"
     CONFIG_FILE_PATH = "pharmaco_match/scripts/config.yaml"
     MODEL = PhectorMatch
     VERSION = None
@@ -53,7 +52,7 @@ def training(device):
     else:
         model = MODEL(**params)
 
-    # # Check for pretrained model
+    # Check for pretrained model
     # if os.path.exists(PRETRAINED_MODEL_PATH):
     #     pretrained_model = load_model_from_path(
     #         PRETRAINED_MODEL_PATH, PRETRAINED_MODEL, device[0]
@@ -86,19 +85,11 @@ def training(device):
     # Load dataset
     datamodule = PharmacophoreDataModule(
         PRETRAINING_ROOT,
-        VS_ROOT,
         batch_size=params["batch_size"],
         small_set_size=params["num_samples"],
     )
 
     trainer.fit(model=model, datamodule=datamodule)
-    # model = trainer.model
-    # model = PharmCLR.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
-    # embedder = VirtualScreeningEmbedder(model, datamodule, trainer)
-    # vs = VirtualScreeningExperiment(embedder, trainer.logger.version)
-    # vs()
-    # eval = SelfSimilarityEvaluation(model, datamodule.create_val_dataloader(), device)
-    # eval.calculate_mean_similarities(trainer.logger.version)
 
 
 if __name__ == "__main__":
