@@ -8,32 +8,6 @@ from torch_geometric.loader import DataLoader
 
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
-# from utils import getReaderByFileExt
-import CDPL.Pharm as Pharm
-
-
-# Retrieve meta data from screening data base
-def getReaderByFileExt(filename: str) -> Pharm.PharmacophoreReader:
-    name_and_ext = os.path.splitext(filename)
-
-    if name_and_ext[1] == "":
-        sys.exit(
-            "Error: could not determine pharmacophore input file format (file extension missing)"
-        )
-
-    # get input handler for the format specified by the input file's extension
-    ipt_handler = Pharm.PharmacophoreIOManager.getInputHandlerByFileExtension(
-        name_and_ext[1][1:].lower()
-    )
-
-    if not ipt_handler:
-        sys.exit(
-            "Error: unsupported pharmacophore input file format '%s'" % name_and_ext[1]
-        )
-
-    # create and return file reader instance
-    return ipt_handler.createReader(filename)
-
 
 class PharmacophoreDataModule(LightningDataModule):
     """Implementation of a LightningDataModule for the pharmacophore dataset.
@@ -182,20 +156,10 @@ class VirtualScreeningDataModule(LightningDataModule):
             print(f"Number of active graphs: {len(self.actives)}")
             print(f"Number of inactive graphs: {len(self.inactives)}")
 
-            inactive_path = os.path.join(
-                self.virtual_screening_data_dir, "raw", "inactives.psd"
-            )
-            active_path = os.path.join(
-                self.virtual_screening_data_dir, "raw", "actives.psd"
-            )
-            query_path = os.path.join(
-                self.virtual_screening_data_dir, "raw", "query.pml"
-            )
-
             self.metadata = VirtualScreeningMetaData(
-                self.create_metadata(active_path),
-                self.create_metadata(inactive_path),
-                self.create_metadata(query_path),
+                self.actives.get_metadata(),
+                self.inactives.get_metadata(),
+                self.query.get_metadata(),
             )
 
     def vs_dataloader(self) -> list[DataLoader]:
@@ -222,44 +186,3 @@ class VirtualScreeningDataModule(LightningDataModule):
             return DataLoader(self.inactives, batch_size=len(self.inactives))
         else:
             return DataLoader(self.inactives, batch_size=self.batch_size)
-
-    # Create metadata from pharmacophore file
-    def create_metadata(self, path: str) -> pd.DataFrame:
-        reader = getReaderByFileExt(path)
-        ph4 = Pharm.BasicPharmacophore()
-        names = []
-        features = []
-        index = []
-        conf_index = []
-        num_features = []
-        conf = 0
-        i = 0
-        name = ""
-
-        while reader.read(ph4):
-            if ph4.getNumFeatures() == 0:
-                continue
-            feature_types = Pharm.generateFeatureTypeHistogramString(ph4)
-            if name == Pharm.getName(ph4):
-                conf += 1
-            else:
-                conf = 0
-                name = Pharm.getName(ph4)
-            conf_index.append(conf)
-            features.append(feature_types)
-            names.append(name)
-            index.append(i)
-            num_features.append(ph4.getNumFeatures())
-            i += 1
-
-        metadata = pd.DataFrame(
-            {
-                "index": index,
-                "name": names,
-                "conf_idx": conf_index,
-                "features": features,
-                "num_features": num_features,
-            }
-        )
-
-        return metadata

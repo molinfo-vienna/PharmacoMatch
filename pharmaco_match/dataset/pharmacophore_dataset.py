@@ -2,6 +2,7 @@ import os
 import sys
 from typing import Optional, Callable
 
+import pandas as pd
 import torch
 from torch import Tensor
 from torch_geometric.data import Data, InMemoryDataset  # , download_url
@@ -199,6 +200,7 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
         pre_filter: Optional[Callable] = None,
     ):
         super().__init__(root, transform, pre_transform, pre_filter)
+        self.path_type = path_type
         if path_type == "active":
             path = self.processed_paths[0]
         if path_type == "inactive":
@@ -297,3 +299,49 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
                     sys.exit("Error: processing of pharmacophore failed: " + str(e))
 
             return data_list
+
+    def get_metadata(self) -> pd.DataFrame:
+        if self.path_type == "active":
+            path = self.raw_paths[0]
+        if self.path_type == "inactive":
+            path = self.raw_paths[1]
+        if self.path_type == "query":
+            path = self.raw_paths[2]
+        reader = self._getPharmReaderByFileExt(path)
+        ph4 = Pharm.BasicPharmacophore()
+        names = []
+        features = []
+        index = []
+        conf_index = []
+        num_features = []
+        conf = 0
+        i = 0
+        name = ""
+
+        while reader.read(ph4):
+            if ph4.getNumFeatures() == 0:
+                continue
+            feature_types = Pharm.generateFeatureTypeHistogramString(ph4)
+            if name == Pharm.getName(ph4):
+                conf += 1
+            else:
+                conf = 0
+                name = Pharm.getName(ph4)
+            conf_index.append(conf)
+            features.append(feature_types)
+            names.append(name)
+            index.append(i)
+            num_features.append(ph4.getNumFeatures())
+            i += 1
+
+        metadata = pd.DataFrame(
+            {
+                "index": index,
+                "name": names,
+                "conf_idx": conf_index,
+                "features": features,
+                "num_features": num_features,
+            }
+        )
+
+        return metadata
