@@ -1,12 +1,38 @@
 import os
+import sys
+from dataclasses import dataclass
 
 import pandas as pd
 from lightning import LightningDataModule
 from torch_geometric.loader import DataLoader
 
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
-from utils import getReaderByFileExt
+
+# from utils import getReaderByFileExt
 import CDPL.Pharm as Pharm
+
+
+# Retrieve meta data from screening data base
+def getReaderByFileExt(filename: str) -> Pharm.PharmacophoreReader:
+    name_and_ext = os.path.splitext(filename)
+
+    if name_and_ext[1] == "":
+        sys.exit(
+            "Error: could not determine pharmacophore input file format (file extension missing)"
+        )
+
+    # get input handler for the format specified by the input file's extension
+    ipt_handler = Pharm.PharmacophoreIOManager.getInputHandlerByFileExtension(
+        name_and_ext[1][1:].lower()
+    )
+
+    if not ipt_handler:
+        sys.exit(
+            "Error: unsupported pharmacophore input file format '%s'" % name_and_ext[1]
+        )
+
+    # create and return file reader instance
+    return ipt_handler.createReader(filename)
 
 
 class PharmacophoreDataModule(LightningDataModule):
@@ -110,6 +136,13 @@ class PharmacophoreDataModule(LightningDataModule):
             )
 
 
+@dataclass
+class VirtualScreeningMetaData:
+    active: pd.DataFrame
+    inactive: pd.DataFrame
+    query: pd.DataFrame
+
+
 class VirtualScreeningDataModule(LightningDataModule):
     """Implementation of a LightningDataModule for the virtual screening dataset.
 
@@ -148,7 +181,7 @@ class VirtualScreeningDataModule(LightningDataModule):
             print(f"Number of query graphs: {len(self.query)}")
             print(f"Number of active graphs: {len(self.actives)}")
             print(f"Number of inactive graphs: {len(self.inactives)}")
-            
+
             inactive_path = os.path.join(
                 self.virtual_screening_data_dir, "raw", "inactives.psd"
             )
@@ -158,10 +191,12 @@ class VirtualScreeningDataModule(LightningDataModule):
             query_path = os.path.join(
                 self.virtual_screening_data_dir, "raw", "query.pml"
             )
-            
-            self.inactive_metadata = self.create_metadata(inactive_path)
-            self.active_metadata = self.create_metadata(active_path)
-            self.query_metadata = self.create_metadata(query_path)
+
+            self.metadata = VirtualScreeningMetaData(
+                self.create_metadata(active_path),
+                self.create_metadata(inactive_path),
+                self.create_metadata(query_path),
+            )
 
     def vs_dataloader(self) -> list[DataLoader]:
         return [

@@ -10,6 +10,7 @@ from .dataset_transforms import (
 from .pharmacophore_datamodule import (
     PharmacophoreDataModule,
     VirtualScreeningDataModule,
+    VirtualScreeningMetaData,
 )
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset
 
@@ -21,6 +22,7 @@ __all__ = [
     "RandomNodeDeletionByRatio",
     "PharmacophoreDataset",
     "VirtualScreeningDataset",
+    "VirtualScreeningMetaData",
     "PharmacophoreDataModule",
     "VirtualScreeningDataModule",
     "RandomSphericalNoise",

@@ -19,7 +19,6 @@ from dataset import VirtualScreeningDataModule
 from model import PhectorMatch
 from utils import (
     load_model_from_path,
-    PharmacophoreMetaData,
     enrichment_factor,
     UmapEmbeddingPlotter,
     PcaEmbeddingPlotter,
@@ -81,7 +80,7 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         # Create embeddings of the VS dataset
         embedder = VirtualScreeningEmbedder(model, datamodule, trainer)
         screener = VirtualScreener(embedder)
-        metadata = PharmacophoreMetaData(VS_ROOT)
+        metadata = datamodule.metadata
 
         # inactive_path = os.path.join(VS_ROOT, "raw", "inactives.psd")
         # active_path = os.path.join(VS_ROOT, "raw", "actives.psd")
@@ -96,7 +95,7 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         experiment_data["model"] = VS_MODEL_NUMBER
         experiment_data["embedding_time"] = screener.embedding_time
         experiment_data["matching_time"] = screener.matching_time
-        num_features_query = datamodule.query_metadata["num_features"].sum()
+        num_features_query = metadata.query["num_features"].sum()
         experiment_data["query_num_features"] = num_features_query
         experiment_data["active_ligands"] = (
             torch.max(screener.active_mol_ids).item() + 1
@@ -284,11 +283,11 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         i += 1
 
         # PCA should conserve the order embedding space property
-        pca_plotter = PcaEmbeddingPlotter(screener, datamodule)
+        pca_plotter = PcaEmbeddingPlotter(screener, metadata)
         fig3 = pca_plotter.create_pca_plot()
         fig3.savefig(f"visualization/PCA_{TARGET}.png", dpi=300)
 
-        umap_plotter = UmapEmbeddingPlotter(screener, datamodule)
+        umap_plotter = UmapEmbeddingPlotter(screener, metadata)
         fig4 = umap_plotter.create_umap_plot()
         fig4.savefig(
             f"visualization/embeddings_{TARGET}.png",

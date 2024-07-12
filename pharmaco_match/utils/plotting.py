@@ -10,17 +10,18 @@ from torch_geometric.nn import global_mean_pool
 import torch
 import umap
 
+from dataset import VirtualScreeningMetaData
+from virtual_screening import VirtualScreener
+
 
 class UmapEmbeddingPlotter:
-    def __init__(
-        self, screener, datamodule
-    ):
+    def __init__(self, screener: VirtualScreener, metadata: VirtualScreeningMetaData):
         self.screener = screener
         self.metadata = pd.concat(
             (
-                datamodule.inactive_metadata,
-                datamodule.active_metadata,
-                datamodule.query_metadata,
+                metadata.inactive_metadata,
+                metadata.active_metadata,
+                metadata.query_metadata,
             ),
             ignore_index=True,
         )
@@ -137,7 +138,7 @@ class UmapEmbeddingPlotter:
 
 
 class PcaEmbeddingPlotter:
-    def __init__(self, screener, datamodule):
+    def __init__(self, screener: VirtualScreener, metadata: VirtualScreeningMetaData):
         mean_actives = global_mean_pool(
             screener.active_embeddings, screener.active_mol_ids
         )
@@ -146,8 +147,8 @@ class PcaEmbeddingPlotter:
         )
         mean_vectors = torch.cat((mean_actives, mean_inactives))
 
-        self.active_counts = datamodule.active_metadata["num_features"].values
-        self.inactive_counts = datamodule.inactive_metadata["num_features"].values
+        self.active_counts = metadata.active["num_features"].values
+        self.inactive_counts = metadata.inactive["num_features"].values
 
         pca = PCA(n_components=4)
         pca.fit(mean_vectors)
@@ -169,11 +170,6 @@ class PcaEmbeddingPlotter:
         plt.ylabel(f"PC2 ({self.variance[1]*100:.2f}%)")
         cbar = plt.colorbar(aspect=40)
         cbar.set_label("Number of features")
-        # plt.xlim(-10, 15)
-        # plt.ylim(-10, 20)
-        # plt.show()
-
-        # PCA should conserve the order embedding space property
         plt.xlabel(f"PC1 ({self.variance[0]*100:.2f}%)")
         plt.ylabel(f"PC2 ({self.variance[1]*100:.2f}%)")
         plt.scatter(
