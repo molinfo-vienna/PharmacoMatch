@@ -3,11 +3,11 @@ from .callbacks import (
     ValidationDataTransformSetter,
 )
 from .pharm_clr import PharmCLR
-from .phector_match import PhectorMatch
+from .pharmaco_match import PharmacoMatch
 
 __all__ = [
     "CurriculumLearningScheduler",
     "ValidationDataTransformSetter",
     "PharmCLR",
-    "PhectorMatch",
+    "PharmacoMatch",
 ]

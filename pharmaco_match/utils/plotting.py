@@ -231,18 +231,16 @@ class PcaEmbeddingPlotter:
             cmap="viridis",
             s=0.1,
         )
-        plt.xlabel(f"PC1 ({self.variance[0]*100:.2f}%)")
-        plt.ylabel(f"PC2 ({self.variance[1]*100:.2f}%)")
-        cbar = plt.colorbar(aspect=40)
-        cbar.set_label("Number of features")
-        plt.xlabel(f"PC1 ({self.variance[0]*100:.2f}%)")
-        plt.ylabel(f"PC2 ({self.variance[1]*100:.2f}%)")
         plt.scatter(
             self.active_transformed[:, 0],
             self.active_transformed[:, 1],
             c=self.active_counts,
             cmap="viridis",
-            s=1,
+            s=0.1,
         )
+        plt.xlabel(f"PC1 ({self.variance[0]*100:.2f}%)")
+        plt.ylabel(f"PC2 ({self.variance[1]*100:.2f}%)")
+        cbar = plt.colorbar(aspect=40)
+        cbar.set_label("Number of features")
 
         return fig

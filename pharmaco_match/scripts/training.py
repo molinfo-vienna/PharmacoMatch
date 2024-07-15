@@ -10,7 +10,7 @@ from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 
 from dataset import PharmacophoreDataModule
 from model import (
-    PhectorMatch,
+    PharmacoMatch,
     CurriculumLearningScheduler,
 )
 from utils import load_model_from_path, load_hparams_from_path
@@ -21,7 +21,7 @@ def training(device):
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     CONFIG_FILE_PATH = "pharmaco_match/scripts/config.yaml"
-    MODEL = PhectorMatch
+    MODEL = PharmacoMatch
     VERSION = None
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
     # PRETRAINED_MODEL = PharmCLR

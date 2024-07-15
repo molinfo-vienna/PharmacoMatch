@@ -11,7 +11,7 @@ import torch
 import torch_geometric
 
 from dataset import PharmacophoreDataModule
-from model import ValidationDataTransformSetter, PhectorMatch
+from model import ValidationDataTransformSetter, PharmacoMatch
 from utils import load_model_from_path
 
 
@@ -124,39 +124,39 @@ class SelfSimilarityEvaluation:
         ax.set_zlabel("Subgraph Positive Rate")
         plt.savefig(f"{num_version}_Target_Query.png")
 
-    def calculate_mean_similarities(self, num_version):
-        reference = self._create_embeddings(0, 0, None)
-        for j, radius in enumerate(self.radius_range):
-            for i, node_masking in enumerate(self.node_masking_range):
-                embeddings = self._create_embeddings(
-                    node_masking=node_masking,
-                    radius=radius,
-                    node_to_keep_lower_bound=None,
-                )
-                self.self_similarity[i, j] = torch.mean(
-                    cosine_similarity(reference, embeddings)
-                )
+    # def calculate_mean_similarities(self, num_version):
+    #     reference = self._create_embeddings(0, 0, None)
+    #     for j, radius in enumerate(self.radius_range):
+    #         for i, node_masking in enumerate(self.node_masking_range):
+    #             embeddings = self._create_embeddings(
+    #                 node_masking=node_masking,
+    #                 radius=radius,
+    #                 node_to_keep_lower_bound=None,
+    #             )
+    #             self.self_similarity[i, j] = torch.mean(
+    #                 cosine_similarity(reference, embeddings)
+    #             )
 
-        X, Y = np.meshgrid(self.node_masking_range, self.radius_range)
-        Z = self.self_similarity.T
+    #     X, Y = np.meshgrid(self.node_masking_range, self.radius_range)
+    #     Z = self.self_similarity.T
 
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        surf = ax.plot_surface(
-            X,
-            Y,
-            Z,
-            cmap=cm.coolwarm,
-            linewidth=0,
-            antialiased=False,
-        )
-        ax.plot_wireframe(X, Y, Z, cmap=cm.coolwarm)
-        ax.set_zlim(0, 1.0)
-        ax.set_xlabel("Node Deletion Ratio")
-        ax.set_ylabel(r"Displacement Radius / $\AA$")
-        ax.set_ylim(self.max_radius, 0)
-        ax.set_xlim(0, self.max_node_masking)
-        ax.set_zlabel("Mean Cosine Similarity")
-        plt.savefig(f"self-similarity{num_version}.png")
+    #     fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+    #     surf = ax.plot_surface(
+    #         X,
+    #         Y,
+    #         Z,
+    #         cmap=cm.coolwarm,
+    #         linewidth=0,
+    #         antialiased=False,
+    #     )
+    #     ax.plot_wireframe(X, Y, Z, cmap=cm.coolwarm)
+    #     ax.set_zlim(0, 1.0)
+    #     ax.set_xlabel("Node Deletion Ratio")
+    #     ax.set_ylabel(r"Displacement Radius / $\AA$")
+    #     ax.set_ylim(self.max_radius, 0)
+    #     ax.set_xlim(0, self.max_node_masking)
+    #     ax.set_zlabel("Mean Cosine Similarity")
+    #     plt.savefig(f"self-similarity{num_version}.png")
 
     def _create_embeddings(self, node_masking, radius, node_to_keep_lower_bound):
         callbacks = [
@@ -180,7 +180,7 @@ class SelfSimilarityEvaluation:
 def run(device):
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
-    MODEL = PhectorMatch
+    MODEL = PharmacoMatch
     VERSION = 250
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 

@@ -18,9 +18,9 @@ from dataset import (
 )
 
 
-class PhectorMatch(LightningModule):
+class PharmacoMatch(LightningModule):
     def __init__(self, **params) -> None:
-        super(PhectorMatch, self).__init__()
+        super(PharmacoMatch, self).__init__()
         self.save_hyperparameters()
 
         # Data transforms for positive and negative pairs

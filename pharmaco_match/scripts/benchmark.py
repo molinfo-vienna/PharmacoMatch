@@ -13,7 +13,7 @@ import torch_geometric
 from torch_geometric.nn import global_max_pool
 
 from dataset import VirtualScreeningDataModule
-from model import PhectorMatch
+from model import PharmacoMatch
 from utils import (
     load_model_from_path,
     enrichment_factor,
@@ -41,7 +41,7 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         print(TARGET)
         # Define global variables
         VS_ROOT = f"{DATASET_ROOT}/{TARGET}"
-        MODEL = PhectorMatch
+        MODEL = PharmacoMatch
         VS_MODEL_NUMBER = 250
         MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VS_MODEL_NUMBER}/"
         HPARAMS_FILE = "hparams.yaml"

@@ -37,7 +37,7 @@ class PharmacophoreDataModule(LightningDataModule):
         self,
         training_data_dir: str,
         batch_size: int = None,
-        small_set_size: int = None,
+        small_set_size: int = -1,
         graph_size_upper_bound: int = None,
     ) -> None:
         super(PharmacophoreDataModule, self).__init__()
