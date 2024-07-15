@@ -1,7 +1,6 @@
 import time
 
 import torch
-from torch import Tensor
 from torch_geometric.nn import global_max_pool
 
 from .feature_count_prefilter import FeatureCountPrefilter
@@ -28,10 +27,13 @@ class VirtualScreener:
         self.prefilter = FeatureCountPrefilter(embedder.vs_datamodule)
         self.actives_prefilter_mask = self.prefilter.get_actives_mask(query_idx)
         self.inactives_prefilter_mask = self.prefilter.get_inactives_mask(query_idx)
+        self.prefilter_mask = torch.cat(
+            (self.actives_prefilter_mask, self.inactives_prefilter_mask)
+        )
 
         # calculate decision function of (in)actives w.r.t. to query
         start = time.time()
-        self.active_query_match = torch.sum(
+        self.active_conformation_score = torch.sum(
             torch.max(
                 torch.zeros_like(self.active_embeddings),
                 self.query_embedding.expand(self.active_embeddings.shape)
@@ -40,7 +42,7 @@ class VirtualScreener:
             ** 2,
             dim=1,
         )
-        self.inactive_query_match = torch.sum(
+        self.inactive_conformation_score = torch.sum(
             torch.max(
                 torch.zeros_like(self.inactive_embeddings),
                 self.query_embedding.expand(self.inactive_embeddings.shape)
@@ -51,19 +53,39 @@ class VirtualScreener:
         )
         end = time.time()
         self.matching_time = end - start
-        # self.active_query_match = torch.max(
-        #     self.query_embedding.expand(self.active_embeddings.shape)
-        #     - self.active_embeddings,
-        #     dim=1,
-        # ).values
-        # self.inactive_query_match = torch.max(
-        #     self.query_embedding.expand(self.inactive_embeddings.shape)
-        #     - self.inactive_embeddings,
-        #     dim=1,
-        # ).values
 
-    #     self.active_match = global_max_pool(self.active_query_match, self.active_mol_ids)
-    #     self.inactive_match = global_max_pool(self.inactive_query_match, self.inactive_mol_ids)
+        self.active_ligand_score = -global_max_pool(
+            -self.active_conformation_score, self.active_mol_ids
+        )
+        self.inactive_ligand_score = -global_max_pool(
+            -self.inactive_conformation_score, self.inactive_mol_ids
+        )
+
+        self.mol_ids = torch.cat(
+            (self.active_mol_ids, self.inactive_mol_ids + self.active_mol_ids[-1] + 1)
+        )
+
+        self.conformation_score = torch.cat(
+            (self.active_conformation_score, self.inactive_conformation_score)
+        )
+
+        self.ligand_score = torch.cat(
+            (self.active_ligand_score, self.inactive_ligand_score)
+        )
+
+        self.ligand_label = torch.cat(
+            (
+                torch.ones(self.active_mol_ids[-1] + 1),
+                torch.zeros(self.inactive_mol_ids[-1] + 1),
+            )
+        )
+
+        self.conformation_label = torch.cat(
+            (
+                torch.ones(len(self.active_mol_ids)),
+                torch.zeros(len(self.inactive_mol_ids)),
+            )
+        )
 
     #     # pick most similar conformation per compound
     #     self.active_mask = self._create_mask(
@@ -78,18 +100,6 @@ class VirtualScreener:
     #     ]
     #     self.top_active_embeddings = self.active_embeddings[self.active_mask]
     #     self.top_inactive_embeddings = self.inactive_embeddings[self.inactive_mask]
-
-    #     # Map similarity [-1, 1] --> [0, 1] and print AUC statistics
-    #     self.y_pred = torch.cat(
-    #         (self.top_active_similarity, self.top_inactive_similarity)
-    #     )
-    #     self.y_pred = (self.y_pred + 1) / 2
-    #     self.y_true = torch.cat(
-    #         (
-    #             torch.ones(len(self.top_active_similarity), dtype=torch.int),
-    #             torch.zeros(len(self.top_inactive_similarity), dtype=torch.int),
-    #         )
-    #     )
 
     # def _create_mask(self, similarities: Tensor, mol_ids: Tensor) -> Tensor:
     #     splits = [similarities[mol_ids == i] for i in range(max(mol_ids + 1))]

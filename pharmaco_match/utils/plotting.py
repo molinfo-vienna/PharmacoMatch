@@ -9,6 +9,7 @@ from sklearn.decomposition import PCA
 from torch_geometric.nn import global_mean_pool
 import torch
 import umap
+import umap.plot as uplot
 
 from dataset import VirtualScreeningMetaData
 from virtual_screening import VirtualScreener
@@ -17,14 +18,7 @@ from virtual_screening import VirtualScreener
 class UmapEmbeddingPlotter:
     def __init__(self, screener: VirtualScreener, metadata: VirtualScreeningMetaData):
         self.screener = screener
-        self.metadata = pd.concat(
-            (
-                metadata.inactive_metadata,
-                metadata.active_metadata,
-                metadata.query_metadata,
-            ),
-            ignore_index=True,
-        )
+        self.metadata = metadata
 
         mean_actives = global_mean_pool(
             screener.active_embeddings, screener.active_mol_ids
@@ -34,25 +28,27 @@ class UmapEmbeddingPlotter:
         )
         mean_vectors = torch.cat((mean_actives, mean_inactives))
 
-        reducer = umap.UMAP(metric="manhattan")
-        reducer.fit(mean_vectors)
-        self.reduced_inactive_embeddings = reducer.transform(
+        self.reducer = umap.UMAP(metric="manhattan")
+        self.reducer.fit(mean_vectors)
+        self.reduced_active_embeddings = self.reducer.transform(
+            screener.active_embeddings
+        )
+        self.reduced_inactive_embeddings = self.reducer.transform(
             screener.inactive_embeddings
         )
-        self.reduced_active_embeddings = reducer.transform(screener.active_embeddings)
-        self.reduced_query_embedding = reducer.transform(screener.query_embedding)
+        self.reduced_query_embedding = self.reducer.transform(screener.query_embedding)
         self.embeddings = np.concatenate(
             (
-                self.reduced_inactive_embeddings,
                 self.reduced_active_embeddings,
+                self.reduced_inactive_embeddings,
                 self.reduced_query_embedding,
             )
         )
 
-    def get_feature_count(self, feature, hover_data):
+    def get_feature_count(self, feature, metadata):
         feature_count = []
         count = 0
-        for feature_string in hover_data["features"]:
+        for feature_string in metadata["features"]:
             if f"{feature}(" in feature_string:
                 for str in feature_string.split(","):
                     if f"{feature}(" in str:
@@ -65,6 +61,15 @@ class UmapEmbeddingPlotter:
 
     def create_umap_plot(self):
         fig, axes = plt.subplots(2, 4, figsize=(20, 10), sharex=True, sharey=True)
+
+        metadata = pd.concat(
+            (
+                self.metadata.active,
+                self.metadata.inactive,
+                self.metadata.query,
+            ),
+            ignore_index=True,
+        )
 
         # Plot actives and inactives
         ax = axes[0][0]
@@ -91,7 +96,7 @@ class UmapEmbeddingPlotter:
         ax.legend_.legend_handles[0]._sizes = [5]
         ax.legend_.legend_handles[1]._sizes = [5]
 
-        # Plot feature counts
+        # Plot by feature count
         features = {
             "H": "Hydrophobic",
             "AR": "Aromatic",
@@ -114,7 +119,7 @@ class UmapEmbeddingPlotter:
         for ax, feature, cmap_str in zip(
             axes.flatten()[1:8], list(features.keys()), cmaps
         ):
-            feature_count = self.get_feature_count(feature, self.metadata)
+            feature_count = self.get_feature_count(feature, metadata)
             new_cmap = cm.get_cmap(cmap_str, 256)
             cmap = ListedColormap(new_cmap(np.linspace(0.15, 1.0, max(feature_count))))
             sc = ax.scatter(
@@ -135,6 +140,66 @@ class UmapEmbeddingPlotter:
             )
 
         return fig
+
+    def _create_reduced_points_set(self, max_num_inactives=30000):
+        # The interactive UMAP plot can't handle too much datapoints, so here we can
+        # reduce their number by some threshold
+
+        hover_data = pd.concat(
+            (
+                self.metadata.inactive[:max_num_inactives],
+                self.metadata.active,
+                self.metadata.query,
+            ),
+            ignore_index=True,
+        )
+        points = np.concatenate(
+            (
+                self.reduced_inactive_embeddings[:max_num_inactives],
+                self.reduced_active_embeddings,
+                self.reduced_query_embedding,
+            )
+        )
+        labels = np.concatenate(
+            (
+                np.zeros(len(self.reduced_inactive_embeddings[:max_num_inactives])),
+                np.ones(len(self.reduced_active_embeddings)),
+                np.ones(len(self.reduced_query_embedding)) * 2,
+            )
+        )
+
+        return points, labels, hover_data
+
+    def create_interactive_umap_by_activity(self):
+
+        points, labels, hover_data = self._create_reduced_points_set()
+        self.reducer.embedding_ = points
+
+        p = uplot.interactive(
+            self.reducer,
+            labels=labels,
+            theme="inferno",
+            hover_data=hover_data,
+            point_size=2,
+        )
+
+        return p
+
+    def create_interactive_umap_by_feature_type(self, feature="AR"):
+        points, _, hover_data = self._create_reduced_points_set()
+        self.reducer.embedding_ = points
+        feature_count = self.get_feature_count(feature, hover_data)
+        # feature_count = hover_data["num_features"].values
+
+        p = uplot.interactive(
+            self.reducer,
+            values=feature_count,
+            theme="darkblue",
+            hover_data=hover_data,
+            point_size=2,
+        )
+
+        return p
 
 
 class PcaEmbeddingPlotter:

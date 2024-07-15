@@ -1,8 +1,11 @@
 import sys
+import os
 import time
 
 import torch
 import CDPL.Pharm as Pharm
+
+from dataset import VirtualScreeningDataModule
 
 
 class PharmacophoreAlignment:
@@ -161,3 +164,31 @@ class PharmacophoreAlignment:
         for ftr in ph4:
             Pharm.clearOrientation(ftr)
             Pharm.setGeometry(ftr, Pharm.FeatureGeometry.SPHERE)
+
+
+class ClassicalVirtualScreener:
+    def __init__(self, datamodule: VirtualScreeningDataModule) -> None:
+        root_dir = datamodule.virtual_screening_data_dir
+        actives_path = os.path.join(root_dir, "vs/all_actives_aligned.pt")
+        inactives_path = os.path.join(root_dir, "vs/all_inactives_aligned.pt")
+
+        if not os.path.exists(actives_path) or not os.path.exists(inactives_path):
+            alignment = PharmacophoreAlignment(root_dir)
+            alignment.align_preprocessed_ligands_to_query()
+
+        self.actives_data = torch.load(actives_path)
+        self.inactives_data = torch.load(inactives_path)
+        self.actives_alignment_score = self.actives_data[:, 0] + self.actives_data[:, 1]
+        self.inactives_alignment_score = (
+            self.inactives_data[:, 0] + self.inactives_data[:, 1]
+        )
+        num_features_query = datamodule.metadata.query["num_features"].sum()
+
+        self.actives_matches = self.actives_alignment_score >= num_features_query
+        self.inactives_matches = self.inactives_alignment_score >= num_features_query
+
+        self.alignment_score = torch.cat(
+            (self.actives_alignment_score, self.inactives_alignment_score)
+        )
+
+        self.matches = torch.cat((self.actives_matches, self.inactives_matches))
