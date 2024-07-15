@@ -1,9 +1,7 @@
-import os
-import sys
 from dataclasses import dataclass
 
-import pandas as pd
 from lightning import LightningDataModule
+import pandas as pd
 from torch_geometric.loader import DataLoader
 
 from .pharmacophore_dataset import PharmacophoreDataset, VirtualScreeningDataset

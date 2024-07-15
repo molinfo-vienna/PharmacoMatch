@@ -1,13 +1,6 @@
-from typing import Any
-
 from lightning import LightningModule, Callback, Trainer
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 import torch
-import torch.nn.functional as F
-from torch import Tensor
-from torch_geometric.nn import global_max_pool
 from torch_geometric import transforms as T
-from torchmetrics import AUROC
 
 
 from dataset import (

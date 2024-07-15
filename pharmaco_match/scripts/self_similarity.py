@@ -3,12 +3,12 @@ import sys
 import yaml
 
 from lightning import Trainer, seed_everything
+from matplotlib import cm
+import matplotlib.pyplot as plt
 import numpy as np
 from torch.nn.functional import cosine_similarity
 import torch
 import torch_geometric
-from matplotlib import cm
-import matplotlib.pyplot as plt
 
 from dataset import PharmacophoreDataModule
 from model import ValidationDataTransformSetter, PhectorMatch

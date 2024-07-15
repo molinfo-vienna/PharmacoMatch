@@ -3,8 +3,8 @@ import os
 import time
 
 import torch
-import CDPL.Pharm as Pharm
 
+import CDPL.Pharm as Pharm
 from dataset import VirtualScreeningDataModule
 
 

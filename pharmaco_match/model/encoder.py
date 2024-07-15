@@ -3,8 +3,15 @@ from torch import Tensor
 from torch.nn import Linear
 import torch.nn.functional as F
 from torch_geometric.data import Data
-from torch_geometric.nn import GINEConv, MLP, GATv2Conv, NNConv
-from torch_geometric.nn import global_mean_pool, BatchNorm, global_add_pool
+from torch_geometric.nn import (
+    BatchNorm,
+    GINEConv,
+    GATv2Conv,
+    MLP,
+    NNConv,
+    global_mean_pool,
+    global_add_pool,
+)
 
 
 class NNConvEncoder(torch.nn.Module):

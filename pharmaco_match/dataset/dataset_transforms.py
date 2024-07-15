@@ -1,12 +1,13 @@
 import math
+
 import torch
 from torch import Tensor
+from torch_geometric import transforms as T
 from torch_geometric.data import Data
 from torch_geometric.data.datapipes import functional_transform
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.nn import global_mean_pool
 from torch.nn.functional import normalize
-from torch_geometric import transforms as T
 
 
 @functional_transform("distance_rdf")

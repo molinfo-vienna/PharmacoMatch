@@ -3,8 +3,8 @@ from typing import Generator, Union
 from flash.core.optimizers import LARS, LinearWarmupCosineAnnealingLR
 from lightning import LightningModule
 import torch
-from torch.optim import Optimizer
 from torch import Tensor
+from torch.optim import Optimizer
 from torch_geometric.data import Data
 from torch_geometric import transforms as T
 
