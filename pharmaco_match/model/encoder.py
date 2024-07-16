@@ -39,7 +39,6 @@ class NNConvEncoder(torch.nn.Module):
     def __init__(
         self,
         input_dim: int,
-        node_embedding_dim: int,
         hidden_dim: int,
         output_dim: int,
         n_conv_layers: int,
@@ -57,9 +56,8 @@ class NNConvEncoder(torch.nn.Module):
         self.dropout = dropout
         self.residual_connection = residual_connection
 
-        node_embedding_dim = hidden_dim
-        self.node_embedding = Linear(input_dim, node_embedding_dim)
-        input_dim = node_embedding_dim
+        self.node_embedding = Linear(input_dim, hidden_dim)
+        input_dim = hidden_dim
 
         self.convolution = torch.nn.ModuleList()
         self.convolution_batch_norm = torch.nn.ModuleList()
@@ -184,7 +182,6 @@ class GINEncoder(torch.nn.Module):
     def __init__(
         self,
         input_dim: int,
-        node_embedding_dim: int,
         hidden_dim: int,
         output_dim: int,
         n_conv_layers: int,
@@ -202,9 +199,8 @@ class GINEncoder(torch.nn.Module):
         self.dropout = dropout
         self.residual_connection = residual_connection
 
-        node_embedding_dim = hidden_dim
-        self.node_embedding = Linear(input_dim, node_embedding_dim)
-        input_dim = node_embedding_dim
+        self.node_embedding = Linear(input_dim, hidden_dim)
+        input_dim = hidden_dim
 
         self.convolution = torch.nn.ModuleList()
         self.convolution_batch_norm = torch.nn.ModuleList()

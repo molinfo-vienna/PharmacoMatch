@@ -50,7 +50,6 @@ class PharmacoMatch(LightningModule):
         if self.hparams.encoder == "GIN":
             self.encoder = GINEncoder(
                 input_dim=self.hparams.num_node_features,
-                node_embedding_dim=self.hparams.node_embedding_dim,
                 hidden_dim=self.hparams.hidden_dim_encoder,
                 output_dim=self.hparams.input_dim_projector,
                 n_conv_layers=self.hparams.n_layers_conv,
@@ -63,7 +62,6 @@ class PharmacoMatch(LightningModule):
         if self.hparams.encoder == "NNConv":
             self.encoder = NNConvEncoder(
                 input_dim=self.hparams.num_node_features,
-                node_embedding_dim=self.hparams.node_embedding_dim,
                 hidden_dim=self.hparams.hidden_dim_encoder,
                 output_dim=self.hparams.input_dim_projector,
                 n_conv_layers=self.hparams.n_layers_conv,
@@ -117,17 +115,6 @@ class PharmacoMatch(LightningModule):
         negative_queries = self(negative_queries)
         targets = self(targets)
         batch_size = len(queries)
-
-        # Regularization loss term
-        # vector_norm = torch.norm(
-        #     torch.cat((queries, negative_queries, targets)),
-        #     p=self.hparams.regularization_p_norm,
-        #     dim=1,
-        # )
-
-        # regularization_term = self.hparams.regularization_lambda * torch.sum(
-        #     (vector_norm - num_features) ** 2
-        # )
 
         # Positive loss term
         positives = torch.sum(
