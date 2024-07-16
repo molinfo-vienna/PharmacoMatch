@@ -90,9 +90,9 @@ class PharmacoMatch(LightningModule):
         global_batch_size = self.trainer.world_size * self.hparams.batch_size
         self.train_iters_per_epoch = self.hparams.num_samples // global_batch_size
 
-        if self.hparams.freeze_encoder:
-            for param in self.encoder.parameters():
-                param.requires_grad = False
+        #if self.hparams.freeze_encoder:
+        #    for param in self.encoder.parameters():
+        #        param.requires_grad = False
 
     def configure_optimizers(self) -> tuple[list[Optimizer], list[dict]]:
         optimizer = Adam(
