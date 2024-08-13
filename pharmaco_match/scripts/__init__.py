@@ -1,3 +1,3 @@
-from .self_similarity import SelfSimilarityEvaluation
+from .positional_perception import PositionalPerceptionAssessor
 
-__all__ = ["VirtualScreeningExperiment", "SelfSimilarityEvaluation"]
+__all__ = ["VirtualScreeningExperiment", "PositionalPerceptionAssessor"]

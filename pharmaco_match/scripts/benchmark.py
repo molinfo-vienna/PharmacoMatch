@@ -16,7 +16,6 @@ from dataset import VirtualScreeningDataModule
 from model import PharmacoMatch
 from utils import (
     load_model_from_path,
-    enrichment_factor,
     UmapEmbeddingPlotter,
     PcaEmbeddingPlotter,
     bedroc_score,
