@@ -19,26 +19,30 @@ from dataset import (
 
 
 class PharmacoMatch(LightningModule):
+    """Implementation of the PharmacoMatch model
+
+    This class implements the training logic for the PharmacoMatch model. The model
+    consists of a GNN encoder and a projector, which are trained one an order embedding
+    loss to encode query-target relationships. Queries and targets are created on the
+    fly during training by applying random transformations to the input data.
+    """
+
     def __init__(self, **params) -> None:
         super(PharmacoMatch, self).__init__()
         self.save_hyperparameters()
 
-        # Data transforms for positive and negative pairs
+        # Data transforms for positive and negative pair creation
         self.twice_node_deletion = TwiceRandomNodeDeletionWithoutOverlap()
-
         self.target_transform = T.Compose([PositionsToGraphTransform()])
-
         self.query_transform = T.Compose(
             [RandomSphericalNoise(self.hparams.radius), PositionsToGraphTransform()]
         )
-
         self.reference_transform = T.Compose(
             [
                 RandomSphericalNoise(self.hparams.radius_negative),
                 PositionsToGraphTransform(),
             ]
         )
-
         self.negative_query_transform = T.Compose(
             [
                 FurthestSphericalSurfaceDisplacement(self.hparams.radius_negative),
@@ -99,6 +103,20 @@ class PharmacoMatch(LightningModule):
         return [optimizer]
 
     def penalty(self, query: Tensor, target: Tensor) -> Tensor:
+        """Order embedding penalty
+
+        Args:
+            query (Tensor): Query embedding vector(s). During trining, this will be a
+                n x m tensor, where n is the batch size and m is the embedding
+                dimension. During inference, this will be the 1 x m embedding of the
+                query.
+            target (Tensor): Target embedding vectors, a n x m tensor, where n is the
+                batch size and m is the embedding dimension.
+
+        Returns:
+            Tensor: 1 x n tensor, holding the order embedding penalty for each of the
+            targets.
+        """
         diff = query - target
         diff.clamp_(min=0)
         diff.pow_(2)
@@ -112,7 +130,33 @@ class PharmacoMatch(LightningModule):
         negative_queries: Tensor,
         targets: Tensor,
         negative_targets: Tensor,
-    ) -> Tensor:
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+        """Order embedding loss
+
+        This function implements the order embedding loss, as described in:
+        Ying, R.; Lou, Z.; You, J.; Wen, C.; Canedo, A.; and Leskovec, J. 2020.
+        Neural Subgraph Matching. arXiv:2007.03092
+
+        This function calculates the loss for several combinations of query-target
+        pairs and further calculates accuracy and AUROC metrics for model monitoring.
+
+        Args:
+            queries (Tensor): Batch of query pharmacophore graphs.
+            reference_queries (Tensor): Batch of reference query pharmacophore graphs.
+                Reference queries are always generated with the same radius for node
+                displacement. They are used to calculate metrics for model performance,
+                but do not contribute to the loss calculation.
+            negative_queries (Tensor): Batch of negative query pharmacophore graphs.
+                Negative queries provide hard examples that shall not match the targets.
+            targets (Tensor): Batch of target pharmacophore graphs. These graphs
+                were generated without augmentation.
+            negative_targets (Tensor): Batch of negative target pharmacophore graphs.
+                Negative targets provide examples that shall not match the queries.
+
+        Returns:
+            tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]: Order embedding loss
+                and metrics for model performance.
+        """
         # Extract the embeddings
         queries = self(queries)
         reference_queries = self(reference_queries)
@@ -202,6 +246,7 @@ class PharmacoMatch(LightningModule):
         )
 
     def training_step(self, batch: Data, batch_idx: int) -> Tensor:
+        """Training step and logging"""
         (
             loss,
             auroc,
@@ -265,6 +310,8 @@ class PharmacoMatch(LightningModule):
     def validation_step(
         self, batch: Data, batch_idx: int, dataloader_idx: int = 0
     ) -> Tensor:
+        """Validation step and logging. This function differentiates between an inner
+        (idx 0) and an outer validation dataloader (idx 1)."""
         if dataloader_idx == 0:
             (
                 loss,
@@ -388,6 +435,7 @@ class PharmacoMatch(LightningModule):
             return loss
 
     def on_train_start(self):
+        """Initialization of the logger"""
         self.logger.log_hyperparams(
             self.hparams,
             {
@@ -400,6 +448,7 @@ class PharmacoMatch(LightningModule):
     def predict_step(
         self, batch: Data, batch_idx: int
     ) -> Union[Tensor, tuple[Tensor, Tensor]]:
+        """Prediction step for inference"""
         if "mol_id" in batch.keys:
             return self(self.target_transform(batch.clone())), batch.mol_id
         else:
