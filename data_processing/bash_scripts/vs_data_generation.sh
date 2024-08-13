@@ -6,7 +6,6 @@ dataset='DUD-E'
 cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
 python_scripts='/home/drose/git/PhectorDB/data_processing/python_scripts'
 filenames=('actives' 'inactives')
-#targets=('MUV-466' 'MUV-548' 'MUV-600' 'MUV-644' 'MUV-652' 'MUV-689' 'MUV-692' 'MUV-712' 'MUV-713' 'MUV-733' 'MUV-737' 'MUV-810' 'MUV-832' 'MUV-846' 'MUV-852' 'MUV-858' 'MUV-859')
 targets=('ACES' 'ADA' 'ANDR' 'EGFR' 'FA10' 'KIT' 'PLK1' 'SRC' 'THRB' 'UROK')
 
 for target in ${targets[@]};
@@ -33,6 +32,5 @@ do
 
         # Pharmacophore Generation
         $cdpkit/psdcreate -i $path/preprocessing/${filename}.sdf -o $path/raw/$filename.psd -d
-        #python $python_scripts/pharm_gen_mol_ph4s.py -i $path/preprocessing/$filename.sdf -o $path/raw/$filename.pml
     done
 done

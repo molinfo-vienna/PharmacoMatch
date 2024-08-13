@@ -5,13 +5,6 @@ import sys
 import CDPL.Chem as Chem
 import CDPL.Base as Base
 
-# path_train = (
-#     "/data/shared/projects/PhectorDB/training_data/preprocessing/chembl_data_phys.smi"
-# )
-# path_train = "/data/shared/projects/PhectorDB/training_data/preprocessing/chembl_data_filtered.smi"
-# path_train_filtered = "/data/shared/projects/PhectorDB/training_data/preprocessing/chembl_data_filtered2.smi"
-# root_dir = "/data/shared/projects/PhectorDB/DUD-E"
-
 
 def remove_duplicates_and_test_data(
     path_train: str, test_root_dir: str, path_train_filtered: str

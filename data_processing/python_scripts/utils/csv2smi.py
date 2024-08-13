@@ -1,26 +1,38 @@
+import argparse
+
 import pandas as pd
 
 
-def csv2smi():
-    # extract smiles col from csv file
-    path = "/data/shared/projects/PhectorDB/chembl_data/chembl_data.csv"
-    path_out = "/data/shared/projects/PhectorDB/chembl_data/chembl_data.smi"
-    df = pd.read_csv(path, delimiter=";")
+def parseArgs() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Extracts the Smiles column from a CSV file and writes it to a new file."
+    )
+
+    parser.add_argument(
+        "-i",
+        dest="in_file",
+        required=True,
+        metavar="<file>",
+        help="Input molecule file",
+    )
+
+    parser.add_argument(
+        "-o",
+        dest="out_file",
+        required=True,
+        metavar="<file>",
+        help="Output molecule file",
+    )
+
+    return parser.parse_args()
+
+
+def csv2smi(path_in: str, path_out: str):
+    df = pd.read_csv(path_in, delimiter=";")
     df = df["Smiles"]
     df.to_csv(path_out, index=False, header=False)
 
 
-def remove_duplicates():
-    # remove duplicate SMILES strings
-    path = "/data/shared/projects/PhectorDB/chembl_data/clean.smi"
-    path_out = (
-        "/data/shared/projects/PhectorDB/chembl_data/clean_without_duplicates.smi"
-    )
-    df = pd.read_csv(path)
-    unique_smiles = list(set(df.values.flatten().tolist()))
-    print(f"{len(df)-len(unique_smiles)} duplicates were removed.")
-    df = pd.DataFrame(unique_smiles)
-    df.to_csv(path_out, index=False, header=False)
-
-
-remove_duplicates()
+if __name__ == "__main__":
+    args = parseArgs()
+    csv2smi(args.in_file, args.out_file)
