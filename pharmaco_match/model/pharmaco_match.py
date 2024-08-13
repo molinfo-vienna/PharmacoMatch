@@ -98,6 +98,13 @@ class PharmacoMatch(LightningModule):
 
         return [optimizer]
 
+    def penalty(self, query: Tensor, target: Tensor) -> Tensor:
+        diff = query - target
+        diff.clamp_(min=0)
+        diff.pow_(2)
+
+        return diff.sum(dim=1)
+
     def loss(
         self,
         queries: Tensor,
@@ -115,60 +122,23 @@ class PharmacoMatch(LightningModule):
         batch_size = len(queries)
 
         # Positive loss term
-        positives = torch.sum(
-            torch.max(
-                torch.zeros_like(targets),
-                queries - targets,
-            )
-            ** 2,
-            dim=1,
-        )
-
-        positives_reference = torch.sum(
-            torch.max(
-                torch.zeros_like(targets),
-                reference_queries - targets,
-            )
-            ** 2,
-            dim=1,
-        )
+        positives = self.penalty(queries, targets)
+        positives_reference = self.penalty(reference_queries, targets)
 
         # Negative loss term - fine-grained negatives by displacement of tolerance sphere radius
-        negatives_fine = torch.sum(
-            torch.max(
-                torch.zeros_like(targets),
-                negative_queries - targets,
-            )
-            ** 2,
-            dim=1,
-        )
+        negatives_fine = self.penalty(negative_queries, targets)
 
         # Semi-coarse-grained negatives by mapping queries to partially matching targets
-        negatives_2 = torch.sum(
-            torch.max(
-                torch.zeros_like(queries),
-                reference_queries - negative_targets,
-            )
-            ** 2,
-            dim=1,
-        )
+        negatives_2 = self.penalty(reference_queries, negative_targets)
+
         # Coarse-grained negatives by mapping pairs that should not match
-        negatives_3 = torch.sum(
-            torch.max(
-                torch.zeros_like(targets),
-                queries - torch.roll(targets, batch_size // 2, dims=0),
-            )
-            ** 2,
-            dim=1,
+        negatives_3 = self.penalty(
+            queries, torch.roll(targets, batch_size // 2, dims=0)
         )
-        negatives_4 = torch.sum(
-            torch.max(
-                torch.zeros_like(targets),
-                targets - torch.roll(targets, batch_size // 2, dims=0),
-            )
-            ** 2,
-            dim=1,
+        negatives_4 = self.penalty(
+            targets, torch.roll(targets, batch_size // 2, dims=0)
         )
+
         negatives_coarse = torch.cat([negatives_2, negatives_3, negatives_4], dim=0)
 
         # Calculate the accuracy of the positives and negatives w.r.t. the embedding space property

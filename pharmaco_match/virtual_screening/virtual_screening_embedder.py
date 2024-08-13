@@ -44,3 +44,6 @@ class VirtualScreeningEmbedder:
             mol_ids.append(mol_id)
 
         return torch.vstack(predictions), torch.hstack(mol_ids)
+
+    def penalty(self, query: Tensor, target: Tensor) -> Tensor:
+        return self.model.penalty(query, target)

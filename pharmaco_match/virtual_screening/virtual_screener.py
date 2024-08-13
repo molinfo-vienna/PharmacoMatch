@@ -33,17 +33,13 @@ class VirtualScreener:
 
         start = time.time()
         # calculate decision function of actives w.r.t. to query
-        diff = self.query_embedding - self.active_embeddings
-        diff.clamp_(min=0)
-        diff.pow_(2)
-        self.active_conformation_score = diff.sum(dim=1)
-
+        self.active_conformation_score = self.embedder.penalty(
+            self.query_embedding, self.active_embeddings
+        )
         # calculate decision function of inactives w.r.t. to query
-        diff = self.query_embedding - self.inactive_embeddings
-        diff.clamp_(min=0)
-        diff.pow_(2)
-        self.inactive_conformation_score = diff.sum(dim=1)
-
+        self.inactive_conformation_score = self.embedder.penalty(
+            self.query_embedding, self.inactive_embeddings
+        )
         end = time.time()
         self.matching_time = end - start
 
