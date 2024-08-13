@@ -11,10 +11,10 @@ from torchmetrics.classification import BinaryAUROC
 from .encoder import GINEncoder, NNConvEncoder
 from .projector import ProjectionPhectorMatch
 from dataset import (
-    RandomNodeDeletion,
     RandomSphericalNoise,
     FurthestSphericalSurfaceDisplacement,
     PositionsToGraphTransform,
+    TwiceRandomNodeDeletionWithoutOverlap,
 )
 
 
@@ -24,7 +24,7 @@ class PharmacoMatch(LightningModule):
         self.save_hyperparameters()
 
         # Data transforms for positive and negative pairs
-        self.node_deletion = RandomNodeDeletion()
+        self.twice_node_deletion = TwiceRandomNodeDeletionWithoutOverlap()
 
         self.target_transform = T.Compose([PositionsToGraphTransform()])
 
@@ -90,10 +90,6 @@ class PharmacoMatch(LightningModule):
         global_batch_size = self.trainer.world_size * self.hparams.batch_size
         self.train_iters_per_epoch = self.hparams.num_samples // global_batch_size
 
-        #if self.hparams.freeze_encoder:
-        #    for param in self.encoder.parameters():
-        #        param.requires_grad = False
-
     def configure_optimizers(self) -> tuple[list[Optimizer], list[dict]]:
         optimizer = Adam(
             self.parameters(),
@@ -108,12 +104,14 @@ class PharmacoMatch(LightningModule):
         reference_queries: Tensor,
         negative_queries: Tensor,
         targets: Tensor,
+        negative_targets: Tensor,
     ) -> Tensor:
         # Extract the embeddings
         queries = self(queries)
         reference_queries = self(reference_queries)
         negative_queries = self(negative_queries)
         targets = self(targets)
+        negative_targets = self(negative_targets)
         batch_size = len(queries)
 
         # Positive loss term
@@ -145,19 +143,20 @@ class PharmacoMatch(LightningModule):
             dim=1,
         )
 
-        # Coarse-grained negatives by mapping pairs that should not match
+        # Semi-coarse-grained negatives by mapping queries to partially matching targets
         negatives_2 = torch.sum(
             torch.max(
-                torch.zeros_like(targets),
-                queries - torch.roll(targets, batch_size // 2, dims=0),
+                torch.zeros_like(queries),
+                reference_queries - negative_targets,
             )
             ** 2,
             dim=1,
         )
+        # Coarse-grained negatives by mapping pairs that should not match
         negatives_3 = torch.sum(
             torch.max(
-                torch.zeros_like(queries),
-                queries - torch.roll(queries, batch_size // 2, dims=0),
+                torch.zeros_like(targets),
+                queries - torch.roll(targets, batch_size // 2, dims=0),
             )
             ** 2,
             dim=1,
@@ -220,14 +219,17 @@ class PharmacoMatch(LightningModule):
             accuracy_negatives_2,
         )
 
-    def shared_step(self, batch: Data, batch_idx: int) -> tuple[Tensor, Tensor]:
+    def shared_step(self, batch: Data, batch_idx: int) -> Tensor:
         targets = self.target_transform(batch.clone())
-        batch = self.node_deletion(batch.clone())
-        queries = self.query_transform(batch.clone())
-        reference_queries = self.reference_transform(batch.clone())
-        negative_queries = self.negative_query_transform(batch.clone())
+        reduced_batch1, reduced_batch2 = self.twice_node_deletion(batch.clone())
+        queries = self.query_transform(reduced_batch1.clone())
+        reference_queries = self.reference_transform(reduced_batch1.clone())
+        negative_targets = self.target_transform(reduced_batch2.clone())
+        negative_queries = self.negative_query_transform(reduced_batch1.clone())
 
-        return self.loss(queries, reference_queries, negative_queries, targets)
+        return self.loss(
+            queries, reference_queries, negative_queries, targets, negative_targets
+        )
 
     def training_step(self, batch: Data, batch_idx: int) -> Tensor:
         (

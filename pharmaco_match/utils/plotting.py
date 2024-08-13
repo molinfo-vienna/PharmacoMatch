@@ -60,7 +60,10 @@ class UmapEmbeddingPlotter:
         return feature_count
 
     def create_umap_plot(self):
-        fig, axes = plt.subplots(2, 4, figsize=(20, 10), sharex=True, sharey=True)
+        fig, axes = plt.subplots(
+            2, 4, figsize=(24, 12), sharex=True, sharey=True, frameon=False
+        )
+        fontsize = 24
 
         metadata = pd.concat(
             (
@@ -73,12 +76,12 @@ class UmapEmbeddingPlotter:
 
         # Plot actives and inactives
         ax = axes[0][0]
+        plt.setp(ax.spines.values(), lw=1.5)
         sc = ax.scatter(
             self.reduced_inactive_embeddings[:, 0],
             self.reduced_inactive_embeddings[:, 1],
             c="darkblue",
             s=1,
-            alpha=1,
             marker=".",
         )
         sc = ax.scatter(
@@ -86,25 +89,24 @@ class UmapEmbeddingPlotter:
             self.reduced_active_embeddings[:, 1],
             c="red",
             s=1,
-            alpha=1,
             marker=".",
         )
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_title("Active / Inactive")
-        ax.legend(["Inactive", "Active"])
-        ax.legend_.legend_handles[0]._sizes = [5]
-        ax.legend_.legend_handles[1]._sizes = [5]
+        ax.set_title("Actives / Decoys", fontsize=fontsize, pad=15)
+        ax.legend(["Decoys", "Actives"], fontsize=fontsize)
+        ax.legend_.legend_handles[0]._sizes = [200]
+        ax.legend_.legend_handles[1]._sizes = [200]
 
         # Plot by feature count
         features = {
             "H": "Hydrophobic",
             "AR": "Aromatic",
-            "HBD": "Hydrogen Bond Donor",
-            "HBA": "Hydrogen Bond Acceptor",
-            "PI": "Positive Ionizable",
-            "NI": "Negative Ionizable",
-            "XBD": "Halogen Bond Donor",
+            "HBD": "Hydrogen bond donor",
+            "HBA": "Hydrogen bond acceptor",
+            "PI": "Positive ionizable",
+            "NI": "Negative ionizable",
+            "XBD": "Halogen bond donor",
         }
         cmaps = [
             "Oranges",
@@ -119,6 +121,7 @@ class UmapEmbeddingPlotter:
         for ax, feature, cmap_str in zip(
             axes.flatten()[1:8], list(features.keys()), cmaps
         ):
+            plt.setp(ax.spines.values(), lw=1.5)
             feature_count = self.get_feature_count(feature, metadata)
             new_cmap = cm.get_cmap(cmap_str, 256)
             cmap = ListedColormap(new_cmap(np.linspace(0.15, 1.0, max(feature_count))))
@@ -132,12 +135,16 @@ class UmapEmbeddingPlotter:
             )
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.set_title(f"{features[feature]}")
+            ax.set_title(f"{features[feature]}", fontsize=fontsize, pad=15)
             pos = ax.get_position()
-            cax = plt.axes([pos.x0 + 0.01, pos.y0 + 0.025, 0.05, 0.005])
+            cax = plt.axes([pos.x0 + 0.015, pos.y0 + 0.04, 0.05, 0.01])
             cbar = plt.colorbar(
-                sc, cax=cax, ticks=[0, max(feature_count)], location="bottom"
+                sc,
+                cax=cax,
+                ticks=[0, max(feature_count)],
+                location="bottom",
             )
+            cbar.ax.tick_params(labelsize=fontsize)
 
         return fig
 

@@ -45,6 +45,7 @@ class PharmacophoreDataModule(LightningDataModule):
         self.batch_size = batch_size
         self.small_set_size = small_set_size
         self.graph_size_upper_bound = graph_size_upper_bound
+        self.num_workers = 8
 
     def setup(self, stage: str = "fit") -> None:
         if stage == "fit":
@@ -79,6 +80,8 @@ class PharmacophoreDataModule(LightningDataModule):
                 batch_size=len(self.train_data),
                 shuffle=True,
                 drop_last=True,
+                num_workers=self.num_workers,
+                persistent_workers=True,
             )
         else:
             return DataLoader(
@@ -86,6 +89,8 @@ class PharmacophoreDataModule(LightningDataModule):
                 batch_size=self.batch_size,
                 shuffle=True,
                 drop_last=True,
+                num_workers=self.num_workers,
+                persistent_workers=True,
             )
 
     def val_dataloader(self) -> list[DataLoader]:
@@ -101,10 +106,17 @@ class PharmacophoreDataModule(LightningDataModule):
                 batch_size=len(data),
                 shuffle=False,
                 drop_last=True,
+                num_workers=self.num_workers,
+                persistent_workers=True,
             )
         else:
             return DataLoader(
-                data, batch_size=self.batch_size, shuffle=False, drop_last=True
+                data,
+                batch_size=self.batch_size,
+                shuffle=False,
+                drop_last=True,
+                num_workers=self.num_workers,
+                persistent_workers=True,
             )
 
 
@@ -138,6 +150,7 @@ class VirtualScreeningDataModule(LightningDataModule):
         super(VirtualScreeningDataModule, self).__init__()
         self.virtual_screening_data_dir = virtual_screening_data_dir
         self.batch_size = batch_size
+        self.num_workers = 8
 
     def setup(self, stage: str = "screening") -> None:
         if stage == "screening":
@@ -169,18 +182,48 @@ class VirtualScreeningDataModule(LightningDataModule):
 
     def query_dataloader(self) -> DataLoader:
         if self.batch_size is None:
-            return DataLoader(self.query, batch_size=len(self.query))
+            return DataLoader(
+                self.query,
+                batch_size=len(self.query),
+                num_workers=self.num_workers,
+                persistent_workers=True,
+            )
         else:
-            return DataLoader(self.query, batch_size=self.batch_size)
+            return DataLoader(
+                self.query,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                persistent_workers=True,
+            )
 
     def actives_dataloader(self) -> DataLoader:
         if self.batch_size is None:
-            return DataLoader(self.actives, batch_size=len(self.actives))
+            return DataLoader(
+                self.actives,
+                batch_size=len(self.actives),
+                num_workers=self.num_workers,
+                persistent_workers=True,
+            )
         else:
-            return DataLoader(self.actives, batch_size=self.batch_size)
+            return DataLoader(
+                self.actives,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                persistent_workers=True,
+            )
 
     def inactives_dataloader(self) -> DataLoader:
         if self.batch_size is None:
-            return DataLoader(self.inactives, batch_size=len(self.inactives))
+            return DataLoader(
+                self.inactives,
+                batch_size=len(self.inactives),
+                num_workers=self.num_workers,
+                persistent_workers=True,
+            )
         else:
-            return DataLoader(self.inactives, batch_size=self.batch_size)
+            return DataLoader(
+                self.inactives,
+                batch_size=self.batch_size,
+                num_workers=self.num_workers,
+                persistent_workers=True,
+            )

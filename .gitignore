@@ -2,6 +2,7 @@
 .env
 .pytest_cache
 .ipynb_checkpoints
+hydra_script
 plots
 visualization
 notebooks/comparison*
@@ -9,4 +10,7 @@ notebooks/PCA*
 notebooks/final_results*
 notebooks/hit*
 notebooks/embeddings_*
+notebooks/pca* 
+notebooks/umap* 
+notebooks/processing*
 __pycache__/

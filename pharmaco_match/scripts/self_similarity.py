@@ -24,8 +24,8 @@ class SelfSimilarityEvaluation:
         self.max_node_masking = 0.9
         steps_node_masking = 10
         self.max_radius = 10
-        steps_radius = 21
-        self.max_threshold = 10
+        steps_radius = 41
+        self.max_threshold = 20000
         steps_threshold = 50
 
         self.node_masking_range = [
@@ -79,11 +79,15 @@ class SelfSimilarityEvaluation:
         X, Y = np.meshgrid(self.threshold_range, self.radius_range)
         Z = self.subgraph_isomorphism.T
 
-        # fig = plt.figure()
-        # plt.plot(self.radius_range, self.subgraph_isomorphism[0])
-        # plt.xlabel(r"Displacement Radius / $\AA$")
-        # plt.ylabel("Subgraph Prediction Function")
-        # plt.savefig("test.png", dpi=300)
+        fig = plt.figure(figsize=(3, 5))
+        plt.plot(self.radius_range, self.subgraph_isomorphism[33])
+        plt.xlabel(r"Displacement radius $r_D$ / $\AA$", fontsize=12)
+        plt.ylabel("Mean matching decision function", fontsize=12)
+        plt.xlim([0, 10])
+        plt.ylim([0, 1])
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.savefig("positional_perception.jpg", dpi=300, bbox_inches="tight")
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
         surf = ax.plot_surface(
@@ -124,39 +128,7 @@ class SelfSimilarityEvaluation:
         ax.set_zlabel("Subgraph Positive Rate")
         plt.savefig(f"{num_version}_Target_Query.png")
 
-    # def calculate_mean_similarities(self, num_version):
-    #     reference = self._create_embeddings(0, 0, None)
-    #     for j, radius in enumerate(self.radius_range):
-    #         for i, node_masking in enumerate(self.node_masking_range):
-    #             embeddings = self._create_embeddings(
-    #                 node_masking=node_masking,
-    #                 radius=radius,
-    #                 node_to_keep_lower_bound=None,
-    #             )
-    #             self.self_similarity[i, j] = torch.mean(
-    #                 cosine_similarity(reference, embeddings)
-    #             )
 
-    #     X, Y = np.meshgrid(self.node_masking_range, self.radius_range)
-    #     Z = self.self_similarity.T
-
-    #     fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-    #     surf = ax.plot_surface(
-    #         X,
-    #         Y,
-    #         Z,
-    #         cmap=cm.coolwarm,
-    #         linewidth=0,
-    #         antialiased=False,
-    #     )
-    #     ax.plot_wireframe(X, Y, Z, cmap=cm.coolwarm)
-    #     ax.set_zlim(0, 1.0)
-    #     ax.set_xlabel("Node Deletion Ratio")
-    #     ax.set_ylabel(r"Displacement Radius / $\AA$")
-    #     ax.set_ylim(self.max_radius, 0)
-    #     ax.set_xlim(0, self.max_node_masking)
-    #     ax.set_zlabel("Mean Cosine Similarity")
-    #     plt.savefig(f"self-similarity{num_version}.png")
 
     def _create_embeddings(self, node_masking, radius, node_to_keep_lower_bound):
         callbacks = [
@@ -181,7 +153,7 @@ def run(device):
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
     MODEL = PharmacoMatch
-    VERSION = 250
+    VERSION = 328
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
 
     params = yaml.load(

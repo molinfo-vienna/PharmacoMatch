@@ -6,7 +6,7 @@ import torch
 import torch_geometric
 from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
-from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
+from lightning.pytorch.callbacks import LearningRateMonitor
 
 from dataset import PharmacophoreDataModule
 from model import (
@@ -20,16 +20,10 @@ def training(device):
     # Path variables
     PROJECT_ROOT = "/data/shared/projects/PhectorDB"
     PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
-    CONFIG_FILE_PATH = "pharmaco_match/scripts/config.yaml"
+    CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/pharmaco_match/scripts/config.yaml"
     MODEL = PharmacoMatch
     VERSION = None
     MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
-    # PRETRAINED_MODEL = PharmCLR
-    # PRETRAINED_VERSION = None
-    # PRETRAINED_MODEL_PATH = (
-    #     f"{PROJECT_ROOT}/archived/old_logs_2/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
-    #     # f"{PROJECT_ROOT}/logs/{PRETRAINED_MODEL.__name__}/version_{PRETRAINED_VERSION}/"
-    # )
 
     # Load or create new model parameters
     if os.path.exists(MODEL_PATH):
@@ -52,19 +46,10 @@ def training(device):
     else:
         model = MODEL(**params)
 
-    # Check for pretrained model
-    # if os.path.exists(PRETRAINED_MODEL_PATH):
-    #     pretrained_model = load_model_from_path(
-    #         PRETRAINED_MODEL_PATH, PRETRAINED_MODEL, device[0]
-    #     )
-    #     model.encoder = pretrained_model.encoder
-    #     print("Using pretrained encoder")
-
     tb_logger = TensorBoardLogger(
         f"{PROJECT_ROOT}/logs/", name=f"{MODEL.__name__}", default_hp_metric=False
     )
     callbacks = [
-        # ModelCheckpoint(monitor="val/outer_val_auroc/dataloader_idx_1", mode="max"),
         LearningRateMonitor("epoch"),
         CurriculumLearningScheduler(4, 10),
     ]

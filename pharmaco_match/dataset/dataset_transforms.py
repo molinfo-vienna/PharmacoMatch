@@ -248,6 +248,75 @@ class RandomNodeDeletion(BaseTransform):
         return data
 
 
+@functional_transform("twice_random_node_deletion_without_overlap")
+class TwiceRandomNodeDeletionWithoutOverlap(BaseTransform):
+    """Transform that deletes a random subset of nodes from the input data.
+
+    Random node deletion involved removing at least one node, with the upper bound
+    determined by the cardinality of the set of nodes V_i of graph G_i. The number of
+    nodes to delete was drawn uniformly at random. This transform shuffles the nodes
+    randomly and deletes the first n nodes for the first output and the last n nodes for
+    the second output.
+
+    Args:
+        node_to_keep_lower_bound (int, optional): Minimum number of nodes that shall
+            remain after node deletion. Defaults to 3.
+    """
+
+    def __init__(self, node_to_keep_lower_bound: int = 3) -> None:
+        self.node_to_keep_lower_bound = node_to_keep_lower_bound
+
+    def __call__(self, data: Data) -> tuple[Data, Data]:
+        if len(data) == 0 or data is None:
+            return data
+
+        device = data.x.device
+        n_nodes_per_graph = data.num_ph4_features
+        n_nodes_to_delete = n_nodes_per_graph - self.node_to_keep_lower_bound
+        uniform_distribution = (
+            torch.rand(n_nodes_per_graph.shape, device=device) * 0.999
+        )
+        n_nodes_to_delete = (n_nodes_to_delete * uniform_distribution).int() + 1
+        n_nodes_to_keep = n_nodes_per_graph - n_nodes_to_delete
+
+        idx = [
+            (torch.randperm(i + j, device=device) + k)
+            for i, j, k in zip(n_nodes_to_keep, n_nodes_to_delete, data.ptr[0:-1])
+        ]
+
+        idx1 = torch.cat([idx[i][:j] for i, j in enumerate(n_nodes_to_keep)])
+        idx2 = torch.cat(
+            [idx[i][len(idx[i]) - j :] for i, j in enumerate(n_nodes_to_keep)]
+        )
+
+        data1 = data.clone()
+        data2 = data.clone()
+
+        data1.x = data.x[idx1]
+        data1.pos = data.pos[idx1]
+        data1.batch = data.batch[idx1]
+        data1.ptr = torch.cat(
+            (
+                torch.zeros(1, device=device, dtype=torch.long),
+                torch.cumsum(n_nodes_to_keep, dim=0),
+            )
+        )
+        data1.num_ph4_features = n_nodes_to_keep
+
+        data2.x = data.x[idx2]
+        data2.pos = data.pos[idx2]
+        data2.batch = data.batch[idx2]
+        data2.ptr = torch.cat(
+            (
+                torch.zeros(1, device=device, dtype=torch.long),
+                torch.cumsum(n_nodes_to_keep, dim=0),
+            )
+        )
+        data2.num_ph4_features = n_nodes_to_keep
+
+        return data1, data2
+
+
 @functional_transform("random_node_deletion_by_ratio")
 class RandomNodeDeletionByRatio(BaseTransform):
     """Transform that deletes a random subset of nodes from the input data.

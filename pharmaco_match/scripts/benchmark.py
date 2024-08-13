@@ -20,6 +20,7 @@ from utils import (
     UmapEmbeddingPlotter,
     PcaEmbeddingPlotter,
     bedroc_score,
+    bootstrap_metric,
 )
 from virtual_screening import (
     VirtualScreeningEmbedder,
@@ -29,20 +30,21 @@ from virtual_screening import (
 
 results = []
 PROJECT_ROOT = "/data/shared/projects/PhectorDB"
-DATASET_ROOT = f"{PROJECT_ROOT}/DUDE-Z"
+DATASET_ROOT = f"{PROJECT_ROOT}/DUD-E"
+VS_MODEL_NUMBER = 328
+DEVICE = 1
 
+plt.rcParams.update({"figure.max_open_warning": 0})
 fig1, axes1 = plt.subplots(2, 5, figsize=(25, 10), sharex=True, sharey=True)
 fig2, axes2 = plt.subplots(2, 5, figsize=(25, 10), sharex=True, sharey=True)
 i = 0
 
 for TARGET in sorted(os.listdir(DATASET_ROOT)):
     try:
-
         print(TARGET)
         # Define global variables
         VS_ROOT = f"{DATASET_ROOT}/{TARGET}"
         MODEL = PharmacoMatch
-        VS_MODEL_NUMBER = 250
         MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VS_MODEL_NUMBER}/"
         HPARAMS_FILE = "hparams.yaml"
 
@@ -69,7 +71,7 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         model = load_model_from_path(os.path.join(PROJECT_ROOT, MODEL_PATH), MODEL)
         trainer = Trainer(
             num_nodes=1,
-            devices=[0],
+            devices=[DEVICE],
             max_epochs=params["epochs"],
             accelerator="auto",
             logger=False,
@@ -103,7 +105,9 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
 
         # Calc metric
         auroc = roc_auc_score(y_true, y_pred)
-        experiment_data["auroc_comparison"] = auroc
+        auroc_mean, auroc_std = bootstrap_metric(y_true, y_pred, roc_auc_score, 1000)
+        experiment_data["mean_auroc_comparison"] = auroc_mean
+        experiment_data["std_auroc_comparison"] = auroc_std
         fpr, tpr, threshold = roc_curve(y_true, y_pred)
 
         axes1[i // 5][i % 5].plot(fpr, tpr)
@@ -115,27 +119,31 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         y_true = screener.ligand_label
         y_pred = -screener.ligand_score
         auroc = roc_auc_score(y_true, y_pred)
+        auroc_mean, auroc_std = bootstrap_metric(y_true, y_pred, roc_auc_score, 1000)
         bedroc = bedroc_score(y_true, y_pred)
-        experiment_data["order_embedding_auroc"] = auroc
-        experiment_data["order_embedding_bedroc"] = bedroc
+        bedroc_mean, bedroc_std = bootstrap_metric(y_true, y_pred, bedroc_score, 1000)
+
+        experiment_data["mean_order_embedding_auroc"] = auroc_mean
+        experiment_data["std_order_embedding_auroc"] = auroc_std
+        experiment_data["mean_order_embedding_bedroc"] = bedroc_mean
+        experiment_data["std_order_embedding_bedroc"] = bedroc_std
 
         fpr, tpr, threshold = roc_curve(y_true, y_pred)
         axes2[i // 5][i % 5].plot(fpr, tpr)
         axes2[i // 5][i % 5].set_xlabel("False positive rate")
         axes2[i // 5][i % 5].set_ylabel("True positive rate")
 
-        alphas = [0.005, 0.01, 0.05]
-        for alpha in alphas:
-            enrichment = enrichment_factor(y_true, y_pred, alpha).item()
-            experiment_data[f"order_embedding_ef{alpha}"] = enrichment
-
         # Calc hitlist metrics - CDPKit score
         y_true = screener.ligand_label
         y_pred = global_max_pool(classical_screener.alignment_score, screener.mol_ids)
         auroc_cdp = roc_auc_score(y_true, y_pred)
+        auroc_mean, auroc_std = bootstrap_metric(y_true, y_pred, roc_auc_score, 1000)
         bedroc_cdp = bedroc_score(y_true, y_pred)
-        experiment_data["cdpkit_auroc"] = auroc_cdp
-        experiment_data["cdpkit_bedroc"] = bedroc_cdp
+        bedroc_mean, bedroc_std = bootstrap_metric(y_true, y_pred, bedroc_score, 1000)
+        experiment_data["mean_cdpkit_auroc"] = auroc_mean
+        experiment_data["std_cdpkit_auroc"] = auroc_std
+        experiment_data["mean_cdpkit_bedroc"] = bedroc_mean
+        experiment_data["std_cdpkit_bedroc"] = bedroc_std
 
         fpr, tpr, threshold = roc_curve(y_true, y_pred)
         axes2[i // 5][i % 5].plot(fpr, tpr)
@@ -149,12 +157,6 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         )
         axes2[i // 5][i % 5].set_xlabel("False positive rate")
         axes2[i // 5][i % 5].set_ylabel("True positive rate")
-        alphas = [0.005, 0.01, 0.05]
-
-        for alpha in alphas:
-            enrichment = enrichment_factor(y_true, y_pred, alpha).item()
-            # print(f"The enrichment factor at {alpha} is {enrichment}.")
-            experiment_data[f"cdpkit_ef{alpha}"] = enrichment
 
         results.append(experiment_data)
         i += 1
@@ -169,7 +171,7 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         fig4 = umap_plotter.create_umap_plot()
         fig4.savefig(
             f"visualization/embeddings_{TARGET}.png",
-            dpi=300,
+            dpi=150,
             bbox_inches="tight",
         )
 
@@ -177,7 +179,7 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         print(e)
         continue
 
-fig1.savefig("comparison.png", dpi=300, bbox_inches="tight")
-fig2.savefig("hitlist.png", dpi=300, bbox_inches="tight")
+fig1.savefig(f"comparison_{VS_MODEL_NUMBER}.png", dpi=300, bbox_inches="tight")
+fig2.savefig(f"hitlist_{VS_MODEL_NUMBER}.png", dpi=300, bbox_inches="tight")
 final_results = pd.DataFrame(results)
-final_results.to_csv("final_results.csv")
+final_results.to_csv(f"final_results_{VS_MODEL_NUMBER}.csv")

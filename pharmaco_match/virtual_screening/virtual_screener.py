@@ -31,26 +31,19 @@ class VirtualScreener:
             (self.actives_prefilter_mask, self.inactives_prefilter_mask)
         )
 
-        # calculate decision function of (in)actives w.r.t. to query
         start = time.time()
-        self.active_conformation_score = torch.sum(
-            torch.max(
-                torch.zeros_like(self.active_embeddings),
-                self.query_embedding.expand(self.active_embeddings.shape)
-                - self.active_embeddings,
-            )
-            ** 2,
-            dim=1,
-        )
-        self.inactive_conformation_score = torch.sum(
-            torch.max(
-                torch.zeros_like(self.inactive_embeddings),
-                self.query_embedding.expand(self.inactive_embeddings.shape)
-                - self.inactive_embeddings,
-            )
-            ** 2,
-            dim=1,
-        )
+        # calculate decision function of actives w.r.t. to query
+        diff = self.query_embedding - self.active_embeddings
+        diff.clamp_(min=0)
+        diff.pow_(2)
+        self.active_conformation_score = diff.sum(dim=1)
+
+        # calculate decision function of inactives w.r.t. to query
+        diff = self.query_embedding - self.inactive_embeddings
+        diff.clamp_(min=0)
+        diff.pow_(2)
+        self.inactive_conformation_score = diff.sum(dim=1)
+
         end = time.time()
         self.matching_time = end - start
 
@@ -86,27 +79,3 @@ class VirtualScreener:
                 torch.zeros(len(self.inactive_mol_ids)),
             )
         )
-
-    #     # pick most similar conformation per compound
-    #     self.active_mask = self._create_mask(
-    #         self.active_query_match, self.active_mol_ids
-    #     )
-    #     self.inactive_mask = self._create_mask(
-    #         self.inactive_query_match, self.inactive_mol_ids
-    #     )
-    #     self.top_active_similarity = self.active_query_match[self.active_mask]
-    #     self.top_inactive_similarity = self.inactive_query_match[
-    #         self.inactive_mask
-    #     ]
-    #     self.top_active_embeddings = self.active_embeddings[self.active_mask]
-    #     self.top_inactive_embeddings = self.inactive_embeddings[self.inactive_mask]
-
-    # def _create_mask(self, similarities: Tensor, mol_ids: Tensor) -> Tensor:
-    #     splits = [similarities[mol_ids == i] for i in range(max(mol_ids + 1))]
-    #     split_argmax = [torch.argmax(split) for split in splits]
-    #     mask = [torch.zeros(split.shape) for split in splits]
-    #     for idx, mask_split in zip(split_argmax, mask):
-    #         mask_split[idx] = 1
-    #     mask = torch.cat(mask) != 0
-
-    #     return mask

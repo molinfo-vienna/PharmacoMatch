@@ -2,6 +2,7 @@ from .dataset_transforms import (
     DistanceRDF,
     RandomGaussianNoise,
     RandomNodeDeletion,
+    TwiceRandomNodeDeletionWithoutOverlap,
     RandomNodeDeletionByRatio,
     RandomSphericalNoise,
     FurthestSphericalSurfaceDisplacement,
