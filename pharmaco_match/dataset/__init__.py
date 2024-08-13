@@ -20,6 +20,7 @@ __all__ = [
     "DistanceRDF",
     "RandomGaussianNoise",
     "RandomNodeDeletion",
+    "TwiceRandomNodeDeletionWithoutOverlap",
     "RandomNodeDeletionByRatio",
     "PharmacophoreDataset",
     "VirtualScreeningDataset",

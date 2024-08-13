@@ -9,6 +9,17 @@ from dataset import VirtualScreeningDataModule
 
 
 class PharmacophoreAlignment:
+    """A class for aligning preprocessed ligands to a query pharmacophore.
+
+    This class uses functions from the CDPL library to align preprocessed ligands to a
+    query pharmacophore. The alignment scores are saved to a file in the dataset
+    directory and can be loaded later for comparison with the matching scores of
+    the PharmacoMatch model.
+
+    Args:
+        vs_root (str): Path to the root directory of the virtual screening dataset.
+    """
+
     def __init__(self, vs_root: str) -> None:
         self.vs_root = vs_root
 
@@ -63,24 +74,11 @@ class PharmacophoreAlignment:
                 mol_idx = db_accessor.getMoleculeIndex(i)
                 conf_idx = db_accessor.getConformationIndex(i)
 
-                # compose a simple molecule identifier
-                # mol_id = Chem.getName(mol).strip()
-
-                # if mol_id == "":
-                #    mol_id = "#" + str(i)  # fallback if name is empty
-                # else:
-                #    mol_id = "'%s' (#%s)" % (mol_id, str(i))
-
-                # if not args.quiet:
-                # print("- Aligning molecule %s..." % mol_id)
-
                 try:
-                    # mol_ph4 = genPharmacophore(mol)  # generate input molecule pharmacophore
-
                     if mol_ph4.getNumFeatures() == 0:
                         continue
 
-                    # if args.pos_only:  # clear feature orientation information
+                    # clear feature orientation information
                     self._clearFeatureOrientations(mol_ph4)
 
                     almnt.clearEntities(
@@ -99,8 +97,6 @@ class PharmacophoreAlignment:
                             ref_ph4, mol_ph4, almnt.getTransform()
                         )  # calculate alignment score
                         almnt_solutions.append(score)
-
-                    # print(" -> Found %s alignment solutions" % str(len(almnt_solutions)))
 
                     almnt_solutions = sorted(almnt_solutions, reverse=True)
 
@@ -141,10 +137,8 @@ class PharmacophoreAlignment:
         torch.save(almnt_scores, out_file)
         print(f"Alignment of {almnt_scores.shape[0]} ph4s")
 
-        # reads and returns the specified alignment reference pharmacophore
-
     def _readRefPharmacophore(self, filename: str) -> Pharm.Pharmacophore:
-        # create pharmacophore reader instance
+        """Read query pharmacophore from the given file"""
         reader = Pharm.PharmacophoreReader(filename)
 
         # create an instance of the default implementation of the Pharm.Pharmacophore interface
@@ -159,14 +153,27 @@ class PharmacophoreAlignment:
 
         return ph4
 
-    # remove feature orientation informations and set the feature geometry to Pharm.FeatureGeometry.SPHERE
     def _clearFeatureOrientations(self, ph4: Pharm.BasicPharmacophore) -> None:
+        """remove feature orientation informations and set the feature geometry to
+        Pharm.FeatureGeometry.SPHERE"""
         for ftr in ph4:
             Pharm.clearOrientation(ftr)
             Pharm.setGeometry(ftr, Pharm.FeatureGeometry.SPHERE)
 
 
 class ClassicalVirtualScreener:
+    """Handler for virtual screening with the CDPKit alignment score.
+
+    Handling of the alignment scores of the virtual screening dataset, which are
+    calculated with CDPKit alignment. If existent, the scores are loaded from the
+    dataset directory. Otherwise, the ligands are aligned to the query pharmacophore
+    and the scores are saved to the dataset directory.
+
+    Args:
+        datamodule (VirtualScreeningDataModule): The datamodule of the virtual screening 
+            dataset.
+    """
+
     def __init__(self, datamodule: VirtualScreeningDataModule) -> None:
         root_dir = datamodule.virtual_screening_data_dir
         actives_path = os.path.join(root_dir, "vs/all_actives_aligned.pt")

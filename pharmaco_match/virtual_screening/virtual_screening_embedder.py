@@ -4,6 +4,17 @@ from lightning import LightningModule, LightningDataModule, Trainer
 
 
 class VirtualScreeningEmbedder:
+    """A class for embedding the virtual screening dataset.
+
+    This class creates vector embeddings for the query, active, and inactive ligands
+    of a virtual screening dataset using a pretrained PharmacoMatch model.
+
+    Args:
+        model (LightningModule): the trained PharmacoMatch model.
+        vs_datamodule (LightningDataModule): the virtual screening dataset.
+        trainer (Trainer): Lightning trainer for inference.
+    """
+
     def __init__(
         self,
         model: LightningModule,

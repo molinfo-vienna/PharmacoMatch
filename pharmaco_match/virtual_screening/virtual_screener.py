@@ -8,6 +8,18 @@ from .virtual_screening_embedder import VirtualScreeningEmbedder
 
 
 class VirtualScreener:
+    """A data handler for virtual screening embeddings.
+
+    This class handles the embeddings of the query, active, and inactive ligands of a
+    virtual screening dataset. It calculates the respective penalty function values
+    w.r.t. the query and aggregates the scores per conformation to yield a ligand score.
+
+    Args:
+        embedder (VirtualScreeningEmbedder): The virtual screening embedder.
+        query_idx (int, optional): If multiple queries are given, this index specifies
+            which query to pick. Defaults to 0.
+    """
+
     def __init__(self, embedder: VirtualScreeningEmbedder, query_idx: int = 0) -> None:
         self.embedder = embedder
         start = time.time()
