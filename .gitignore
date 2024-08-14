@@ -13,4 +13,6 @@ notebooks/embeddings_*
 notebooks/pca* 
 notebooks/umap* 
 notebooks/processing*
+notebooks/Benchmark*
+notebooks/RandomNoise*
 __pycache__/
