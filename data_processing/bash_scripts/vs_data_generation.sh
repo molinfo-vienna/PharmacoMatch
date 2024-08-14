@@ -13,7 +13,6 @@ do
     path="$root/$dataset/$target"
     mkdir $path/preprocessing
     mkdir $path/processed
-    mkdir $path/raw
     mkdir $path/vs
 
     for filename in ${filenames[@]};

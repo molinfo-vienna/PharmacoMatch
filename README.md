@@ -7,37 +7,44 @@ Due to the strict upload limit of 50 MB on OpenReview in the double-blind review
 
 **Hardware requirements**
 
-We trained our model on a NVIDIA GeForce 3090 RTX graphics unit with 24 GB GDDR6X and strongly recommend GPU acceleration for model training. We further used an AMD EPYC 7713 64-Core Processor for data preprocessing and pharmacophore alignment.
+We trained our model on a NVIDIA GeForce 3090 RTX graphics unit with 24 GB GDDR6X and strongly recommend GPU acceleration for model training. We further used an AMD EPYC 7713 64-Core Processor for data preprocessing and pharmacophore alignment. Software was installed and run on a Rocky Linux (v.9.4) distribution. 
 
 **Setting up the environment**
 
 1. Install conda and set up a new conda environment:
 
 ```
-conda create -n <new_env> python==3.10.12
+conda create -n pharmaco_match python==3.10.12
 ```
 
-2. Now install the dependencies from the `requirements.txt` file. 
+and activate it with:
+
+```
+conda activate pharmaco_match
+```
+
+2. Step into the `PharmacoMatch` folder and install the dependencies with pip:
 
 ```
 pip install -r requirements.txt
 ```
 
-3. We need some of the additional PyG dependencies
+3. We will need some of the additional PyG dependencies
 
 ```
 pip install torch_scatter torch_sparse torch_cluster -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
 ```
 
-4. Make sure to add the path to the `pharmaco_match` folder to your PYTHONPATH variable
+4. Make sure to add the path to the `pharmaco_match` folder to the `PYTHONPATH` variable of your conda installation.
 
-5. For data processing, we are using the open-source software [CDPKit](https://cdpkit.org/index.html).
-You can find installation instructions [here](https://cdpkit.org/installation.html) and installers for Linux/Mac/Windows [here](https://github.com/molinfo-vienna/CDPKit/releases). After installation, you will need to add the absolute path to the `Bin` folder to your PATH variable and the path to the `Python` folder to your PYTHONPATH variable. The `Bin` folder contains a compiled version of the conformer generation tool `confgen` and the `psdcreate` tool for the creation of pharmacophore databases from ligand datasets. The `Python` folder contains the `CDPL` module, which we will need for further data processing functionalities.
+**Setting up the Chemical Data Processing Toolkit (CDPKit)**
+
+For data processing, we are using the open-source software [CDPKit](https://cdpkit.org/index.html).
+You can find installation instructions [here](https://cdpkit.org/installation.html) and installers for Linux/Mac/Windows [here](https://github.com/molinfo-vienna/CDPKit/releases). The installer will add the `CDPKit` folder to the destination of your choice. We are interested in the `Bin` subfolder, which contains several command-line applications. We will use the `confgen` tool for conformer generation, which will create `.sdf`-files from `.smi`-files. We will further use the `psdcreate` tool for creating pharmacophore database files (`.psd`-files) from `.sdf`-files. 
 
 **Repository Contents**
 
 Our project is structured as follows: 
-
 - `data`: This folder contains unlabeled data for model training and virtual screening datasets for model evaluation.
 - `data_preprocessing`: The subfolder `bash_scripts` contains `.sh`-files, which implement our data processing pipeline. The subfolder `python_scripts/cdpl` contains scripts for data processing, which were downloaded from the CDPKit homepage. You could alternatively download these files [here](https://cdpkit.org/cdpl_python_cookbook/index.html). The subfolder `python_scripts/utils` contains additional script that were used for preprocessing.
 - `notebooks`: Contains a jupyter notebook for demonstration purposes.
