@@ -18,43 +18,33 @@ from utils import load_model_from_path, load_hparams_from_path
 
 def training(device):
     # Path variables
-    PROJECT_ROOT = "/data/shared/projects/PhectorDB"
-    PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
-    CONFIG_FILE_PATH = "/home/drose/git/PhectorDB/pharmaco_match/scripts/config.yaml"
+    ROOT = os.getcwd()
+    PRETRAINING_ROOT = os.path.join(ROOT, "data", "training_data")
+    CONFIG_FILE_PATH = os.path.join(ROOT, "pharmaco_match", "scripts", "config.yaml")
     MODEL = PharmacoMatch
-    VERSION = None
-    MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
+    params = yaml.load(
+        open(CONFIG_FILE_PATH, "r"),
+        Loader=yaml.FullLoader,
+    )
 
-    # Load or create new model parameters
-    if os.path.exists(MODEL_PATH):
-        load_model = True
-        params = load_hparams_from_path(MODEL_PATH)
-    else:
-        load_model = False
-        params = yaml.load(open(CONFIG_FILE_PATH, "r"), Loader=yaml.FullLoader)
-
-    # Settings for determinism
+    # Settings for deterministic training
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(params["seed"])
     seed_everything(params["seed"])
     torch.backends.cudnn.determinstic = True
     torch.backends.cudnn.benchmark = False
 
-    # Initialize model or load if model exists
-    if load_model:
-        model = load_model_from_path(MODEL_PATH, MODEL, device[0])
-    else:
-        model = MODEL(**params)
-
+    # Model training
+    model = MODEL(**params)
     tb_logger = TensorBoardLogger(
-        f"{PROJECT_ROOT}/logs/", name=f"{MODEL.__name__}", default_hp_metric=False
+        os.path.join(ROOT, "trained_model", "logs/"),
+        name=f"{MODEL.__name__}",
+        default_hp_metric=False,
     )
     callbacks = [
         LearningRateMonitor("epoch"),
         CurriculumLearningScheduler(4, 10),
     ]
-
-    # Model training
     trainer = Trainer(
         devices=device,
         max_epochs=params["epochs"],
@@ -66,14 +56,11 @@ def training(device):
         gradient_clip_val=1,
         reload_dataloaders_every_n_epochs=1,
     )
-
-    # Load dataset
     datamodule = PharmacophoreDataModule(
         PRETRAINING_ROOT,
         batch_size=params["batch_size"],
         small_set_size=params["num_samples"],
     )
-
     trainer.fit(model=model, datamodule=datamodule)
 
 

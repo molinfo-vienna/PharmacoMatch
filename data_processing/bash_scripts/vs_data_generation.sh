@@ -1,16 +1,15 @@
 #!/bin/bash
 
 # This script implements a pipeline to transform SMILES data into the ScreeningDatabase format
-root='/data/shared/projects/PhectorDB'
-dataset='DUD-E'
-cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
-python_scripts='/home/drose/git/PhectorDB/data_processing/python_scripts'
+root='<your_path>/PharmacoMatch/data/DUD-E'
+cdpkit='<your_path>/CDPKit/Bin'
+python_scripts='<your_path>/PharmacoMatch/data_processing/python_scripts'
 filenames=('actives' 'inactives')
 targets=('ACES' 'ADA' 'ANDR' 'EGFR' 'FA10' 'KIT' 'PLK1' 'SRC' 'THRB' 'UROK')
 
 for target in ${targets[@]};
 do
-    path="$root/$dataset/$target"
+    path="$root/$target"
     mkdir $path/preprocessing
     mkdir $path/processed
     mkdir $path/vs

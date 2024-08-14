@@ -1,13 +1,9 @@
 #!/bin/bash
 
-root='/data/shared/projects/PhectorDB'
-dataset='training_data'
-path="$root/$dataset"
+path='<your_path>/PharmacoMatch/data/training_data'
 filename="chembl_data"
-cdpkit='/data/shared/software/CDPKit-head-RH7/Bin'
-python_scripts='/home/drose/git/PhectorDB/data_processing/python_scripts'
-benchmark_root='/data/shared/projects/PhectorDB/DUDE-E'
-
+cdpkit='<your_path>/CDPKit/Bin'
+python_scripts='<your_path>/PharmacoMatch/data_processing/python_scripts'
 
 mkdir $path/preprocessing
 mkdir $path/processed

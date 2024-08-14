@@ -5,14 +5,5 @@
 hydra_script
 plots
 visualization
-notebooks/comparison*
-notebooks/PCA*
-notebooks/final_results*
-notebooks/hit*
-notebooks/embeddings_*
-notebooks/pca* 
-notebooks/umap* 
-notebooks/processing*
-notebooks/Benchmark*
-notebooks/RandomNoise*
+notebooks/
 __pycache__/

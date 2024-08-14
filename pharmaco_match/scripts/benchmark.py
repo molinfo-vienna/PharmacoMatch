@@ -27,37 +27,49 @@ from virtual_screening import (
     ClassicalVirtualScreener,
 )
 
-results = []
-PROJECT_ROOT = "/data/shared/projects/PhectorDB"
-DATASET_ROOT = f"{PROJECT_ROOT}/DUD-E"
-VS_MODEL_NUMBER = 328
-DEVICE = 1
+# Define path variables
+ROOT = os.getcwd()
+DATASET_ROOT = os.path.join(ROOT, "data", "DUD-E")
+RESULTS_LOCATION = os.path.join(ROOT, "results")
+if not os.path.exists(RESULTS_LOCATION):
+    os.mkdir(RESULTS_LOCATION)
+DEVICE = 0
+MODEL = PharmacoMatch
+MODEL_PATH = os.path.join(ROOT, "trained_model", "trained_model.ckpt")
+params = yaml.load(
+    open(os.path.join(ROOT, "trained_model", "hparams.yaml"), "r"),
+    Loader=yaml.FullLoader,
+)
+
+# Deterministic flags (should not be necessary for inference, but just in case)
+torch.set_float32_matmul_precision("medium")
+torch_geometric.seed_everything(params["seed"])
+seed_everything(params["seed"])
+torch.backends.cudnn.determinstic = True
+torch.backends.cudnn.benchmark = False
+
+# Load the model and set up trainer for inference
+model = MODEL.load_from_checkpoint(
+    MODEL_PATH, map_location=torch.device(f"cuda:{DEVICE}")
+)
+trainer = Trainer(
+    num_nodes=1,
+    devices=[DEVICE],
+    max_epochs=params["epochs"],
+    accelerator="auto",
+    logger=False,
+    log_every_n_steps=2,
+)
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 fig1, axes1 = plt.subplots(2, 5, figsize=(25, 10), sharex=True, sharey=True)
 fig2, axes2 = plt.subplots(2, 5, figsize=(25, 10), sharex=True, sharey=True)
 i = 0
+results = []
 
 for TARGET in sorted(os.listdir(DATASET_ROOT)):
     try:
-        print(TARGET)
-        # Define global variables
-        VS_ROOT = f"{DATASET_ROOT}/{TARGET}"
-        MODEL = PharmacoMatch
-        MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VS_MODEL_NUMBER}/"
-        HPARAMS_FILE = "hparams.yaml"
-
-        params = yaml.load(
-            open(os.path.join(PROJECT_ROOT, MODEL_PATH, HPARAMS_FILE), "r"),
-            Loader=yaml.FullLoader,
-        )
-
-        # Deterministic flags (should not be necessary for inference, but just in case)
-        torch.set_float32_matmul_precision("medium")
-        torch_geometric.seed_everything(params["seed"])
-        seed_everything(params["seed"])
-        torch.backends.cudnn.determinstic = True
-        torch.backends.cudnn.benchmark = False
+        VS_ROOT = os.path.join(DATASET_ROOT, TARGET)
 
         # Setup datamodule
         datamodule = VirtualScreeningDataModule(
@@ -65,17 +77,6 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
             batch_size=params["batch_size"],
         )
         datamodule.setup()
-
-        # Load the model
-        model = load_model_from_path(os.path.join(PROJECT_ROOT, MODEL_PATH), MODEL)
-        trainer = Trainer(
-            num_nodes=1,
-            devices=[DEVICE],
-            max_epochs=params["epochs"],
-            accelerator="auto",
-            logger=False,
-            log_every_n_steps=2,
-        )
 
         # Create embeddings of the VS dataset
         embedder = VirtualScreeningEmbedder(model, datamodule, trainer)
@@ -85,7 +86,6 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
 
         experiment_data = dict()
         experiment_data["target"] = TARGET
-        experiment_data["model"] = VS_MODEL_NUMBER
         experiment_data["embedding_time"] = screener.embedding_time
         experiment_data["matching_time"] = screener.matching_time
         experiment_data["query_num_features"] = metadata.query["num_features"].sum()
@@ -163,13 +163,13 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         # PCA order embedding space plot
         pca_plotter = PcaEmbeddingPlotter(screener, metadata)
         fig3 = pca_plotter.create_pca_plot()
-        fig3.savefig(f"visualization/PCA_{TARGET}.png", dpi=300)
+        fig3.savefig(os.path.join(RESULTS_LOCATION, f"PCA_{TARGET}.png"), dpi=150)
 
         # UMAP embedding space visualization
         umap_plotter = UmapEmbeddingPlotter(screener, metadata)
         fig4 = umap_plotter.create_umap_plot()
         fig4.savefig(
-            f"visualization/embeddings_{TARGET}.png",
+            os.path.join(RESULTS_LOCATION, f"UMAP_{TARGET}.png"),
             dpi=150,
             bbox_inches="tight",
         )
@@ -178,7 +178,11 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         print(e)
         continue
 
-fig1.savefig(f"comparison_{VS_MODEL_NUMBER}.png", dpi=300, bbox_inches="tight")
-fig2.savefig(f"hitlist_{VS_MODEL_NUMBER}.png", dpi=300, bbox_inches="tight")
+fig1.savefig(
+    os.path.join(RESULTS_LOCATION, "comparison.png"), dpi=150, bbox_inches="tight"
+)
+fig2.savefig(
+    os.path.join(RESULTS_LOCATION, "hitlist.png"), dpi=150, bbox_inches="tight"
+)
 final_results = pd.DataFrame(results)
-final_results.to_csv(f"final_results_{VS_MODEL_NUMBER}.csv")
+final_results.to_csv(os.path.join(RESULTS_LOCATION, "results.csv"))

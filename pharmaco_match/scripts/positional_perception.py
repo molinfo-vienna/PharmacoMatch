@@ -51,11 +51,8 @@ class PositionalPerceptionAssessor:
             float(i) for i in torch.linspace(self.max_threshold, 0, steps_threshold)
         ]
         self.mean_matching_decision = np.zeros((steps_threshold, steps_radius))
-        self.mean_matching_decision_target_query = np.zeros(
-            (steps_threshold, steps_radius)
-        )
 
-    def subgraph_isomorphism_evaluation(self, num_version):
+    def subgraph_isomorphism_evaluation(self, results_path: str) -> None:
         """Evaluation of the matching decision function with different displacement
         radii and thresholds, and plotting of the results."""
         target = self._create_embeddings(0, 0, None)
@@ -68,17 +65,13 @@ class PositionalPerceptionAssessor:
                     self.model.penalty(queries, target) <= threshold
                 ) / len(queries)
 
-                self.mean_matching_decision_target_query[i, j] = torch.sum(
-                    self.model.penalty(target, queries) <= threshold
-                ) / len(queries)
-
         fig1 = self._create2Dplot(self.mean_matching_decision)
         fig2 = self._create3Dplot(self.mean_matching_decision)
-        fig3 = self._create3Dplot(self.mean_matching_decision_target_query)
 
-        fig1.savefig(f"{num_version}_positional_perception.jpg", bbox_inches="tight")
-        fig2.savefig(f"{num_version}_Query-Target.png")
-        fig3.savefig(f"{num_version}_Target_Query.png")
+        fig1.savefig(
+            os.path.join(results_path, "positional_perception.jpg"), bbox_inches="tight"
+        )
+        fig2.savefig(os.path.join(results_path, "Query-Target.png"), dpi=150)
 
     def _create_embeddings(self, node_masking, radius, node_to_keep_lower_bound):
         """Create embeddings for the given parameters."""
@@ -139,16 +132,20 @@ class PositionalPerceptionAssessor:
 
 
 def run(device):
-    PROJECT_ROOT = "/data/shared/projects/PhectorDB"
-    PRETRAINING_ROOT = f"{PROJECT_ROOT}/training_data"
+    # Path variables
+    ROOT = os.getcwd()
+    PRETRAINING_ROOT = os.path.join(ROOT, "data", "training_data")
+    RESULTS_LOCATION = os.path.join(ROOT, "results")
+    if not os.path.exists(RESULTS_LOCATION):
+        os.mkdir(RESULTS_LOCATION)
     MODEL = PharmacoMatch
-    VERSION = 328
-    MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
-
+    MODEL_PATH = os.path.join(ROOT, "trained_model", "trained_model.ckpt")
     params = yaml.load(
-        open(os.path.join(MODEL_PATH, "hparams.yaml"), "r"), Loader=yaml.FullLoader
+        open(os.path.join(ROOT, "trained_model", "hparams.yaml"), "r"),
+        Loader=yaml.FullLoader,
     )
 
+    # Deterministic flags
     torch.set_float32_matmul_precision("medium")
     torch_geometric.seed_everything(params["seed"])
     seed_everything(params["seed"])
@@ -160,12 +157,14 @@ def run(device):
         batch_size=params["batch_size"],
     )
 
-    model = load_model_from_path(MODEL_PATH, MODEL)
+    model = MODEL.load_from_checkpoint(
+        MODEL_PATH, map_location=torch.device(f"cuda:{device[0]}")
+    )
     device = [model.device.index]
 
     datamodule.setup()
     eval = PositionalPerceptionAssessor(model, datamodule.val_dataloader()[1], device)
-    eval.subgraph_isomorphism_evaluation(VERSION)
+    eval.subgraph_isomorphism_evaluation(RESULTS_LOCATION)
 
 
 if __name__ == "__main__":
