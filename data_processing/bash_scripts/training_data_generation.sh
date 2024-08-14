@@ -1,9 +1,10 @@
 #!/bin/bash
 
-path='<your_path>/PharmacoMatch/data/training_data'
-filename="chembl_data"
 cdpkit='<your_path>/CDPKit/Bin'
-python_scripts='<your_path>/PharmacoMatch/data_processing/python_scripts'
+project='<your_path>/PharmacoMatch'
+path="$project/data/training_data"
+filename="chembl_data"
+python_scripts="$project/data_processing/python_scripts"
 
 mkdir $path/preprocessing
 mkdir $path/processed

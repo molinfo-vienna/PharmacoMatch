@@ -1,8 +1,9 @@
 #!/bin/bash
 
-data='<your_path>/PharmacoMatch/data/DUD-E'
-filenames=('actives' 'inactives')
 cdpkit='<your_path>/CDPKit/Bin'
+project='<your_path>/PharmacoMatch'
+data="$project/data/DUD-E"
+filenames=('actives' 'inactives')
 
 targets=('ACES' 'ADA' 'ANDR' 'EGFR' 'FA10' 'KIT' 'PLK1' 'SRC' 'THRB' 'UROK')
 

@@ -2,8 +2,8 @@
 
 # This script implements a pipeline to transform SMILES data into the ScreeningDatabase format
 root='<your_path>/PharmacoMatch/data/DUD-E'
-cdpkit='<your_path>/CDPKit/Bin'
 python_scripts='<your_path>/PharmacoMatch/data_processing/python_scripts'
+cdpkit='<your_path>/CDPKit/Bin'
 filenames=('actives' 'inactives')
 targets=('ACES' 'ADA' 'ANDR' 'EGFR' 'FA10' 'KIT' 'PLK1' 'SRC' 'THRB' 'UROK')
 
