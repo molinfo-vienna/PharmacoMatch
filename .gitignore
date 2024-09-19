@@ -2,7 +2,8 @@
 .env
 .pytest_cache
 .ipynb_checkpoints
-hydra_script
+dataset
+results
 plots
 visualization
 notebooks/

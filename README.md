@@ -2,13 +2,15 @@
 
 **General**
 
-This repository contains the code and data appendix for our AAAI-25 submission. Due to the 50 MB upload limit on OpenReview during the double-blind review process, we are unable to provide preprocessed data at this time. However, we have included detailed instructions on how to reproduce our results. Upon acceptance, the GitHub repository will be made public, along with the preprocessed datasets via the Zenodo platform. A pretrained model is readily available for use.
+This repository contains the code for our ICLR submission. 
+You can download the preprocessed data from the provided figshare link. 
+A pretrained model is readily available for use.
 
 **System specifications**
 
 - **GPU:** NVIDIA GeForce 3090 RTX with 24 GB GDDR6X (recommended for model inference and training).
 - **CPU:** AMD EPYC 7713 64-Core Processor (used for data preprocessing and pharmacophore alignment).
-- **OS:** Rocky Linux (v.9.4).
+- **OS:** Rocky Linux (v9.4).
 
 **Setting Up the Environment**
 
@@ -22,7 +24,7 @@ This repository contains the code and data appendix for our AAAI-25 submission. 
 2. **Navigate to the `PharmacoMatch` folder and install dependencies:**
 
     ```bash
-    pip install -r requirements.txt
+    pip install .
     ```
 
 3. **Install additional PyG dependencies:**
@@ -31,17 +33,9 @@ This repository contains the code and data appendix for our AAAI-25 submission. 
     pip install torch_scatter torch_sparse torch_cluster -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
     ```
 
-4. **Add the `pharmaco_match` folder to your `PYTHONPATH`:**
+4. **Download preprocessed data from figshare:**
 
-    Ensure that the path to the `pharmaco_match` folder is added to the `PYTHONPATH` variable in your Conda environment.
-
-**Setting Up the Chemical Data Processing Toolkit (CDPKit)**
-
-For data processing, we use the open-source software [CDPKit](https://cdpkit.org/index.html). Follow the installation instructions provided [here](https://cdpkit.org/installation.html), installers can be found [here](https://github.com/molinfo-vienna/CDPKit/releases). The installation will include a `CDPKit/Bin` subfolder containing command-line applications.
-
-Key tools:
-- `confgen`: Generates `.sdf` files from `.smi` files for conformer generation.
-- `psdcreate`: Creates pharmacophore database files (`.psd` files) from `.sdf` files.
+    The data can be found [here](). Unzip and place the `data` folder into the `PharmacoMatch` directory.
 
 **Repository Contents**
 
@@ -57,6 +51,37 @@ Key tools:
     - `virtual_screening`: Classes for virtual screening with our model.
 - **`trained_model`:** Stores the pretrained model used in our study.
 
+
+**Model Evaluation**
+
+To reproduce our results, execute the following scripts:
+
+- **`benchmark.py`:** Embeds test datasets, generates visualizations, and calculates evaluation metrics as reported in our paper.
+- **`positional_perception.py`:** Performs the positional perception experiment. 
+
+
+**Model Training**
+
+You can train the model yourself as follows:
+
+```bash
+python3 pharmaco_match/scripts/training.py 0
+```
+
+where `0` corresponds to the GPU device index. If your hardware doesn't meet the memory requirements, you can reduce the model size by decreasing the `hidden_dim_encoder` parameter in the `config.yaml` file (note that this may reduce model performance).
+
+---
+
+If you want to preprocess the data yourself, you can do so as follows:
+
+**Setting Up the Chemical Data Processing Toolkit (CDPKit)**
+
+For data processing, we use the open-source software [CDPKit](https://cdpkit.org/index.html). Follow the installation instructions provided [here](https://cdpkit.org/installation.html), installers can be found [here](https://github.com/molinfo-vienna/CDPKit/releases). The installation will include a `CDPKit/Bin` subfolder containing command-line applications.
+
+Key tools:
+- `confgen`: Generates `.sdf` files from `.smi` files for conformer generation.
+- `psdcreate`: Creates pharmacophore database files (`.psd` files) from `.sdf` files.
+
 **IMPORTANT**
 
 Edit the path variables at the top of the bash scripts to match your CDPKit installation and PharmacoMatch root-folder:
@@ -64,57 +89,29 @@ Edit the path variables at the top of the bash scripts to match your CDPKit inst
 ```bash
 cdpkit='<your_path>/CDPKit/Bin'
 project='<your_path>/PharmacoMatch'
+
 ```
-
-**Test Datasets Processing**
-
-The `data/DUD-E` folder contains ten different targets from the [DUD-E](https://dude.docking.org/) benchmark dataset. Since the files are not too large, we have included the input files and pharmacophore queries generated from the receptor structure. To run the data processing pipeline, execute:
-
-```bash
-./data_processing/bash_scripts/vs_data_generation.sh
-```
-
-The folder structure of the test sets should now include:
-- **`input`:** Contains `actives.smi` and `inactives.smi` files.
-- **`preprocessing`:** Contains intermediate processing files.
-- **`raw`:** Includes actives and inactives in `.psd` format and `query.pml` for interaction pharmacophore.
-- **`vs`:** Stores pharmacophore alignment scores.
-- **`processed`:** Contains the final PyTorch datasets.
-
-**Model Evaluation**
-
-With the test datasets processed, you can now execute the following script:
-
-- **`benchmark.py`:** Embeds test datasets, generates visualizations, and calculates evaluation metrics as reported in our paper.
-
-This script requires processing of the training data, which we will explain in the next step:
-
-- **`positional_perception.py`:** Performs the positional perception experiment. 
 
 **Unlabeled Data for Model Training**
 
-To train the model, download the unlabeled data from the [ChEMBL database](https://www.ebi.ac.uk/chembl/web_components/explore/compounds/STATE_ID:iFvSIzcFcWFTVI47whwpSA%3D%3D). Filter by "Type: Small molecule" and "RO5 Violations: 0" to obtain approximately 1.34 million molecules. 
-
-Process the SMILES strings by pasting them into `data/training_data/input/chembl_data.smi` or use the utility:
-
-```bash
-python3 data_processing/python_scripts/utils/csv2smi.py -i <path to csv-file> -o data/training_data/input/chembl_data.smi
-```
-
-Run the preprocessing script:
+You can use the file `data/training_data/input/chembl_data.smi` and run the preprocessing script:
 
 ```bash
 ./data_processing/bash_scripts/training_data.sh
 ```
 
-**Model Training**
+**Test Datasets Processing**
 
-Once the training data is prepared, you can train the model:
+The `data/DUD-E` folder contains ten different targets from the [DUD-E](https://dude.docking.org/) benchmark dataset. 
+We have included the input files and pharmacophore queries generated from the receptor structure. To run the data processing pipeline, execute:
 
 ```bash
-python3 pharmaco_match/scripts/training.py 0
+./data_processing/bash_scripts/vs_data_generation.sh
 ```
 
-Where `0` corresponds to the GPU device index. If your hardware doesn't meet the memory requirements, reduce the model size by adjusting the hidden layers in the `config.yaml` file (note that this may reduce model performance).
-
-
+The folder structure of the test sets is as follows:
+- **`input`:** Contains `actives.smi` and `inactives.smi` files.
+- **`preprocessing`:** Contains intermediate processing files.
+- **`raw`:** Includes actives and inactives in `.psd` format and `query.pml` for interaction pharmacophore.
+- **`vs`:** Stores pharmacophore alignment scores.
+- **`processed`:** Contains the final PyTorch datasets.

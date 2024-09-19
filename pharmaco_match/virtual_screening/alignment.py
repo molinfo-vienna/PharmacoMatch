@@ -170,17 +170,20 @@ class ClassicalVirtualScreener:
     and the scores are saved to the dataset directory.
 
     Args:
-        datamodule (VirtualScreeningDataModule): The datamodule of the virtual screening 
+        datamodule (VirtualScreeningDataModule): The datamodule of the virtual screening
             dataset.
     """
 
     def __init__(self, datamodule: VirtualScreeningDataModule) -> None:
-        root_dir = datamodule.virtual_screening_data_dir
-        actives_path = os.path.join(root_dir, "vs/all_actives_aligned.pt")
-        inactives_path = os.path.join(root_dir, "vs/all_inactives_aligned.pt")
+        root_vs_dir = os.path.join(datamodule.virtual_screening_data_dir, "vs")
+
+        if not os.path.exists(root_vs_dir):
+            os.mkdir(root_vs_dir)
+        actives_path = os.path.join(root_vs_dir, "all_actives_aligned.pt")
+        inactives_path = os.path.join(root_vs_dir, "all_inactives_aligned.pt")
 
         if not os.path.exists(actives_path) or not os.path.exists(inactives_path):
-            alignment = PharmacophoreAlignment(root_dir)
+            alignment = PharmacophoreAlignment(datamodule.virtual_screening_data_dir)
             alignment.align_preprocessed_ligands_to_query()
 
         self.actives_data = torch.load(actives_path)

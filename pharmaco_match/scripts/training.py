@@ -13,7 +13,6 @@ from model import (
     PharmacoMatch,
     CurriculumLearningScheduler,
 )
-from utils import load_model_from_path, load_hparams_from_path
 
 
 def training(device):

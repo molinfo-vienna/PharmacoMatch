@@ -15,7 +15,6 @@ from torch_geometric.nn import global_max_pool
 from dataset import VirtualScreeningDataModule
 from model import PharmacoMatch
 from utils import (
-    load_model_from_path,
     UmapEmbeddingPlotter,
     PcaEmbeddingPlotter,
     bedroc_score,

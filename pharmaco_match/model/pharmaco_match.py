@@ -8,7 +8,7 @@ from torch_geometric.data import Data
 from torch_geometric import transforms as T
 from torchmetrics.classification import BinaryAUROC
 
-from .encoder import GINEncoder, NNConvEncoder
+from .encoder import NNConvEncoder
 from .projector import ProjectionPhectorMatch
 from dataset import (
     RandomSphericalNoise,
