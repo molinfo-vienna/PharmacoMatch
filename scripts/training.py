@@ -8,8 +8,8 @@ from lightning import Trainer, seed_everything
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
 from lightning.pytorch.callbacks import LearningRateMonitor
 
-from dataset import PharmacophoreDataModule
-from model import (
+from pharmacomatch.dataset import PharmacophoreDataModule
+from pharmacomatch.model import (
     PharmacoMatch,
     CurriculumLearningScheduler,
 )
@@ -19,7 +19,7 @@ def training(device):
     # Path variables
     ROOT = os.getcwd()
     PRETRAINING_ROOT = os.path.join(ROOT, "data", "training_data")
-    CONFIG_FILE_PATH = os.path.join(ROOT, "pharmaco_match", "scripts", "config.yaml")
+    CONFIG_FILE_PATH = os.path.join(ROOT, "scripts", "config.yaml")
     MODEL = PharmacoMatch
     params = yaml.load(
         open(CONFIG_FILE_PATH, "r"),

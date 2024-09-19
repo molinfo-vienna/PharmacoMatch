@@ -3,7 +3,7 @@ from torch import Tensor
 from torch_geometric.nn import global_add_pool
 from torch_geometric.loader import DataLoader
 
-from dataset import VirtualScreeningDataModule
+from ..dataset import VirtualScreeningDataModule
 
 
 class FeatureCountPrefilter:

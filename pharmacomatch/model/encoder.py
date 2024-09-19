@@ -5,8 +5,6 @@ import torch.nn.functional as F
 from torch_geometric.data import Data
 from torch_geometric.nn import (
     BatchNorm,
-    GINEConv,
-    GATv2Conv,
     MLP,
     NNConv,
     global_mean_pool,

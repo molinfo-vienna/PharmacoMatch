@@ -10,9 +10,8 @@ import torch
 import torch_geometric
 from torch_geometric.loader import DataLoader
 
-from dataset import PharmacophoreDataModule
-from model import ValidationDataTransformSetter, PharmacoMatch
-from utils import load_model_from_path
+from pharmacomatch.dataset import PharmacophoreDataModule
+from pharmacomatch.model import ValidationDataTransformSetter, PharmacoMatch
 
 
 class PositionalPerceptionAssessor:

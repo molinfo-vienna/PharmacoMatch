@@ -10,7 +10,7 @@ from torchmetrics.classification import BinaryAUROC
 
 from .encoder import NNConvEncoder
 from .projector import ProjectionPhectorMatch
-from dataset import (
+from ..dataset import (
     RandomSphericalNoise,
     FurthestSphericalSurfaceDisplacement,
     PositionsToGraphTransform,

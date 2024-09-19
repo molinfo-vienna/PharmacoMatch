@@ -3,7 +3,7 @@ import torch
 from torch_geometric import transforms as T
 
 
-from dataset import (
+from ..dataset import (
     RandomNodeDeletion,
     FurthestSphericalSurfaceDisplacement,
     PositionsToGraphTransform,

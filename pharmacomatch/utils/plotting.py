@@ -11,8 +11,8 @@ import torch
 import umap
 import umap.plot as uplot
 
-from dataset import VirtualScreeningMetaData
-from virtual_screening import VirtualScreener
+from ..dataset import VirtualScreeningMetaData
+from ..virtual_screening import VirtualScreener
 
 
 class UmapEmbeddingPlotter:

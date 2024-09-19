@@ -2,10 +2,10 @@ import sys
 import os
 import time
 
+import CDPL.Pharm as Pharm
 import torch
 
-import CDPL.Pharm as Pharm
-from dataset import VirtualScreeningDataModule
+from ..dataset import VirtualScreeningDataModule
 
 
 class PharmacophoreAlignment:

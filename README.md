@@ -47,9 +47,10 @@ A pretrained model is readily available for use.
 - **`pharmaco_match`:** Our PyTorch code for model training, structured as:
     - `dataset`: Data-related modules.
     - `model`: Model implementation and training logic.
-    - `scripts`: Training, benchmarking, and experimental scripts.
+    - `utils`: Contains utility functions. 
     - `virtual_screening`: Classes for virtual screening with our model.
 - **`trained_model`:** Stores the pretrained model used in our study.
+- **`scripts`**: Training, benchmarking, and experiments scripts.
 
 
 **Model Evaluation**

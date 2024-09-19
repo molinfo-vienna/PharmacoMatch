@@ -12,15 +12,15 @@ import torch
 import torch_geometric
 from torch_geometric.nn import global_max_pool
 
-from dataset import VirtualScreeningDataModule
-from model import PharmacoMatch
-from utils import (
+from pharmacomatch.dataset import VirtualScreeningDataModule
+from pharmacomatch.model import PharmacoMatch
+from pharmacomatch.utils import (
     UmapEmbeddingPlotter,
     PcaEmbeddingPlotter,
     bedroc_score,
     bootstrap_metric,
 )
-from virtual_screening import (
+from pharmacomatch.virtual_screening import (
     VirtualScreeningEmbedder,
     VirtualScreener,
     ClassicalVirtualScreener,
