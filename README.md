@@ -35,7 +35,7 @@ A pretrained model is readily available for use.
 
 4. **Download preprocessed data from figshare:**
 
-    The data can be found [here](). Unzip and place the `data` folder into the `PharmacoMatch` directory.
+    The data can be found [here](https://figshare.com/s/24757b89ea7f0932bf3c?file=49290172). Unzip and place the `data` folder into the `PharmacoMatch` directory.
 
 **Repository Contents**
 
