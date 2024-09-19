@@ -2,7 +2,7 @@
 .env
 .pytest_cache
 .ipynb_checkpoints
-dataset
+data
 results
 plots
 visualization
