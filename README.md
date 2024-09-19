@@ -58,15 +58,23 @@ A pretrained model is readily available for use.
 To reproduce our results, execute the following scripts:
 
 - **`benchmark.py`:** Embeds test datasets, generates visualizations, and calculates evaluation metrics as reported in our paper.
+
+```bash
+python3 scripts/benchmark.py 
+```
+
 - **`positional_perception.py`:** Performs the positional perception experiment. 
 
+```bash
+python3 scripts/positional_perception.py 0
+```
 
 **Model Training**
 
 You can train the model yourself as follows:
 
 ```bash
-python3 pharmaco_match/scripts/training.py 0
+python3 scripts/training.py 0
 ```
 
 where `0` corresponds to the GPU device index. If your hardware doesn't meet the memory requirements, you can reduce the model size by decreasing the `hidden_dim_encoder` parameter in the `config.yaml` file (note that this may reduce model performance).
