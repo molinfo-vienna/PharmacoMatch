@@ -6,13 +6,14 @@ This repository contains the code for our ICLR submission.
 You can download the preprocessed data from the provided figshare link. 
 A pretrained model is readily available for use.
 
-**System specifications**
-
+This project was developed with the following system specifications:
 - **GPU:** NVIDIA GeForce 3090 RTX with 24 GB GDDR6X (recommended for model inference and training).
 - **CPU:** AMD EPYC 7713 64-Core Processor (used for data preprocessing and pharmacophore alignment).
 - **OS:** Rocky Linux (v9.4).
 
-**Setting Up the Environment**
+Make sure to enable GPU acceleration on your machine. 
+
+**Installation**
 
 1. **Install Conda and create a new environment:**
 
@@ -35,7 +36,7 @@ A pretrained model is readily available for use.
 
 4. **Download preprocessed data from figshare:**
 
-    The data can be found [here](https://figshare.com/s/24757b89ea7f0932bf3c?file=49290172). Unzip and place the `data` folder into the `PharmacoMatch` directory.
+    The data can be found [here](https://figshare.com/s/24757b89ea7f0932bf3c?file=49290172). Unzip and place the `data` folder into the root directory of the `PharmacoMatch` project.
 
 **Repository Contents**
 
