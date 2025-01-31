@@ -18,7 +18,9 @@ from pharmacomatch.utils import (
     UmapEmbeddingPlotter,
     PcaEmbeddingPlotter,
     bedroc_score,
+    enrichment_factor,
     bootstrap_metric,
+    load_model_from_path,
 )
 from pharmacomatch.virtual_screening import (
     VirtualScreeningEmbedder,
@@ -40,6 +42,24 @@ params = yaml.load(
     Loader=yaml.FullLoader,
 )
 
+# # Path variables
+# ROOT = os.getcwd()
+# DATASET_ROOT = "/data/sharedXL/projects/PharmacoMatch/DUD-E"
+# VERSION = 328
+# RESULTS_LOCATION = os.path.join(ROOT, "results_updated", f"results_{VERSION}")
+# if not os.path.exists(RESULTS_LOCATION):
+#     os.mkdir(RESULTS_LOCATION)
+# DEVICE = 0
+# MODEL = PharmacoMatch
+# PROJECT_ROOT = "/data/sharedXL/projects/PharmacoMatch"
+# MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
+# params = yaml.load(
+#     open(os.path.join(MODEL_PATH, "hparams.yaml"), "r"),
+#     Loader=yaml.FullLoader,
+# )
+
+N_BOOTSTRAPS = 100
+
 # Deterministic flags (should not be necessary for inference, but just in case)
 torch.set_float32_matmul_precision("medium")
 torch_geometric.seed_everything(params["seed"])
@@ -51,6 +71,7 @@ torch.backends.cudnn.benchmark = False
 model = MODEL.load_from_checkpoint(
     MODEL_PATH, map_location=torch.device(f"cuda:{DEVICE}")
 )
+#model = load_model_from_path(MODEL_PATH, MODEL)
 trainer = Trainer(
     num_nodes=1,
     devices=[DEVICE],
@@ -103,7 +124,9 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
 
         # Calc metric
         auroc = roc_auc_score(y_true, y_pred)
-        auroc_mean, auroc_std = bootstrap_metric(y_true, y_pred, roc_auc_score, 1000)
+        auroc_mean, auroc_std = bootstrap_metric(
+            y_true, y_pred, roc_auc_score, N_BOOTSTRAPS
+        )
         experiment_data["mean_auroc_comparison"] = auroc_mean
         experiment_data["std_auroc_comparison"] = auroc_std
         fpr, tpr, threshold = roc_curve(y_true, y_pred)
@@ -117,14 +140,26 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         y_true = screener.ligand_label
         y_pred = -screener.ligand_score
         auroc = roc_auc_score(y_true, y_pred)
-        auroc_mean, auroc_std = bootstrap_metric(y_true, y_pred, roc_auc_score, 1000)
+        auroc_mean, auroc_std = bootstrap_metric(
+            y_true, y_pred, roc_auc_score, N_BOOTSTRAPS
+        )
         bedroc = bedroc_score(y_true, y_pred)
-        bedroc_mean, bedroc_std = bootstrap_metric(y_true, y_pred, bedroc_score, 1000)
+        bedroc_mean, bedroc_std = bootstrap_metric(
+            y_true, y_pred, bedroc_score, N_BOOTSTRAPS
+        )
 
         experiment_data["mean_order_embedding_auroc"] = auroc_mean
         experiment_data["std_order_embedding_auroc"] = auroc_std
         experiment_data["mean_order_embedding_bedroc"] = bedroc_mean
         experiment_data["std_order_embedding_bedroc"] = bedroc_std
+
+        alphas = [0.01, 0.05, 0.1]
+        for alpha in alphas:
+            enrichment_mean, enrichment_std = bootstrap_metric(
+                y_true, y_pred, enrichment_factor, N_BOOTSTRAPS, alpha=alpha
+            )
+            experiment_data[f"mean_order_embedding_ef{alpha}"] = enrichment_mean
+            experiment_data[f"std_order_embedding_ef{alpha}"] = enrichment_std
 
         fpr, tpr, threshold = roc_curve(y_true, y_pred)
         axes2[i // 5][i % 5].plot(fpr, tpr)
@@ -135,13 +170,24 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
         y_true = screener.ligand_label
         y_pred = global_max_pool(classical_screener.alignment_score, screener.mol_ids)
         auroc_cdp = roc_auc_score(y_true, y_pred)
-        auroc_mean, auroc_std = bootstrap_metric(y_true, y_pred, roc_auc_score, 1000)
+        auroc_mean, auroc_std = bootstrap_metric(
+            y_true, y_pred, roc_auc_score, N_BOOTSTRAPS
+        )
         bedroc_cdp = bedroc_score(y_true, y_pred)
-        bedroc_mean, bedroc_std = bootstrap_metric(y_true, y_pred, bedroc_score, 1000)
+        bedroc_mean, bedroc_std = bootstrap_metric(
+            y_true, y_pred, bedroc_score, N_BOOTSTRAPS
+        )
         experiment_data["mean_cdpkit_auroc"] = auroc_mean
         experiment_data["std_cdpkit_auroc"] = auroc_std
         experiment_data["mean_cdpkit_bedroc"] = bedroc_mean
         experiment_data["std_cdpkit_bedroc"] = bedroc_std
+
+        for alpha in alphas:
+            enrichment_mean, enrichment_std = bootstrap_metric(
+                y_true, y_pred, enrichment_factor, N_BOOTSTRAPS, alpha=alpha
+            )
+            experiment_data[f"mean_cdpkit_ef{alpha}"] = enrichment_mean
+            experiment_data[f"std_cdpkit_ef{alpha}"] = enrichment_std
 
         fpr, tpr, threshold = roc_curve(y_true, y_pred)
         axes2[i // 5][i % 5].plot(fpr, tpr)
@@ -184,4 +230,4 @@ fig2.savefig(
     os.path.join(RESULTS_LOCATION, "hitlist.png"), dpi=150, bbox_inches="tight"
 )
 final_results = pd.DataFrame(results)
-final_results.to_csv(os.path.join(RESULTS_LOCATION, "results.csv"))
+final_results.to_csv(os.path.join(RESULTS_LOCATION, "results_dude.csv"))

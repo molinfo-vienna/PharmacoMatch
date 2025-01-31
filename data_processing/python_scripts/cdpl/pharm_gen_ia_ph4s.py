@@ -203,6 +203,9 @@ def main() -> None:
                     lig_mol, rec_mol, ia_ph4, True
                 )  # generate the pharmacophore (True = extract ligand environment residues on-the-fly)
 
+                Pharm.removePositionalDuplicates(ia_ph4)
+                Pharm.clearOrientations(ia_ph4)
+
                 if not args.quiet:
                     print(
                         " -> Generated %s features: %s"

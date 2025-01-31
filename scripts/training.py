@@ -15,10 +15,11 @@ from pharmacomatch.model import (
 )
 
 
-def training(device):
+def training():
     # Path variables
     ROOT = os.getcwd()
     PRETRAINING_ROOT = os.path.join(ROOT, "data", "training_data")
+    # PRETRAINING_ROOT = "/data/local/drose/PharmacoMatch/training_data"
     CONFIG_FILE_PATH = os.path.join(ROOT, "scripts", "config.yaml")
     MODEL = PharmacoMatch
     params = yaml.load(
@@ -37,6 +38,7 @@ def training(device):
     model = MODEL(**params)
     tb_logger = TensorBoardLogger(
         os.path.join(ROOT, "trained_model", "logs/"),
+        #"/data/sharedXL/projects/PharmacoMatch/logs",
         name=f"{MODEL.__name__}",
         default_hp_metric=False,
     )
@@ -45,7 +47,7 @@ def training(device):
         CurriculumLearningScheduler(4, 10),
     ]
     trainer = Trainer(
-        devices=device,
+        devices=1,
         max_epochs=params["epochs"],
         accelerator="auto",
         logger=tb_logger,
@@ -64,5 +66,4 @@ def training(device):
 
 
 if __name__ == "__main__":
-    device = [int(i) for i in list(sys.argv[1])]
-    training(device)
+    training()

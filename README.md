@@ -1,8 +1,10 @@
-### PharmacoMatch: Efficient 3D Pharmacophore Screening through Neural Subgraph Matching
+### PharmacoMatch: Efficient 3D Pharmacophore Screening via Neural Subgraph Matching
+
+![image](images/overview.jpg)
 
 **General**
 
-This repository contains the code for our ICLR submission. 
+This is the official implementation of PharmacoMatch. You can find the ICLR paper on [OpenReview](https://openreview.net/forum?id=27Qk18IZum&referrer=%5BAuthor%20Console%5D(%2Fgroup%3Fid%3DICLR.cc%2F2025%2FConference%2FAuthors%23your-submissions)), the preprint version is available on [arXiv](https://arxiv.org/abs/2409.06316).
 You can download the preprocessed data from the provided figshare link. 
 A pretrained model is readily available for use.
 
@@ -12,6 +14,17 @@ This project was developed with the following system specifications:
 - **OS:** Rocky Linux (v9.4).
 
 Make sure to enable GPU acceleration on your machine. 
+
+If you use this code or the models in your research, please cite our paper:
+
+```bibtex
+    @inproceedings{rose2025pharmaco_match,
+        title={PharmacoMatch: Efficient 3D Pharmacophore Screening through Neural Subgraph Matching}, 
+        author={Daniel Rose and Oliver Wieder and Thomas Seidel and Thierry Langer},
+        booktitle={International Conference on Learning Representations (ICLR)},
+        year={2025}
+    }
+```
 
 **Installation**
 

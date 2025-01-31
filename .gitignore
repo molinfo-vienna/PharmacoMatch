@@ -3,8 +3,9 @@
 .pytest_cache
 .ipynb_checkpoints
 data
-results
+results*
 plots
 visualization
 notebooks/
 __pycache__/
+run.sh

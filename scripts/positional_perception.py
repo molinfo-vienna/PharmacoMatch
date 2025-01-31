@@ -1,5 +1,4 @@
 import os
-import sys
 import yaml
 
 from lightning import Trainer, seed_everything
@@ -12,6 +11,7 @@ from torch_geometric.loader import DataLoader
 
 from pharmacomatch.dataset import PharmacophoreDataModule
 from pharmacomatch.model import ValidationDataTransformSetter, PharmacoMatch
+from pharmacomatch.utils.utility_functions import load_model_from_path
 
 
 class PositionalPerceptionAssessor:
@@ -33,14 +33,14 @@ class PositionalPerceptionAssessor:
         model: PharmacoMatch,
         dataloader: DataLoader,
         device: list[int],
-        max_threshold: int = 20000,
+        max_threshold: int = 6000,
     ) -> None:
         self.model = model
         self.dataloader = dataloader
         self.device = device
         self.max_threshold = max_threshold
         self.max_radius = 10
-        steps_radius = 41
+        steps_radius = 11
         steps_threshold = 50
 
         self.radius_range = [
@@ -50,6 +50,7 @@ class PositionalPerceptionAssessor:
             float(i) for i in torch.linspace(self.max_threshold, 0, steps_threshold)
         ]
         self.mean_matching_decision = np.zeros((steps_threshold, steps_radius))
+        self.mean_matching_decision_reverse = np.zeros((steps_threshold, steps_radius))
 
     def subgraph_isomorphism_evaluation(self, results_path: str) -> None:
         """Evaluation of the matching decision function with different displacement
@@ -63,14 +64,19 @@ class PositionalPerceptionAssessor:
                 self.mean_matching_decision[i, j] = torch.sum(
                     self.model.penalty(queries, target) <= threshold
                 ) / len(queries)
+                self.mean_matching_decision_reverse[i, j] = torch.sum(
+                    self.model.penalty(target, queries) <= threshold
+                ) / len(queries)
 
         fig1 = self._create2Dplot(self.mean_matching_decision)
         fig2 = self._create3Dplot(self.mean_matching_decision)
+        fig3 = self._create3Dplot(self.mean_matching_decision_reverse)
 
         fig1.savefig(
             os.path.join(results_path, "positional_perception.jpg"), bbox_inches="tight"
         )
         fig2.savefig(os.path.join(results_path, "Query-Target.png"), dpi=150)
+        fig3.savefig(os.path.join(results_path, "Target-Query.png"), dpi=150)
 
     def _create_embeddings(self, node_masking, radius, node_to_keep_lower_bound):
         """Create embeddings for the given parameters."""
@@ -130,19 +136,29 @@ class PositionalPerceptionAssessor:
         return fig
 
 
-def run(device):
+def run():
     # Path variables
     ROOT = os.getcwd()
     PRETRAINING_ROOT = os.path.join(ROOT, "data", "training_data")
+    #PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
+    #VERSION = 328
     RESULTS_LOCATION = os.path.join(ROOT, "results")
+    #RESULTS_LOCATION = os.path.join(ROOT, f"results_{VERSION}")
     if not os.path.exists(RESULTS_LOCATION):
         os.mkdir(RESULTS_LOCATION)
     MODEL = PharmacoMatch
     MODEL_PATH = os.path.join(ROOT, "trained_model", "trained_model.ckpt")
     params = yaml.load(
-        open(os.path.join(ROOT, "trained_model", "hparams.yaml"), "r"),
+        open(os.path.join(MODEL_PATH, "hparams.yaml"), "r"),
         Loader=yaml.FullLoader,
     )
+    #PROJECT_ROOT = "/data/shared/projects/PhectorDB"
+    #MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
+    # params = yaml.load(
+    #    open(os.path.join(ROOT, "trained_model", "hparams.yaml"), "r"),
+    #    Loader=yaml.FullLoader,
+    # )
+    DEVICE = [0]
 
     # Deterministic flags
     torch.set_float32_matmul_precision("medium")
@@ -159,13 +175,13 @@ def run(device):
     model = MODEL.load_from_checkpoint(
         MODEL_PATH, map_location=torch.device(f"cuda:{device[0]}")
     )
+    #model = load_model_from_path(MODEL_PATH, MODEL)
     device = [model.device.index]
 
     datamodule.setup()
-    eval = PositionalPerceptionAssessor(model, datamodule.val_dataloader()[1], device)
+    eval = PositionalPerceptionAssessor(model, datamodule.val_dataloader()[1], DEVICE)
     eval.subgraph_isomorphism_evaluation(RESULTS_LOCATION)
 
 
 if __name__ == "__main__":
-    device = [int(i) for i in list(sys.argv[1])]
-    run(device)
+    run()

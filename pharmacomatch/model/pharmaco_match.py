@@ -8,13 +8,19 @@ from torch_geometric.data import Data
 from torch_geometric import transforms as T
 from torchmetrics.classification import BinaryAUROC
 
-from .encoder import NNConvEncoder
+from .encoder import (
+    NNConvEncoder,
+    SchnetEncoder,
+    GINEncoder,
+    GATEncoder,
+)
 from .projector import ProjectionPhectorMatch
 from ..dataset import (
     RandomSphericalNoise,
     FurthestSphericalSurfaceDisplacement,
     PositionsToGraphTransform,
     TwiceRandomNodeDeletionWithoutOverlap,
+    RandomSphericalSurfaceNoise,
 )
 
 
@@ -33,24 +39,51 @@ class PharmacoMatch(LightningModule):
 
         # Data transforms for positive and negative pair creation
         self.twice_node_deletion = TwiceRandomNodeDeletionWithoutOverlap()
-        self.target_transform = T.Compose([PositionsToGraphTransform()])
+        self.target_transform = T.Compose(
+            [
+                PositionsToGraphTransform(
+                    num_edge_features=self.hparams.num_edge_features
+                ),
+            ]
+        )
         self.query_transform = T.Compose(
-            [RandomSphericalNoise(self.hparams.radius), PositionsToGraphTransform()]
+            [
+                RandomSphericalNoise(self.hparams.radius),
+                PositionsToGraphTransform(
+                    num_edge_features=self.hparams.num_edge_features
+                ),
+            ]
         )
         self.reference_transform = T.Compose(
             [
                 RandomSphericalNoise(self.hparams.radius_negative),
-                PositionsToGraphTransform(),
+                PositionsToGraphTransform(
+                    num_edge_features=self.hparams.num_edge_features
+                ),
             ]
         )
         self.negative_query_transform = T.Compose(
             [
                 FurthestSphericalSurfaceDisplacement(self.hparams.radius_negative),
-                PositionsToGraphTransform(),
+                PositionsToGraphTransform(
+                    num_edge_features=self.hparams.num_edge_features
+                ),
             ]
         )
 
         # Encoder and projector
+        if self.hparams.encoder == "NNConv":
+            self.encoder = NNConvEncoder(
+                input_dim=self.hparams.num_node_features,
+                hidden_dim=self.hparams.hidden_dim_encoder,
+                output_dim=self.hparams.input_dim_projector,
+                n_conv_layers=self.hparams.n_layers_conv,
+                num_edge_features=self.hparams.num_edge_features,
+                dropout=self.hparams.dropout,
+                residual_connection=self.hparams.residual_connection,
+                pooling=self.hparams.pooling,
+            )
+
         if self.hparams.encoder == "GIN":
             self.encoder = GINEncoder(
                 input_dim=self.hparams.num_node_features,
@@ -63,9 +96,22 @@ class PharmacoMatch(LightningModule):
                 pooling=self.hparams.pooling,
             )
 
-        if self.hparams.encoder == "NNConv":
-            self.encoder = NNConvEncoder(
+        if self.hparams.encoder == "Schnet":
+            self.encoder = SchnetEncoder(
                 input_dim=self.hparams.num_node_features,
+                hidden_dim=self.hparams.hidden_dim_encoder,
+                output_dim=self.hparams.input_dim_projector,
+                n_conv_layers=self.hparams.n_layers_conv,
+                num_edge_features=self.hparams.num_edge_features,
+                dropout=self.hparams.dropout,
+                residual_connection=self.hparams.residual_connection,
+                pooling=self.hparams.pooling,
+            )
+
+        if self.hparams.encoder == "GAT":
+            self.encoder = GATEncoder(
+                input_dim=self.hparams.num_node_features,
+                node_embedding_dim=self.hparams.node_embedding_dim,
                 hidden_dim=self.hparams.hidden_dim_encoder,
                 output_dim=self.hparams.input_dim_projector,
                 n_conv_layers=self.hparams.n_layers_conv,

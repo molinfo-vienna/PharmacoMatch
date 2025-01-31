@@ -5,6 +5,7 @@ from .dataset_transforms import (
     TwiceRandomNodeDeletionWithoutOverlap,
     RandomNodeDeletionByRatio,
     RandomSphericalNoise,
+    RandomSphericalSurfaceNoise,
     FurthestSphericalSurfaceDisplacement,
     PositionsToGraphTransform,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "PharmacophoreDataModule",
     "VirtualScreeningDataModule",
     "RandomSphericalNoise",
+    "RandomSphericalSurfaceNoise",
     "FurthestSphericalSurfaceDisplacement",
     "PositionsToGraphTransform",
 ]

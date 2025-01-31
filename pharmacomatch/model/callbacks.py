@@ -87,7 +87,7 @@ class ValidationDataTransformSetter(Callback):
             pl_module.target_transform = T.Compose(
                 [
                     FurthestSphericalSurfaceDisplacement(self.radius),
-                    PositionsToGraphTransform(),
+                    PositionsToGraphTransform(pl_module.hparams.num_edge_features),
                 ]
             )
         else:
@@ -95,6 +95,6 @@ class ValidationDataTransformSetter(Callback):
                 [
                     RandomNodeDeletion(self.node_to_keep_lower_bound),
                     FurthestSphericalSurfaceDisplacement(self.radius),
-                    PositionsToGraphTransform(),
+                    PositionsToGraphTransform(pl_module.hparams.num_edge_features),
                 ]
             )

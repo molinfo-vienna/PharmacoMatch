@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#cdpkit='/data/shared/software/CDPKit-head-RH9/Bin'
+#project='/home/drose/git/PharmacoMatch'
+#data="/data/sharedXL/projects/PharmacoMatch/DUD-E"
 cdpkit='<your_path>/CDPKit/Bin'
 project='<your_path>/PharmacoMatch'
 data="$project/data/DUD-E"

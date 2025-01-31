@@ -10,13 +10,20 @@ from rdkit.ML.Scoring.Scoring import CalcBEDROC
 
 
 def bootstrap_metric(
-    y_true: Tensor, y_pred: Tensor, metric: Callable, num_bootstrap: int = 1000
+    y_true: Tensor,
+    y_pred: Tensor,
+    metric: Callable,
+    num_bootstrap: int = 100,
+    **kwargs,
 ) -> Tuple[float, float]:
     """Bootstrap the metric calculation."""
     vals = []
     for _ in range(num_bootstrap):
         idx = (np.random.uniform(size=len(y_true)) * len(y_true)).astype(int)
-        vals.append(metric(y_true[idx], y_pred[idx]))
+        if "alpha" in kwargs.keys():
+            vals.append(metric(y_true[idx], y_pred[idx], alpha=kwargs["alpha"]))
+        else:
+            vals.append(metric(y_true[idx], y_pred[idx]))
 
     return np.mean(vals), np.std(vals)
 
@@ -41,6 +48,26 @@ def bedroc_score(y_true: Tensor, y_pred: Tensor, alpha: float = 20) -> float:
     bedroc = CalcBEDROC(scores, 1, alpha)
 
     return bedroc
+
+
+def enrichment_factor(y_true: Tensor, y_pred: Tensor, alpha: float = 0.1) -> float:
+    """
+    Calculate EF score.
+
+    Parameters:
+    - y_true: true binary labels (0 or 1)
+    - y_score: predicted scores or probabilities
+    - alpha: parameter controlling the degree of early retrieval emphasis
+
+    Returns:
+    - EF score
+    """
+    predicted_ranking = torch.argsort(y_pred, descending=True)
+    bound = int(len(y_pred) * alpha)
+    actives_above_bound = y_true[predicted_ranking][:bound]
+    ef = sum(actives_above_bound) / sum(y_true) / alpha
+
+    return ef.item()
 
 
 def load_hparams_from_path(folder_path: str) -> dict:
@@ -72,63 +99,3 @@ def load_model_from_path(
         )
     else:
         return None
-
-
-# def visualize_pharm(data_list):
-#     # plot configurations
-#     fig = plt.figure()
-
-#     ax = fig.add_subplot(111, projection="3d")
-#     ax.axes.xaxis.set_ticklabels([])
-#     ax.axes.yaxis.set_ticklabels([])
-#     ax.axes.zaxis.set_ticklabels([])
-
-#     colors = [
-#         "blue",
-#         "orange",
-#         "green",
-#         "red",
-#         "purple",
-#         "brown",
-#         "pink",
-#         "gray",
-#         "olive",
-#         "black",
-#     ]
-
-#     def plot_data(data, edge_color):
-#         pos = data.pos.cpu().numpy()
-#         x = data.x.cpu().numpy()
-
-#         if data.edge_index is not None:
-#             edge_index = data.edge_index.cpu()
-#             for src, dst in edge_index.t().tolist():
-#                 src = pos[src].tolist()
-#                 dst = pos[dst].tolist()
-#                 ax.plot(
-#                     [src[0], dst[0]],
-#                     [src[1], dst[1]],
-#                     [src[2], dst[2]],
-#                     linewidth=0.3,
-#                     color=edge_color,
-#                 )
-
-#         # List of feature types
-#         features = [(np.argmax(x, axis=1) == 0) * (np.sum(x, axis=1) != 0)]
-#         for i in range(1, 9):
-#             features.append(np.argmax(x, axis=1) == i)
-#         features.append(np.sum(x, axis=1) == 0)  # --> masked features
-
-#         for feature, c in zip(features, colors):
-#             ax.scatter(
-#                 pos[feature, 0],
-#                 pos[feature, 1],
-#                 pos[feature, 2],
-#                 s=50,
-#                 color=c,
-#             )
-
-#     for i, data in enumerate(data_list):
-#         plot_data(data, colors[i % 10])
-
-#     plt.savefig("pharm.png")
