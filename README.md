@@ -19,7 +19,7 @@ If you use this code or the models in your research, please cite our paper:
 
 ```bibtex
     @inproceedings{rose2025pharmaco_match,
-        title={PharmacoMatch: Efficient 3D Pharmacophore Screening through Neural Subgraph Matching}, 
+        title={PharmacoMatch: Efficient 3D Pharmacophore Screening via Neural Subgraph Matching}, 
         author={Daniel Rose and Oliver Wieder and Thomas Seidel and Thierry Langer},
         booktitle={International Conference on Learning Representations (ICLR)},
         year={2025}
