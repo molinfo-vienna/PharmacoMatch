@@ -1,6 +1,7 @@
 #!/bin/bash
 
-root='/data/sharedXL/projects/PharmacoMatch/DUD-E'
+#root='/data/sharedXL/projects/PharmacoMatch/DUD-E'
+data="<your_path>/data/DUD-E"
 ligand_suffix='sdf'
 
 for target in "$root"/*; do

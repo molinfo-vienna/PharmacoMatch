@@ -33,7 +33,7 @@ from pharmacomatch.virtual_screening import (
     ClassicalVirtualScreener,
 )
 
-Define path variables
+# Define path variables
 ROOT = os.getcwd()
 DATASET_ROOT = os.path.join(ROOT, "data", "DEKOIS20")
 RESULTS_LOCATION = os.path.join(ROOT, "results")
@@ -74,7 +74,7 @@ torch.backends.cudnn.benchmark = False
 model = MODEL.load_from_checkpoint(
     MODEL_PATH, map_location=torch.device(f"cuda:{DEVICE}")
 )
-#model = load_model_from_path(MODEL_PATH, MODEL)
+# model = load_model_from_path(MODEL_PATH, MODEL)
 trainer = Trainer(
     num_nodes=1,
     devices=1,

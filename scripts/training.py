@@ -38,7 +38,7 @@ def training():
     model = MODEL(**params)
     tb_logger = TensorBoardLogger(
         os.path.join(ROOT, "trained_model", "logs/"),
-        #"/data/sharedXL/projects/PharmacoMatch/logs",
+        # "/data/sharedXL/projects/PharmacoMatch/logs",
         name=f"{MODEL.__name__}",
         default_hp_metric=False,
     )

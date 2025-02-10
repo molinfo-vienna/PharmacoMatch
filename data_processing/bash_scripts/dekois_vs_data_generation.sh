@@ -1,9 +1,14 @@
 #!/bin/bash
 
 # This script implements a pipeline to transform SMILES data into the ScreeningDatabase format
-root='/data/sharedXL/projects/PharmacoMatch/DUD-E'
-python_scripts='/home/drose/git/PharmacoMatch/data_processing/python_scripts'
-cdpkit='/data/shared/software/CDPKit-head-RH9/Bin'
+#root='/data/sharedXL/projects/PharmacoMatch/DUD-E'
+#python_scripts='/home/drose/git/PharmacoMatch/data_processing/python_scripts'
+#cdpkit='/data/shared/software/CDPKit-head-RH9/Bin'
+
+root='<your_path>/PharmacoMatch/data/DUD-E'
+python_scripts='<your_path>/PharmacoMatch/data_processing/python_scripts'
+cdpkit='<your_path>/CDPKit-head-RH9/Bin'
+
 filenames=('actives' 'inactives')
 
 for target in "$root"/*; do
