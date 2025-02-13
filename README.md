@@ -18,11 +18,13 @@ Make sure to enable GPU acceleration on your machine.
 If you use this code or the models in your research, please cite our paper:
 
 ```bibtex
-    @inproceedings{rose2025pharmaco_match,
-        title={PharmacoMatch: Efficient 3D Pharmacophore Screening via Neural Subgraph Matching}, 
-        author={Daniel Rose and Oliver Wieder and Thomas Seidel and Thierry Langer},
-        booktitle={International Conference on Learning Representations (ICLR)},
-        year={2025}
+    @inproceedings{
+    rose2025pharmacomatch,
+    title={PharmacoMatch: Efficient 3D Pharmacophore Screening via Neural Subgraph Matching},
+    author={Daniel Rose and Oliver Wieder and Thomas Seidel and Thierry Langer},
+    booktitle={The Thirteenth International Conference on Learning Representations},
+    year={2025},
+    url={https://openreview.net/forum?id=27Qk18IZum}
     }
 ```
 
