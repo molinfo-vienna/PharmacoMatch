@@ -14,6 +14,8 @@ from pharmacomatch.model import (
     CurriculumLearningScheduler,
 )
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 def training():
     # Path variables

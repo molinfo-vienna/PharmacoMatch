@@ -118,7 +118,7 @@ class PharmacophoreDataset(PharmacophoreDatasetBase):
     ) -> None:
         super().__init__(root, transform, pre_transform, pre_filter)
         path = self.processed_paths[0]
-        self.data, self.slices = torch.load(path)
+        self.data, self.slices = torch.load(path, weights_only=False)
 
     @property
     def raw_file_names(self) -> list[str]:
@@ -207,7 +207,7 @@ class VirtualScreeningDataset(PharmacophoreDatasetBase):
             path = self.processed_paths[1]
         if path_type == "query":
             path = self.processed_paths[2]
-        self.data, self.slices = torch.load(path)
+        self.data, self.slices = torch.load(path, weights_only=False)
 
     @property
     def raw_file_names(self) -> list[str]:

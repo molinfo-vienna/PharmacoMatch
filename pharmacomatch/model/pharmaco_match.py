@@ -254,7 +254,7 @@ class PharmacoMatch(LightningModule):
         pred_normalized = -pred
         pred_normalized = pred_normalized - torch.min(pred_normalized)
         pred_normalized = pred_normalized / torch.max(pred_normalized)
-        auroc_metric = BinaryAUROC(task="binary")
+        auroc_metric = BinaryAUROC()
         auroc = auroc_metric(pred_normalized, target)
 
         # Max-margin penalty for negative pairs
@@ -495,7 +495,7 @@ class PharmacoMatch(LightningModule):
         self, batch: Data, batch_idx: int
     ) -> Union[Tensor, tuple[Tensor, Tensor]]:
         """Prediction step for inference"""
-        if "mol_id" in batch.keys:
+        if "mol_id" in batch.keys():
             return self(self.target_transform(batch.clone())), batch.mol_id
         else:
             return self(self.target_transform(batch.clone()))

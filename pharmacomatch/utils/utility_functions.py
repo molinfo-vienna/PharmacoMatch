@@ -95,7 +95,7 @@ def load_model_from_path(
 
     if model_path:
         return model_class.load_from_checkpoint(
-            model_path, map_location=torch.device(f"cuda:{device}")
+            model_path, map_location=torch.device("cpu")
         )
     else:
         return None

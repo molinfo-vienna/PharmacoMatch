@@ -30,23 +30,23 @@ If you use this code or the models in your research, please cite our paper:
 
 **Installation**
 
-1. **Install Conda and create a new environment:**
+1. **Install Mamba and create a new environment:**
 
     ```bash
-    conda create -n pharmaco_match python==3.10.12
-    conda activate pharmaco_match
+    mamba create -n pharmaco_match python==3.10.12
+    mamba activate pharmaco_match
     ```
 
 2. **Navigate to the `PharmacoMatch` folder and install dependencies:**
 
     ```bash
-    pip install .
+    pip install -e .
     ```
 
 3. **Install additional PyG dependencies:**
 
     ```bash
-    pip install torch_scatter torch_sparse torch_cluster -f https://data.pyg.org/whl/torch-2.0.1+cu117.html
+    pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.7.0+cu126.html
     ```
 
 4. **Download preprocessed data from figshare:**

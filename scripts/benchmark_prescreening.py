@@ -33,6 +33,9 @@ from pharmacomatch.virtual_screening import (
     ClassicalVirtualScreener,
 )
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
+
 # Define path variables
 ROOT = os.getcwd()
 DATASET_ROOT = os.path.join(ROOT, "data", "DEKOIS20")

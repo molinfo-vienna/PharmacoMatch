@@ -13,6 +13,8 @@ from pharmacomatch.dataset import PharmacophoreDataModule
 from pharmacomatch.model import ValidationDataTransformSetter, PharmacoMatch
 from pharmacomatch.utils.utility_functions import load_model_from_path
 
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 class PositionalPerceptionAssessor:
     """Assessment of the positional perception of the model.
@@ -140,10 +142,10 @@ def run():
     # Path variables
     ROOT = os.getcwd()
     PRETRAINING_ROOT = os.path.join(ROOT, "data", "training_data")
-    #PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
-    #VERSION = 328
+    # PRETRAINING_ROOT = "/data/shared/projects/PhectorDB/training_data"
+    # VERSION = 328
     RESULTS_LOCATION = os.path.join(ROOT, "results")
-    #RESULTS_LOCATION = os.path.join(ROOT, f"results_{VERSION}")
+    # RESULTS_LOCATION = os.path.join(ROOT, f"results_{VERSION}")
     if not os.path.exists(RESULTS_LOCATION):
         os.mkdir(RESULTS_LOCATION)
     MODEL = PharmacoMatch
@@ -152,8 +154,8 @@ def run():
         open(os.path.join(MODEL_PATH, "hparams.yaml"), "r"),
         Loader=yaml.FullLoader,
     )
-    #PROJECT_ROOT = "/data/shared/projects/PhectorDB"
-    #MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
+    # PROJECT_ROOT = "/data/shared/projects/PhectorDB"
+    # MODEL_PATH = f"{PROJECT_ROOT}/logs/{MODEL.__name__}/version_{VERSION}/"
     # params = yaml.load(
     #    open(os.path.join(ROOT, "trained_model", "hparams.yaml"), "r"),
     #    Loader=yaml.FullLoader,
@@ -172,11 +174,8 @@ def run():
         batch_size=params["batch_size"],
     )
 
-    model = MODEL.load_from_checkpoint(
-        MODEL_PATH, map_location=torch.device(f"cuda:{device[0]}")
-    )
-    #model = load_model_from_path(MODEL_PATH, MODEL)
-    device = [model.device.index]
+    model = MODEL.load_from_checkpoint(MODEL_PATH, map_location=torch.device("cpu"))
+    # model = load_model_from_path(MODEL_PATH, MODEL)
 
     datamodule.setup()
     eval = PositionalPerceptionAssessor(model, datamodule.val_dataloader()[1], DEVICE)

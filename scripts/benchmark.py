@@ -1,5 +1,6 @@
 import os
 import yaml
+import errno
 
 from lightning import Trainer, seed_everything
 import matplotlib.pyplot as plt
@@ -27,6 +28,9 @@ from pharmacomatch.virtual_screening import (
     VirtualScreener,
     ClassicalVirtualScreener,
 )
+
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 
 # Define path variables
 ROOT = os.getcwd()
@@ -68,13 +72,12 @@ torch.backends.cudnn.determinstic = True
 torch.backends.cudnn.benchmark = False
 
 # Load the model and set up trainer for inference
-model = MODEL.load_from_checkpoint(
-    MODEL_PATH, map_location=torch.device(f"cuda:{DEVICE}")
-)
-#model = load_model_from_path(MODEL_PATH, MODEL)
+model = MODEL.load_from_checkpoint(MODEL_PATH, map_location=torch.device("cpu"))
+# model = load_model_from_path(MODEL_PATH, MODEL)
+
 trainer = Trainer(
     num_nodes=1,
-    devices=[DEVICE],
+    devices=1,
     max_epochs=params["epochs"],
     accelerator="auto",
     logger=False,
@@ -219,9 +222,12 @@ for TARGET in sorted(os.listdir(DATASET_ROOT)):
             bbox_inches="tight",
         )
 
-    except Exception as e:
-        print(e)
-        continue
+    except OSError as e:
+        if e.errno == errno.ENOTDIR:
+            print(e)
+            continue
+        else:
+            raise e
 
 fig1.savefig(
     os.path.join(RESULTS_LOCATION, "comparison.png"), dpi=150, bbox_inches="tight"
